@@ -1,0 +1,111 @@
+---
+description: 引擎仓库版本控制归属细则 —— 仓库判定命令（git --show-toplevel / --show-superproject-working-tree）、两仓库职责边界、提交与推送顺序（先子后父）、混提交后果、典型正反例。由 codebuddy-engine-vcs 入口规则按需加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-17T00:00:00.000Z
+provider:
+---
+
+# 引擎仓库版本控制归属细则
+
+配合入口规则 `RULE.mdc` 使用。本文件管「改动该提交到哪个仓库、以什么顺序提交」，不管提交摘要格式（见 `vcs-router` 规则）。
+
+## 1. 前提：一个工作区，两个 Git 仓库
+
+`.codebuddy/` 自身是独立 Git 仓库，在消费项目中以 submodule 形式出现：
+
+```
+<项目根>/                       ← 项目仓库（Git 仓库 A）
+├── .git/
+├── .codebuddy.project/          ← 项目侧（归项目仓库 A）
+├── .codebuddy.project-skills/   ← 项目侧（归项目仓库 A）
+├── <项目代码/资源>               ← 项目侧（归项目仓库 A）
+└── <路径>/.codebuddy/           ← 引擎仓库（Git 仓库 B）
+    ├── .git                     ← 文件（gitdir 指针，表明它是 submodule）
+    ├── skills/  rules/  agents/  scripts/   ← 引擎侧（归引擎仓库 B）
+    └── project.index.json
+```
+
+在**项目仓库**中，`.codebuddy/` 只被记录为一行 **`160000` submodule 指针**（一条 commit 号），
+而非其内部文件。所以「改 `.codebuddy/` 里的文件」在项目仓库视角**根本看不见**。
+
+## 2. 仓库判定方法（以 Git 为准，不靠目录名猜测）
+
+**判定「当前目录属于哪个仓库」**：
+
+```bash
+# 当前所在仓库的根目录（可能是引擎根，也可能是项目根）
+git rev-parse --show-toplevel
+
+# 非空 → 当前位于某 submodule 内，输出即其「父仓库（项目仓库）」根
+git rev-parse --show-superproject-working-tree
+```
+
+| 判定结果 | 含义 |
+|---------|------|
+| `--show-toplevel` = `.../.codebuddy`，`--show-superproject-working-tree` **非空** | 位于**引擎仓库**内，父仓库 = 项目仓库 |
+| `--show-toplevel` = 项目根，`--show-superproject-working-tree` **为空** | 位于**项目仓库**根（最外层），无父仓库 |
+
+**判定「某文件属于哪个仓库」**：看它是否在引擎仓库根之下。
+
+```bash
+# 引擎仓库根
+ENGINE_ROOT="$(git -C <路径>/.codebuddy rev-parse --show-toplevel)"
+
+# 文件在引擎仓库内 → 归引擎仓库；否则归项目仓库
+case "$(realpath <文件>)" in
+  "$ENGINE_ROOT"/*) echo "引擎仓库" ;;
+  *)                echo "项目仓库" ;;
+esac
+```
+
+> **不要**用「目录名是否为 `.codebuddy`」或「向上找有没有 `.codebuddy` 子目录」来判定归属——引擎以 submodule
+> 检出时，`.codebuddy` 就是仓库根，按目录名推断会失准。
+
+## 3. 两仓库的职责边界
+
+| 维度 | 引擎仓库（`.codebuddy/`） | 项目仓库（项目根） |
+|------|--------------------------|-------------------|
+| 管辖文件 | `.codebuddy/**`（skills、rules、agents、scripts、`project.index.json`、其 `.gitignore`/`.gitattributes`） | 项目代码/资源、`.codebuddy.project/**`、`.codebuddy.project-skills/**`、`.gitmodules` |
+| 远程 | 引擎远程（如 `<引擎远程地址>`） | 项目远程（如 `<项目远程地址>`） |
+| 分支 | 引擎分支（如 `main`） | 项目分支（如 `<项目分支>`） |
+| 提交命令所在目录 | 引擎根（`.codebuddy/`） | 项目根 |
+| 记录对方 | 无（子不知道父） | 一行 submodule 指针（`160000 <引擎commit>`） |
+
+## 4. 提交顺序：先子后父
+
+变更同时涉及两个仓库时（例如：引擎里加了脚本，项目里更新了 submodule 指针），**严格按此顺序**：
+
+```
+1) 在引擎仓库内提交引擎变更            git -C <引擎根> add/commit
+2) 推送引擎变更到引擎远程              git -C <引擎根> push
+3) 在项目仓库内提交 submodule 指针      git add <引擎路径> && git commit   （指针指向第 1 步的提交）
+4) 推送项目变更到项目远程              git push
+```
+
+**为何必须先子后父**：项目仓库的 submodule 指针记录的是引擎仓库的某个 **commit 号**。
+若先提交父仓、或引擎提交尚未推送到远程，协作者拉取项目仓库后执行 `git submodule update` 会**在引擎远程取不到该
+commit**，直接失败（实测报错形如 `Fetched in submodule path '<路径>', but it did not contain <commit>. Direct
+fetching of that commit failed.`）。顺序颠倒会让父仓指向一个别人拿不到的提交。
+
+**纯引擎变更**（只改 `.codebuddy/` 内文件）：只需第 1、2 步；项目仓库会出现 ` M <引擎路径>`
+（submodule 指针变化），若需要同步指针则补第 3、4 步，否则父仓仍锁定旧引擎版本。
+
+## 5. 常见错误与纠正
+
+| 错误做法 | 后果 | 正确做法 |
+|---------|------|---------|
+| 在项目根执行 `git commit` 来提交引擎改动 | 项目仓库里看不到引擎内部文件的变更，提交为空或只提交了指针 | 进入 `.codebuddy/`（或 `git -C <引擎根>`）提交 |
+| 把引擎改动与项目改动放进**同一笔**提交 | Git 不支持跨仓库单次提交；实际只会提交其中一个仓库，另一个被遗漏 | 拆成两笔，分别在各仓库提交 |
+| 先提交父仓的 submodule 指针，再提交/推送引擎 | 父仓指针指向未推送的 commit，协作者拉取后 `submodule update` 失败 | 先子后父（见 §4） |
+| 用项目仓库的 scope 映射/审查门禁套用到引擎提交 | 项目侧路径规则（包名/程序集/领域）对 `.codebuddy/` 不成立，scope 提取错误、门禁空跑 | 引擎提交按其自身规范；项目侧配置仅用于项目提交 |
+| 在 `.codebuddy/` 内跑项目级脚本/检查 | 脚本按项目根定位、读项目侧配置，路径与配置可能不适用 | 引擎仓库内只跑引擎级脚本（如 `scripts/check_manifest.py`） |
+
+## 6. 自检清单
+
+- [ ] 提交前是否用 `git rev-parse --show-toplevel` / `--show-superproject-working-tree` 确认了**目标仓库**？
+- [ ] 本次变更是否**全部**属于同一仓库？若跨仓库，是否已**拆成两笔**？
+- [ ] 引擎提交是否在 `.codebuddy/`（或 `git -C <引擎根>`）内执行（而非项目根）？
+- [ ] 若更新 submodule 指针，是否**先**提交并推送引擎、**再**提交项目指针？
+- [ ] 是否避免了把项目侧的 scope 映射 / 门禁参数套用到引擎提交？
+- [ ] 引擎仓库与其项目仓库各自 `.gitignore`/`.gitattributes` 是否被误用（两者互不影响）？

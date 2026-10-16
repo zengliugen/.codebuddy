@@ -156,6 +156,12 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
 4. **迁移机制已废除**：不再使用导出 zip + 补丁分发（旧 `MIGRATION.md` / `INVENTORY.md` /
    `CHANGES.md` / `export_codebuddy.cmd` / `codebuddy-migration-sync` 规则均已删除），改由 git
    （submodule）版本化分发；历史版本查询用 `git log`。
+5. **本仓库自身即「引擎仓库」，改动须提交到本仓库**：`.codebuddy/` 是一个独立 Git 仓库（在消费项目中
+   以 submodule 出现），其内文件的提交发生在**引擎仓库**，与「项目仓库」是两个提交目标——不得混为一笔，
+   且更新 submodule 指针须**先推送引擎、再提交项目指针**。约定详见
+   `rules/codebuddy-engine-vcs/`。
+6. **两条 `.codebuddy/**` 触发规则职责不同，勿合并**：`codebuddy-engine-vcs` 管「提交到哪个仓库」，
+   `codebuddy-project-config` 管「内容如何写」（项目内容外置）。
 
 ## 运行环境
 

@@ -65,6 +65,7 @@ provider:
 
 | 规则目录 | 入口生效方式 | 子规则数 | 说明 |
 |---------|-------------|---------|------|
+| `codebuddy-engine-vcs` | paths: `"**/.codebuddy/**"` | 1 | 引擎仓库提交归属（.codebuddy 自身独立仓库，与项目仓库分开提交） |
 | `codebuddy-project-config` | paths: `"**/.codebuddy/**"` | 1 | 项目配置隔离（外置到项目侧、索引登记、示例泛化、事实标注） |
 | `csharp-code` | alwaysApply: true | 5 | 审查规范 |
 | `csharp-comment` | alwaysApply: true | 5 | 注释规范 |
@@ -75,4 +76,6 @@ provider:
 | `unity-pipeline` | alwaysApply: true | 1 | Unity 操作规范 |
 | `vcs-router` | alwaysApply: true | 4 | 提交规范（仅 Git；审查门禁已并入 `git-commit/references/project-config.md`，不在本规则目录） |
 
-> **注**：`codebuddy-project-config` 触发面为 `.codebuddy/**`，管「项目内容如何写」（外置配置、索引登记、事实标注）；项目侧文件的生成由 `codebuddy-init` 技能负责。
+> **注**：`codebuddy-engine-vcs` 与 `codebuddy-project-config` 触发面相同（均为 `.codebuddy/**`），但职责不同——
+> 前者管「提交到哪个仓库」（引擎仓库 vs 项目仓库），后者管「内容如何写」（外置配置、索引登记、事实标注）。评估规则结构时勿将两者合并。
+> 项目侧文件的生成由 `codebuddy-init` 技能负责。

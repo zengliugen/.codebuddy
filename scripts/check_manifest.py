@@ -46,6 +46,7 @@ KNOWN_SKILLS = [
 
 # 引擎规则清单（新增/删除规则时同步本清单）
 KNOWN_RULES = [
+    "codebuddy-engine-vcs",
     "codebuddy-project-config",
     "csharp-code",
     "csharp-comment",
