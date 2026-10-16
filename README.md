@@ -12,6 +12,7 @@
 ```
 .codebuddy/                     # 本仓库根 = CodeBuddy 引擎内容
 ├── project.index.json          # 配置注册表：逻辑名 → 项目侧路径 + 骨架，规则薄壳映射
+├── update.cmd                  # 仓库更新双击入口（薄入口，调用 scripts/update_repo.py）
 ├── README.md                   # 本文件：引擎结构与约定
 ├── .gitignore                  # 排除项目侧绑定链接、机器级配置与运行产物
 ├── .gitattributes              # 行尾与二进制/文本归属声明
@@ -20,7 +21,7 @@
 │   └── third-party/            # 外部引入的三方技能（整体照搬上游）
 ├── rules/                      # 规则（入口 RULE.mdc + 子规则；项目事实正文薄壳引用）
 ├── agents/                     # 子代理
-└── scripts/                    # 引擎级通用脚本（清单校验、产物清理）
+└── scripts/                    # 引擎级通用脚本（清单校验、产物清理、仓库更新）
 ```
 
 > **检出位置约定**：本仓库应检出为消费项目的 **`.codebuddy/`**（如 `Program/Client/.codebuddy/`）。
@@ -112,6 +113,38 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 
 - 薄壳保留 frontmatter、`description`/触发条件、强制条款与**通用规范**；
 - 项目事实正文移到 `.codebuddy.project/rules/`，薄壳内声明「见索引 `rule_shells` 指向的正文」。
+
+## 仓库更新（update_repo.py）
+
+引擎以 git（submodule）分发，更新到最新由 `scripts/update_repo.py` 承担。脚本**自动识别仓库形态**
+并采用不同更新方式：
+
+| 形态 | 判定依据 | 更新方式 |
+|------|---------|---------|
+| **普通仓库** | `.git` 为目录、无父仓 | `git fetch` → 对当前分支 `git pull --ff-only` |
+| **子模块** | `.git` 为文件（gitdir 指针）或有父仓 | 同上拉取当前分支最新，**并额外提示**父仓需提交指针更新 |
+
+```bash
+python .codebuddy/scripts/update_repo.py              # 更新 .codebuddy 引擎（默认目标=脚本所在仓库）
+python .codebuddy/scripts/update_repo.py --dir <目录>  # 更新指定目录所在仓库
+python .codebuddy/scripts/update_repo.py --branch main # 显式指定目标分支
+python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报告差异
+```
+
+**双击入口**：`.codebuddy/update.cmd` 是薄入口，可直接双击运行（内部调用上述脚本，自动查找
+`python`/`py`，结束前 `pause` 便于查看输出）。参数同样透传：
+`update.cmd --json`、`update.cmd --fetch-only`。
+
+**安全约束**：
+
+- 工作区存在**未提交改动**时，**仅报告不自动拉取**（打印领先/落后与改动清单，避免冲突或丢失改动）。
+- 默认 `--ff-only`（仅快进）：本地与远程**分叉**时报错提示手动处理，不产生意外合并提交。
+- 检测到进行中的合并 / 变基（`MERGE_HEAD` / `REBASE_HEAD` 等）时**直接中止**，不做网络操作。
+- 退出码：`0` 成功（含已最新、报告模式）；`1` 执行错误；`3` 非 git 仓库 / 无远程 / 无法确定分支。
+
+> **子模块提醒**：子模块更新后其 HEAD 前移，但**父仓仍锁定旧提交**。若不提交父仓的指针更新，
+> 他人拉取到的仍是旧版本，且父仓 `git submodule update` 会把子模块**重置回**旧提交。
+> 脚本会在子模块模式下打印所需命令（父仓 `git add <子模块> && git commit`）。
 
 ## 仓库维护约定
 

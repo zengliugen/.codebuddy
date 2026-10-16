@@ -15,12 +15,15 @@
 *.yaml      text eol=lf
 *.yml       text eol=lf
 *.py        text eol=lf
-*.cmd       text eol=lf
 *.sh        text eol=lf
 *.txt       text eol=lf
 *.cs        text eol=lf
 *.csproj    text eol=lf
 *.sln       text eol=lf
+
+# --- Windows 批处理：强制 CRLF（CMD 解析器需 CRLF，LF 会导致语法异常）---
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
 
 # --- 二进制：不参与 diff、不做行尾转换 ---
 *.png       binary
