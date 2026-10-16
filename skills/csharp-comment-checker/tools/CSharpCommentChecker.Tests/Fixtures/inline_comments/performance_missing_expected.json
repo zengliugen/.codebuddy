@@ -1,0 +1,1 @@
+[{"line":18,"severity":"warning","category":"inline_magic_number","member":"UncommentedPreAlloc","memberType":"method"},{"line":18,"severity":"info","category":"inline_performance","member":"UncommentedPreAlloc","memberType":"method"}]

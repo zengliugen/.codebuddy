@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0-beta.3",
+  "binaries": {
+    "darwin-arm64": {
+      "filename": "unity-darwin-arm64",
+      "sha256": "adfb6dbd4bc2015052a63d2097ec535b5408f585e2e35f3754b995e1541eef48"
+    },
+    "darwin-x64": {
+      "filename": "unity-darwin-x64",
+      "sha256": "d0d3b356d107f333e866f72b96ff440f810976715df93dd79ea2a6b777c3b50f"
+    },
+    "linux-arm64": {
+      "filename": "unity-linux-arm64",
+      "sha256": "21da2bf98d16dbad55dd3bb187a01008acfe08396075e491880d97d818a9ef11"
+    },
+    "linux-arm64-appimage": {
+      "filename": "unity-linux-arm64.AppImage",
+      "sha256": "ed3cc0819bb69669a48c510416623f5298af9b0d57ac0ade0d18441d19ccbddf"
+    },
+    "linux-x64": {
+      "filename": "unity-linux-x64",
+      "sha256": "9b89aaa5a676e8e5bd6a3844a9398defb963bd3495186445a464a47057e54ea3"
+    },
+    "linux-x64-appimage": {
+      "filename": "unity-linux-x64.AppImage",
+      "sha256": "5a36b70d425a0aaf0bb0d99f8630ade03d5fc82167c0225d2f1559130cd26a95"
+    },
+    "win32-arm64": {
+      "filename": "unity-windows-arm64.exe",
+      "sha256": "138fa690eb617dc6209fe5cbd3803e79356d6399d82c4d2dc188f303a2250b08"
+    },
+    "win32-x64": {
+      "filename": "unity-windows-x64.exe",
+      "sha256": "ff9ef81ade1063041d25e2c549cc7ed14e96d446f4204400bf101b389f7b8502"
+    }
+  },
+  "packageManagers": {
+    "apt": {
+      "package": "unity-cli"
+    },
+    "rpm": {
+      "package": "unity-cli"
+    }
+  }
+}

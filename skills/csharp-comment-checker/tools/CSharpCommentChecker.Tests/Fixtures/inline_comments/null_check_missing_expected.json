@@ -1,0 +1,1 @@
+[{"line":18,"severity":"info","category":"inline_order","member":"DeepNullCheck","memberType":"method"},{"line":24,"severity":"info","category":"inline_null_check","member":"DeepNullCheck","memberType":"method"}]

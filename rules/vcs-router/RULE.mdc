@@ -1,0 +1,36 @@
+---
+description: 版本控制操作规范入口规则（Git）。操作统一入口路由强制条款。始终生效；提交摘要、授权安全等详细规范见同目录子规则，按通用/Git 分类命名，按需加载。
+alwaysApply: true
+enabled: true
+updatedAt: 2026-09-22T00:00:00.000Z
+provider:
+---
+
+# 版本控制操作规范（Git）
+
+本规则为 `vcs-router` 路由技能及 `git-commit`、`git-merge` 执行技能共享的**操作规范入口**，**始终生效**（`alwaysApply: true`）。其中「强制入口规则」是操作路由的兜底强制条款：无论技能触发机制是否生效，本规则都要求版本控制操作必须经 `vcs-router` 技能统一入口路由，禁止绕过技能直接执行对应命令。
+
+详细规范拆分在同目录子规则中，由对应技能执行时按需加载，不随入口全局注入。
+
+## 强制入口规则
+
+- **所有版本控制操作（含提交/合并）必须通过 `vcs-router` 技能统一入口路由**，由 vcs-router 检测当前目录是否为 Git 仓库后，路由到对应的 `git-<op>` 执行技能（如 `git-commit`）执行。当前 `git-merge` 为占位空实现，被路由时仅提示暂未实现。
+- 禁止直接使用 Bash/PowerShell 工具执行 `git commit` 等命令绕过技能入口。跳过技能等于跳过变更分析、操作计划、安全检查和授权环节。
+- 本次变更包含项目审查门禁配置的文件类型（默认 `.cs`）时，提交前自动触发代码审查（机制见 `git-commit` 技能 `references/project-config.md` §2（参数见项目侧 `project-config.md`），作为 H1 首个步骤执行）；存在 `error` 级别问题时必须修复或获得用户明确授权忽略后才可提交，禁止静默提交。
+
+## 子规则路由表
+
+| 分类 | 场景 | 子规则文件 | 内容 |
+|------|------|-----------|------|
+| 通用 | 生成提交摘要 | `common-commit-spec.mdc` | 提交摘要格式、type 类型定义与决策流程、scope 提取、subject 书写规则 |
+| 通用 | 提交授权与安全检查 | `common-submission-safety-spec.mdc` | 提交/推送发起权（按项目配置）、AskUserQuestion 授权、提交与推送分离、敏感信息检查 |
+| Git | Git 仓库提交 | `git-commit-spec.mdc` | Git 特定约束：.gitignore 检查、禁止行为、Git 边界情况 |
+| Git | Git 仓库合并 | `git-merge-spec.mdc` | Git 合并规范（当前未实现，空实现占位） |
+
+## 加载机制说明
+
+- 4 个子规则均为**按需加载**（`alwaysApply: false`），由 `git-commit` / `git-merge` 技能执行对应操作时显式读取对应子规则。
+- 提交摘要、授权安全为**公共**规范（`common-*` 前缀的两个子规则由所有执行技能共用）；`git-commit-spec.mdc`、`git-merge-spec.mdc` 为 Git 特定规范。
+- **审查门禁不在本目录**：提交前审查门禁的**机制由 `git-commit` 技能 `references/project-config.md` §2 承载**，**参数由项目侧配置（索引 `git_commit.project_config`）承载**（作为 §3 H1 首个步骤执行），不再单独设子规则文件。
+- **项目配置说明**：提交摘要确定性参数（type/长度/语言）见项目侧配置（索引 `git_commit.config`）；流程级配置（scope 规则、审查门禁参数、钩子步骤取值）见项目侧配置（索引 `git_commit.project_config`）。机制由 `git-commit` 技能 `references/project-config.md` 承载。目标项目只改项目侧配置，不改本规则。
+- 若操作不涉及版本控制提交或合并，但需要查阅对应规范，请主动 Read 对应子规则文件。

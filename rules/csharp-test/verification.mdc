@@ -1,0 +1,105 @@
+---
+description: 测试的编译与运行验证流程——必须经 unity-pipeline 技能执行 recompile 与异步 run_tests 并轮询终态、编辑器焦点排查、定向过滤、注释 checker 链路、验收闭环与提交衔接。编译或运行测试、验收测试改动时加载。
+alwaysApply: false
+paths: "**/Tests/**"
+enabled: true
+updatedAt: 2026-09-15T00:00:00.000Z
+provider:
+---
+
+# 测试验证与验收
+
+配合入口规则 `RULE.mdc` 使用。用例内容见 `authoring.mdc`，命名见 `naming-layout.mdc`。
+
+## 1. 强制入口：必须经 `unity-pipeline` 技能
+
+- 测试的**编译与运行必须通过 `unity-pipeline` 技能**（`recompile` / `recompile_status` / `run_tests` / `test_status`）。
+- **禁止**用 Bash/PowerShell 直接调用 `unity` CLI 绕过技能（详见 `unity-pipeline/RULE.mdc`）。
+
+## 2. 标准流程
+
+```bash
+# 1. 保持编辑器在失焦时仍持续 tick（无头工作前必需）
+unity command set_autotick --enable true
+
+# 2. 正常在磁盘上编辑测试文件
+
+# 3. 重编译并轮询到终态（按 JSON 字段判终态；completed / up_to_date 为终态）
+unity command recompile
+python .codebuddy/skills/unity-pipeline/scripts/unity_wait.py --command recompile_status
+
+# 4. 运行测试（预计超过 30 秒必须异步：命令层有 30s 硬超时，editor 模式同样命中）
+unity command run_tests --mode editor --async_tests true
+python .codebuddy/skills/unity-pipeline/scripts/unity_wait.py --command test_status
+python .codebuddy/skills/unity-pipeline/scripts/unity_test_summary.py --file Temp/pipeline_test_status.json
+```
+
+硬性要求：
+
+1. **不得跳过编译**：改动测试文件后必须先 `recompile` 并确认 `failed=false`、`errors=[]` 再运行测试。
+2. **异步必须轮询**：不要假定触发调用的返回值代表完成；轮询**按 JSON 字段判终态**，禁止对整段 JSON 做关键字匹配
+   （`"failed":false` 会被 `failed` 误命中）。
+3. **编辑期间不要并发跑编译/测试**：会出现「改了又编译」的中间态结果，难以定位失败原因。
+
+## 3. 定向运行与失败定位
+
+- 只验证某个 fixture 时用过滤器，减少总耗时：
+  ```bash
+  unity command run_tests --mode editor --filter ExampleTests --filter_type testName --async_tests true
+  ```
+- 全量运行用于最终回归（确认未引入其它失败）。
+- **已知警告**：当选中的测试存在失败时，`run_tests` 可能返回不透明结果；改用更窄的 `--filter` 重跑定位。
+- 结果解析统一用 `unity_test_summary.py`（输出总数/通过/失败与失败清单）；失败时逐条看消息与堆栈首几行。
+
+## 4. 编辑器焦点（本仓库实测事实）
+
+本机编辑器**需要窗口获得焦点才会推进编译/测试**，否则 `recompile_status` 会长时间停在 `triggered`：
+
+```bash
+unity command editor_focus      # 激活编辑器窗口后再轮询，可解开长期 triggered
+```
+
+排查顺序：`unity command editor_status` 看 `compiling` 是否为真 → 若长期 `triggered` 先 `editor_focus` 再重触发编译。
+
+## 5. 注释合规复扫
+
+- 测试目录**已纳入** `csharp-comment-checker` 的检查范围（`comment_config.json` 的 `exclude.paths` 不含 `/Tests/`）。
+- 新增 / 修改测试文件后，必须对**该测试目录**复扫一次（链路与细则见 `csharp-comment/RULE.mdc`）：
+  ```bash
+  python .codebuddy/skills/csharp-comment-checker/scripts/check_comments.py <测试目录>
+  ```
+- 复扫须达到**「所有文件注释检查通过」**；有残留按 checker → generator → 复扫链路处理，不得留在工作区。
+- 测试代码上的噪声（如 `inline_magic_number` 命中测试字面量）应通过**补行内注释**消除（见 `authoring.mdc` 第 4 节），
+  不得靠排除测试目录或改低严重程度掩盖。
+
+## 6. 验收闭环
+
+一次测试改动（新增 / 重命名 / 拆分 / 修改用例）完成的判定条件，三者缺一不可：
+
+| 项 | 判定 |
+|---|---|
+| 编译 | `recompile_status` 为 `completed`、`failed=false`、`errors=[]` |
+| 测试 | 定向 fixture 全绿；全量回归中失败项必须是**与本次改动无关**的既有失败（如第三方包用例），且需在交付说明中列出并给出无关依据 |
+| 注释 | 目标测试目录 `check_comments.py` 输出「所有文件注释检查通过」 |
+
+配套要求：
+
+- **重命名 / 拆分 / 合并后必须重跑**目标 fixture，确认用例总数与迁移前一致（拆分/合并只改归属，不改用例数）。
+- 合并 `partial` 之前先做成员查重（见 `naming-layout.mdc` 第 5 节），避免编译期才发现重名。
+- 交付说明中要写清：新增/修改的测试文件、用例数、定向与全量结果、以及无法通过项的原因。
+
+## 7. 提交衔接
+
+- 测试代码属于 `.cs` 变更，提交走 `vcs-router` 技能；若变更含 `.cs`，提交前会自动触发 `csharp-code` 审查门禁，
+  存在 `error` 级别问题必须修复或获得明确授权忽略后方可提交。
+- 仅新增测试文件时也应照常走提交流程，不得绕过技能直接 `git commit`。
+
+## 8. 反例
+
+| 反例 | 问题 |
+|---|---|
+| 改完测试文件直接说「已通过」，没有编译与运行证据 | 无验证证据，不符合验收闭环 |
+| 用 `run_tests` 同步调用跑整包用例 | 命中 30s 命令超时，结果不可信 → 应 `--async_tests true` + 轮询 |
+| 只跑定向 fixture 就宣布全量回归通过 | 定向通过不等于全量通过 |
+| 看到注释残留后改 `comment_config.json` 降低严重程度 | 掩盖问题；应补注释 |
+| 长期 `triggered` 就直接重装/重启编辑器 | 先 `editor_focus` 排查，多半是焦点问题 |

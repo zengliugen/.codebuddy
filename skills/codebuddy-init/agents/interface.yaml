@@ -1,0 +1,49 @@
+name: codebuddy-init
+version: "1.0"
+mode: Production
+description: 项目配置初始化技能。当新项目拉取（或以 submodule 接入）本 .codebuddy 引擎后，需要创建项目侧配置目录 .codebuddy.project 时触发；依据引擎侧配置注册表生成全部占位骨架，并询问是否立即按项目情况填写。不含任何项目专有值。
+
+input_contract:
+  required:
+    - trigger: 用户要求初始化项目配置 / 接入 codebuddy 引擎 / 生成配置骨架
+  optional:
+    - fill_now: 是否在生成后立即按项目情况填写（默认由 AskUserQuestion 询问）
+    - force: 是否覆盖已存在文件（默认跳过不覆盖）
+  fallback:
+    - index: 索引与骨架均来自 .codebuddy/project.index.json，无需用户提供字段
+
+output_contract:
+  required:
+    - project_config_dir: 项目侧配置目录路径（.codebuddy.project/）
+    - created_list: 创建清单（路径 + 类型 + 是否跳过）
+  optional:
+    - fill_plan: 选择「立即填写」时的逐项填写计划与探测结果
+    - verify_result: 填写后的冒烟验证结果
+  evidence:
+    - index_path: 使用的注册表路径
+    - skip_list: 已存在而跳过的文件清单（幂等证据）
+
+exclusion_contract:
+  - modify_engine: 修改 .codebuddy 引擎侧文件（引擎只读）
+  - overwrite_without_confirm: 未获用户确认时覆盖已存在且可能已填写的文件
+  - guess_values: 填写项目值时猜测而非实际探测或询问用户
+  - machine_level: 处理 models.json / settings.local.json 等机器级配置
+
+safety_constraints:
+  - 索引缺失、损坏或缺少必需键时报告并退出（退出码 3），不猜测字段
+  - 默认幂等：已存在文件跳过不覆盖；--force 须先确认用户知晓将丢失已有内容
+  - 索引路径必须为相对路径；拒绝绝对路径（防跨项目污染）
+  - 「立即填写」阶段每项须实际探测项目，探测不到时询问用户而非套用经验值
+  - 填写后向用户复述「键 → 值」供确认再写入
+
+references:
+  - index-spec: references/index-spec.md
+  - fill-guide: references/fill-guide.md
+  - format-config-guide: ../csharp-format-checker/references/config-guide.md
+  - coverage-config-guide: ../csharp-test-coverage/references/config-guide.md
+  - comment-config-guide: ../csharp-comment-checker/references/config-guide.md
+  - git-commit-project-config: ../git-commit/references/project-config.md
+
+evaluation:
+  trigger_evals: evals/trigger/
+  output_risk_profile: reports/output-risk-profile.md

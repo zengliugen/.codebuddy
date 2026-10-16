@@ -1,0 +1,37 @@
+# ============================================================================
+#  共享引擎库（.codebuddy）属性声明
+#
+#  本仓库跨平台共享（Windows / macOS / Linux），需固定行尾与二进制归属，
+#  避免不同平台检出时产生无意义的行尾差异或损坏二进制文件。
+# ============================================================================
+
+# 默认：按内容自动识别文本/二进制，文本入库统一为 LF（检出按平台）
+* text=auto
+
+# --- 文本文件：强制 LF（跨平台一致，避免 CRLF/LF 抖动）---
+*.md        text eol=lf
+*.mdc       text eol=lf
+*.json      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.py        text eol=lf
+*.cmd       text eol=lf
+*.sh        text eol=lf
+*.txt       text eol=lf
+*.cs        text eol=lf
+*.csproj    text eol=lf
+*.sln       text eol=lf
+
+# --- 二进制：不参与 diff、不做行尾转换 ---
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.exe       binary
+*.dll       binary
+*.pdb       binary
+*.so        binary
+*.dylib     binary

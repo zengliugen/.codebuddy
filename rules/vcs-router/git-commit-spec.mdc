@@ -1,0 +1,48 @@
+---
+description: Git 提交特定规范子规则 —— .gitignore 检查、git 禁止行为、提交推送分离、Git 边界情况处理。由 git-commit 技能执行提交时按需加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-08-18T00:00:00.000Z
+provider:
+---
+
+# Git 提交特定规范
+
+本子规则仅适用于 Git 仓库提交（`git-commit` 技能执行时加载）。公共提交规范（摘要格式、授权安全、审查门禁）见 `vcs-router` 入口规则及对应子规则。
+
+## .gitignore 检查
+
+- `.gitignore` 中已忽略的文件和目录**严禁**通过 `git add -f` 或任何方式强制添加到版本控制中。
+- 每次提交检查时，**必须从项目根目录的 `.gitignore` 文件读取当前忽略规则**，而非依赖记忆或硬编码列表。
+- 若发现误添加了已忽略文件，使用 `git rm --cached <file>` 仅从暂存区移除，保留本地文件。
+
+## 禁止行为
+
+1. **禁止**使用 `git add -f` 强制添加 `.gitignore` 中已忽略的文件。
+2. **禁止**使用 `git add --all` 或 `git add .` 后不加检查直接提交。
+3. **禁止**提交临时文件（`*.tmp`、`*.bak`、`*.cache` 等）。
+4. **禁止**提交 IDE 或编辑器私有的配置文件（如 `.vscode/`、`.idea/`、`*.suo`）。
+5. **禁止**在 `.gitignore` 中删除已有忽略规则以绕过检查。
+6. **禁止**在 hook 失败时使用 `--no-verify` 跳过 hook（除非用户明确指定）。
+7. **禁止**使用 `git push --force` 或 `git push --force-with-lease`（除非用户明确指定）。
+
+## 提交与推送分离（不受发起权配置影响）
+
+- 提交（`git commit`）与推送（`git push`）必须严格分开执行，禁止链式组合命令（如 `git add -A && git commit -m "..." && git push`）。
+- `push_initiation=user_only`（默认）时，禁止在提交操作完成后自动执行推送，必须等待用户单独的推送指令；
+  `llm_allowed` 时 LLM 可自行推送，但仍须与提交**分两步**执行。
+- 发起权配置见 `git-commit/references/project-config.md` §1.5。
+
+## Git 边界情况
+
+| 情况 | 处理 |
+|------|------|
+| 空提交 | 明确告知"当前无任何变更需要提交"，不执行 `git commit`（即使 `--allow-empty`） |
+| 合并冲突 | 列出冲突文件，提示用户手动解决后再提交，禁止强行提交 |
+| Pre-commit Hook 失败 | 展示 hook 错误输出，等待修复后重新授权；禁止 `--no-verify` |
+| Detached HEAD | 警告用户不在任何分支上，提交仍执行但提示可能被垃圾回收 |
+| Submodule 变更 | 单独列出并标注 submodule 名称与变更摘要 |
+| 大文件（>10MB） | 警告文件大小，建议 Git LFS；用户确认后仍可提交但记录警告 |
+| 未配置用户信息 | 提示先配置 `git config user.name/email`，不执行提交 |
+| 文件名大小写变更（Windows） | 使用 `git mv` 分两步操作，提交正文说明重命名 |
+| 仓库根位于项目目录之上 | `git` 命令输出的是**仓库相对路径**（如 `<仓库前缀>/...`）；在工程目录内把该输出直接当文件路径使用会失败，须改用 `git diff --name-only --relative` 或先切到仓库根，并避免用 `2>/dev/null` 掩盖路径错误（否则静默产生假阴性） |

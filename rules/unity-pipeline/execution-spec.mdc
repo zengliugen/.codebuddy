@@ -1,0 +1,36 @@
+---
+description: Unity 操作执行细则子规则 —— 各操作类型对应的必须步骤、硬性约束、与提交规范的衔接。由 unity-pipeline 技能执行对应操作时按需加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-08-18T00:00:00.000Z
+provider:
+---
+
+# Unity 操作执行细则
+
+## 覆盖场景与必须步骤
+
+| 操作 | 必须步骤 |
+|------|---------|
+| Unity CLI 安装检查 | `Get-Command unity`；未安装则执行技能内置离线安装脚本（`skills/unity-pipeline/tools/unity-cli-offline/install.ps1`，离线优先 + 在线回退，SHA-256 校验） |
+| 打开/启动 Unity 项目 | `unity open <项目路径> --args "-automated"`（禁止直接启动 Unity.exe，必须带 `-automated` 避免模态弹窗中断命令流；后台执行，因 `open` 会阻塞直到编辑器退出）→ 轮询 `unity pipeline list` / `editor_status` 至就绪 |
+| 修改 C# 代码 | `set_autotick --enable true` → 编辑 → `recompile` → 轮询 `recompile_status` 至 `completed`/`up_to_date` |
+| 运行测试 | `run_tests`（playmode 必须 `--async_tests true`）→ 轮询 `test_status` |
+| 运行时热重载 | 先进入 Play Mode 或 dev Player，再 `reload_file`（Mono）或 `reload_file_editor_interpreter` / `reload_file_player_interpreter`（IL2CPP 安全，受 C# 子集约束） |
+| C# 快速求值 | `eval` / `eval_file`（编辑器与 Player 双端可用）；多行代码改用 `run_script`（内存编译 .cs 文件，免域重载） |
+| 批量改动 | 多个命令的原子组合用 `batch`（事务化，单请求最多 200 个有序操作）；等待状态成立用 `wait_for`（长等待须异步） |
+| 排错/验证 | `console` / `console_status`、`editor_status`、`runtime_status`（仅 Player） |
+
+## 硬性约束
+
+- **编译检查不可跳过**：修改 C# 代码后必须执行 `recompile` 并轮询 `recompile_status`。若 `failed=true`，必须先读取 `errors` 数组并修复，禁止带着编译错误继续测试或交付。`compilationFailed=true` 表示编译失败抑制了域重载、错误仍在原地，不可据 `up_to_date` 判定通过。
+- **异步命令必须轮询**：`recompile`、`run_tests --async_tests`、`package_add` 等触发命令返回不表示完成，必须轮询对应的状态命令（`recompile_status` / `test_status` / `package_status`）。轮询必须按 JSON 字段判终态（取 `status` 字段值），禁止对整段 JSON 做关键字匹配。
+- **无头工作前先保活**：编辑器失焦/最小化时，必须先执行 `set_autotick --enable true`，否则编译与测试可能挂起。
+- **退出码区分失败类型**：`unity command` 退出码 `2` 表示参数错误（什么都没执行，改命令行后重试）、`6` 表示已执行但失败（读错误，重试同一调用无帮助）。禁止原样重试退出码 2 的调用，或在退出码 6 时改写命令行。
+- **区分服务器归属**：`codereload_status`、`cleanup_codereload`、`log`、`set_timescale`、`runtime_status` 仅存在于 dev Player（RuntimeOnly）；`reload_file`、`reload_file_editor_interpreter` 在编辑器 Play Mode 下也可用。
+- **多实例时显式定位**：编辑器用 `--project-path <路径>`，Player 用 `--runtime <可执行名>` / `--runtime-path <端口文件目录>`。
+- **代码风格同步校验**：编译通过后，仍需遵循项目命名规范（接口 `I` 前缀、枚举 `E` 前缀、异步方法 `Async` 后缀、参数/局部变量 camelCase）与注释规范（`///` XML 文档注释、简体中文）。
+
+## 与提交规范的衔接
+
+- 变更包含 Unity 相关代码（`.cs`、`.unity`、场景等）时，提交前需确认已通过 `recompile_status` 编译检查；随后按 `vcs-router` 技能统一入口路由提交（Git 仓库路由到 `git-commit`）。

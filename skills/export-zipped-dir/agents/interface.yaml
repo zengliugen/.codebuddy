@@ -1,0 +1,71 @@
+interface:
+  display_name: "Directory Zip Export"
+  short_description: "导出 git 仓库内目录为 zip 压缩包，遵循 gitignore 过滤，支持强制包含被忽略文件"
+  default_prompt: "使用 $export-zipped-dir 将 git 仓库内目录导出为 zip 压缩包。将用户指定的源目录路径传递给技能，脚本会自动处理 gitignore 过滤与打包。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "导出.*目录"
+      - keyword: "导出.*zip"
+      - keyword: "打包.*目录"
+      - keyword: "压缩.*目录"
+  execution:
+    context: "inline"
+    shell: "bash"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "scripts/export_zipped_dir.py"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+
+input:
+  source:
+    description: "要导出的目录路径（当前 git 仓库内的相对路径，如 .codebuddy）"
+    type: "string"
+    required: true
+    validation: "must exist on filesystem and be inside current git repo"
+  output:
+    description: "输出的 zip 文件路径；未指定时默认导出到用户下载目录，文件名带日期"
+    type: "string"
+    required: false
+    validation: "must be writable path"
+  force:
+    description: "强制包含的被 gitignore 忽略文件列表（仓库相对路径），如根目录配置 json"
+    type: "array"
+    items:
+      type: "string"
+    required: false
+    default: []
+
+output:
+  format: "zip"
+  artifact:
+    - "包含源目录内未被忽略文件的 zip 压缩包，保持相对路径结构"
+  summary:
+    - "导出的文件总数"
+    - "强制包含的文件列表"
+    - "zip 的完整路径"
+
+exclusions:
+  - "非 git 仓库内的路径"
+  - "单文件导出（不属于本技能职责，建议直接复制）"
+  - "被 gitignore 忽略的文件，除非通过 force 明确指定"

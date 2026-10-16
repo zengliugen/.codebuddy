@@ -1,0 +1,1 @@
+[{"line":18,"severity":"warning","category":"inline_business_rule","member":"ThresholdCheck","memberType":"method"},{"line":18,"severity":"warning","category":"inline_magic_number","member":"ThresholdCheck","memberType":"method"},{"line":18,"severity":"warning","category":"inline_condition","member":"ThresholdCheck","memberType":"method"}]

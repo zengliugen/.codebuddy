@@ -1,0 +1,1 @@
+[{"line":13,"severity":"warning","category":"missing_param","member":"MyClass(x)","memberType":"constructor"},{"line":13,"severity":"warning","category":"missing_param","member":"MyClass(y)","memberType":"constructor"}]

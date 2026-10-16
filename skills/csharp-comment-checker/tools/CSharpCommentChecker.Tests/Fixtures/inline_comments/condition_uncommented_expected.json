@@ -1,0 +1,5 @@
+[
+  {"line": 15, "severity": "warning", "category": "inline_condition", "member": "Uncommented", "memberType": "method"},
+  {"line": 15, "severity": "warning", "category": "inline_business_rule", "member": "Uncommented", "memberType": "method"},
+  {"line": 15, "severity": "warning", "category": "inline_magic_number", "member": "Uncommented", "memberType": "method"}
+]

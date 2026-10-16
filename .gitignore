@@ -1,0 +1,43 @@
+# ============================================================================
+#  共享引擎库（.codebuddy）忽略规则
+#
+#  本仓库为 **跨项目共享的 CodeBuddy 引擎库**（纯引擎内容，无项目专有值）。
+#  以下是"绝不应进入本库"的内容——它们要么是机器级/项目级绑定，要么是运行产物。
+# ============================================================================
+
+# --- 项目侧绑定软链接（由各消费项目经 codebuddy-init 自建，不随共享库分发）---
+#   这两个链接指向项目根的 .codebuddy.project/ 与 .codebuddy.project-skills/，
+#   在本库中会悬空（目标不存在），且会与消费项目的同名路径冲突。
+/settings.json
+/skills/project-skills
+
+# --- 机器级配置（含 API Key / 本机路径，绑定单机，不入库）---
+models.json
+settings.local.json
+
+# --- 计划文件（本机运行期）---
+plans/
+
+# --- 运行时产物（脚本写入项目侧 .codebuddy.project/；此处兜底防误入库）---
+.vcs-lock/
+skills/*/check_logs/
+skills/*/.cache/
+skills/*/tools/**/check_logs/
+**/coverage_config.merged.json
+**/comment_config.merged.json
+
+# --- .NET 工具构建产物 ---
+**/bin/
+**/obj/
+**/publish/
+
+# --- Python 运行缓存 ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- 编辑器 / 系统临时文件 ---
+.DS_Store
+Thumbs.db
+*.swp
+*~

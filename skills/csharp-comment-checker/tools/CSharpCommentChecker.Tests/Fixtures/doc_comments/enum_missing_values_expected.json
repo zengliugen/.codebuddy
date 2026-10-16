@@ -1,0 +1,1 @@
+[{"line":9,"severity":"error","category":"missing_summary","member":"EnumMissingValues","memberType":"enum"},{"line":15,"severity":"error","category":"missing_doc_comment","member":"EnumMissingValues.Second","memberType":"enum_value"}]

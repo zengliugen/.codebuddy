@@ -1,0 +1,17 @@
+/// <file>
+/// 测试 fixture - 文件解析错误。
+/// </file>
+
+/// <summary>
+/// 测试类。
+/// </summary>
+public class ParseErrorFixture
+{
+    /// <summary>
+    /// 测试方法。
+    /// </summary>
+    public void Method()
+    {
+        int x = ;
+    }
+}

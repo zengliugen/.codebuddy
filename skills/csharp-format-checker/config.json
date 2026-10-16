@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "_comment": "本文件为 csharp-format-checker 的项目配置：workspace 指向目标项目的解决方案/工程文件，exclude_dirs 列出目标项目的三方库与生成代码目录。本文件是格式检查范围的唯一来源：配置缺失、损坏或缺少必需键时脚本直接报错退出（退出码 3），不回退内置默认值。迁移到其他项目时按实际情况改写本文件即可，无需改动技能脚本。",
+  "workspace": "Client.slnx",
+  "groups": [
+    "whitespace",
+    "style"
+  ],
+  "severity": "warn",
+  "no_restore": true,
+  "changed_scope": {
+    "_comment": "变更范围检查（--changed）参数。max_projects 为可串行检查的工程数上限：每个工程需独立重载一次工作区（本项目实测约 40 秒/工程），超过该值即回退整仓。",
+    "max_projects": 3
+  },
+  "exclude_dirs": [
+    "Assets/Plugins",
+    "Library/PackageCache",
+    "HybridCLRData",
+    ".codebuddy",
+    "Assets/Battle/Runtime/Battle.Data/Generated",
+    "Assets/Battle/Runtime/Battle.Logic/Generated",
+    "Assets/Game/Runtime/Game/Gen",
+    "Assets/Game/Runtime/Game/Generated",
+    "Packages/com.littlebaby.framework.assetbundle/Runtime/Generated",
+    "Packages/com.littlebaby.framework.core/Runtime/Generated",
+    "Packages/com.littlebaby.framework.core/Tests/Runtime/Generated",
+    "Packages/com.littlebaby.framework.fixedmathematics/Runtime/Gen",
+    "Packages/com.littlebaby.framework.fixedmathematics/Tests/Editor/Gen",
+    "Packages/com.littlebaby.framework.core/Runtime/ThreadLib/UnityHook"
+  ]
+}

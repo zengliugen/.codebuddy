@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "_comment": "本文件为 git-commit 的项目配置：提交摘要的 type 枚举、subject/scope 长度上限与 subject 语言。本文件是提交摘要约定的唯一来源：配置缺失、损坏或字段非法时校验脚本报错退出（退出码 3），不回退默认值。迁移到其他项目时按团队约定改写本文件即可，无需改动技能脚本。",
+  "commit_subject": {
+    "types": [
+      "feat",
+      "fix",
+      "docs",
+      "style",
+      "refactor",
+      "perf",
+      "test",
+      "chore",
+      "ci",
+      "revert"
+    ],
+    "subject_max_len": 50,
+    "scope_max_len": 40,
+    "subject_language": "zh"
+  }
+}
