@@ -1,40 +1,27 @@
 # ============================================================================
 #  共享引擎库（.codebuddy）属性声明
 #
-#  本仓库跨平台共享（Windows / macOS / Linux），需固定行尾与二进制归属，
-#  避免不同平台检出时产生无意义的行尾差异或损坏二进制文件。
+#  本仓库以 git submodule 形式被多个项目引用，检出环境横跨 Windows / macOS / Linux。
+#  Git 属性只对「同一仓库内」的路径生效：父仓的 .gitattributes 无法影响本仓库内文件，
+#  因此必须独立声明，不能依赖消费项目的设置。
+#
+#  设计原则：不依赖任何机器级配置（core.autocrlf / core.eol）。
+#  只写 `* text=auto` 时，工作区行尾由 core.autocrlf 与 core.eol 共同决定——
+#  Windows 原生默认 CRLF、macOS/Linux 默认 LF，且 core.autocrlf=input 会产出 LF。
+#  同一份提交在不同平台检出的行尾可能不同，故此处按扩展名显式钉死。
 # ============================================================================
 
-# 默认：按内容自动识别文本/二进制，文本入库统一为 LF（检出按平台）
-* text=auto
+# 默认：按内容自动识别文本/二进制；文本入库统一 LF，检出亦保持 LF。
+# 工作区 LF 是跨平台逐字节一致的前提，可消除 CRLF/LF 无意义抖动。
+# 二进制（png/zip/dll 等）由 Git 内容嗅探自动识别为 -text，无需逐条声明。
+* text=auto eol=lf
 
-# --- 文本文件：强制 LF（跨平台一致，避免 CRLF/LF 抖动）---
-*.md        text eol=lf
-*.mdc       text eol=lf
-*.json      text eol=lf
-*.yaml      text eol=lf
-*.yml       text eol=lf
-*.py        text eol=lf
-*.sh        text eol=lf
-*.txt       text eol=lf
-*.cs        text eol=lf
-*.csproj    text eol=lf
-*.sln       text eol=lf
+# --- Windows 批处理：强制 CRLF ---
+# CMD 解析器依赖 CRLF。实测 LF 会使语句被撕裂，例如 setlocal 被截成 'ocal'、
+# 中文行被截断并报 "'xxx' is not recognized"，脚本无法执行。
+*.cmd text eol=crlf
+*.bat text eol=crlf
 
-# --- Windows 批处理：强制 CRLF（CMD 解析器需 CRLF，LF 会导致语法异常）---
-*.cmd       text eol=crlf
-*.bat       text eol=crlf
-
-# --- 二进制：不参与 diff、不做行尾转换 ---
-*.png       binary
-*.jpg       binary
-*.jpeg      binary
-*.gif       binary
-*.ico       binary
-*.pdf       binary
-*.zip       binary
-*.exe       binary
-*.dll       binary
-*.pdb       binary
-*.so        binary
-*.dylib     binary
+# --- Windows PowerShell：强制 CRLF ---
+# 与 gitattributes 官方 Common 模板一致，将 .ps1 归为 Windows 专有文件。
+*.ps1 text eol=crlf
