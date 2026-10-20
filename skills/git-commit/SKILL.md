@@ -1,11 +1,11 @@
 ---
 name: git-commit
-description: Git 提交执行技能。当用户要求提交 Git 代码（"git commit"、"提交到 git"，或由 vcs-router 技能路由）时触发，分析 Git 变更并生成标准化提交摘要，提交前按项目配置自动触发代码审查门禁（默认 C# 变更，error 级别问题阻塞提交）。不支持 amend、rebase、cherry-pick、revert、stash、分支操作。
+description: Git 提交执行技能。当用户要求提交 Git 代码（"git commit"、"提交到 git"，或由 vcs-router 技能路由）时触发，分析 Git 变更并生成标准化提交摘要，提交前按项目配置自动触发代码审查门禁（默认 C# 变更，error 级别问题阻塞提交）。不支持 amend、rebase、cherry-pick、revert、stash、merge、分支操作。
 license: MIT
 mode: Production
 metadata:
   author: zengliugen
-  version: "1.9"
+  version: "1.10"
   skills_os: "2.0"
 ---
 
@@ -168,21 +168,19 @@ git status --short    # 全仓核对，逐一确认是否属于本次提交计�
 
 ### 阶段七：执行提交（含多会话互斥锁）
 
-> **防冲突机制**：提交会修改暂存区与 HEAD，而 git 的暂存区/HEAD 是仓库级共享状态。多个 CodeBuddy
-> 会话并发执行提交、回滚等写操作会互相污染（暂存区混入他会话文件、提交被回滚）。
-> 本阶段通过 VCS 互斥锁串行化写操作（详见 `references/vcs-lock.md`），并在提交前校验暂存区，
-> 双保险防止多会话冲突。
+> **防冲突机制**：暂存区与 HEAD 是仓库级共享状态，多会话并发 git 写操作会互相污染
+> （暂存区混入他会话文件、提交被回滚）。本阶段用 VCS 互斥锁串行化写操作，并在提交前校验
+> 暂存区。**锁机制、命令参数与容错细节的唯一事实来源是 `references/vcs-lock.md`**。
 >
-> **锁粒度（关键）**：**逐笔加锁**——`acquire` 与 `release` 之间只完成**一笔**提交
-> （`git add` → 暂存区校验 → `git commit`），提交完成立即释放，再处理下一笔。
-> 锁**必须覆盖 `git add`**：暂存区污染（他会话已 `git add` 的文件被本次 `git commit` 一并带走）
-> 正是锁要防的首要场景，因此暂存与提交不可拆到锁外。
-> **锁窗口最短化**：所有检查（阶段一~六，含审查门禁与 H1 钩子）、提交计划展示与用户授权
-> **全部在锁外完成**，锁内只保留三个 git 写操作与一次暂存区校验。
+> 三条不可违反的约束（理由与细则见 `references/vcs-lock.md`）：
 >
-> **锁同样适用于引擎仓库提交**：在 `.codebuddy/`（引擎仓库，独立仓库/submodule）内提交时，
-> 同样须 `acquire` → 提交 → `release`，且**不得遗漏释放**。提交前还须先判定本次变更归属哪个仓库
-> （见 `rules/codebuddy-engine-vcs/`），跨仓库变更拆为两笔、各自加锁释放。
+> 1. **逐笔加锁**：`acquire` 与 `release` 之间只完成**一笔**提交
+>    （`git add` → 暂存区校验 → `git commit`），提交完成立即释放，再处理下一笔。
+> 2. **锁必须覆盖 `git add`**：暂存与提交不可拆到锁外，否则暂存区污染防护失效。
+> 3. **锁窗口不含用户交互**：全部检查（阶段一~六）与授权在锁外完成，授权之后才 `acquire`。
+>
+> **引擎仓库同样适用**：在 `.codebuddy/`（独立仓库/submodule）内提交同样逐笔加锁释放；
+> 先判定变更归属哪个仓库（见 `rules/codebuddy-engine-vcs/`），跨仓库变更拆为两笔。
 
 **逐笔执行以下步骤（每笔提交重复 1~7；多笔提交时无需在锁内连续完成）：**
 
@@ -193,10 +191,8 @@ git status --short    # 全仓核对，逐一确认是否属于本次提交计�
    ```bash
    python .codebuddy/skills/vcs-router/scripts/vcs_lock.py acquire --op "git commit"
    ```
-   - 授权后才加锁，锁窗口不含用户思考/确认的等待时间。
-   - 锁被其他会话占用时，脚本输出占用摘要（会话标识/操作/开始时间/PID）并**自动轮询等待**
-     对方释放；等待超时仍未获取则中止，向用户说明冲突来源，可稍后重试或主动加 `--force` 接管。
    - 记录输出中的 `LOCK_SESSION=<id>`，本笔提交完成后用于释放。
+   - 锁被占用时脚本输出占用摘要并自动轮询等待；超时中止与 `--force` 接管等行为见 `references/vcs-lock.md`。
 4. **暂存本笔文件**：用 `git add -- <本笔路径…>` 显式列出本笔文件，避免 `git add -A` 误纳计划外文件。
    - **索引预置项需先清理**：`git mv` / `git rm` 会把变更**预置进索引**，导致"本笔暂存区多出后续笔文件"而校验失败。
      正确做法是提交前先 `git reset`（仅清空索引、保留工作区改动），再按笔显式暂存。
@@ -213,9 +209,8 @@ git status --short    # 全仓核对，逐一确认是否属于本次提交计�
    # 每行一个本笔计划路径；不一致退出码 1，并提示先释放 VCS 锁
    python .codebuddy/skills/git-commit/scripts/verify_staged.py --expect-file <本笔计划清单.txt>
    ```
-   **计划清单须先归一化路径前缀**：脚本期望仓库相对路径，而 `git diff --cached --name-only`
-   在子目录执行时带当前目录前缀（本仓库为 `<仓库前缀>/`，按 `git rev-parse --show-prefix` 实测值替换），直接使用会误报「多出」。
-   先按 `git rev-parse --show-prefix` 得到前缀并 `sed` 去除（详见 `references/vcs-lock.md`）。
+   **计划清单须先归一化路径前缀**（脚本期望仓库相对路径，子目录下 `git diff --cached --name-only`
+   的输出带目录前缀，直接喂给脚本会误报「多出」），归一化方法见 `references/vcs-lock.md`「校验脚本的路径前缀」。
    另：全仓 `git status` 等大范围核对应在阶段六完成，避免其后台化后争用 `.git/index.lock`。
 6. **执行 `git commit`**（已获授权，直接提交本笔）。
    - **提交信息用 `git commit -F <临时文件>` 传入**，不要依赖 shell 引号或 here-string 语法
@@ -227,9 +222,7 @@ git status --short    # 全仓核对，逐一确认是否属于本次提交计�
    ```bash
    python .codebuddy/skills/vcs-router/scripts/vcs_lock.py release --session <LOCK_SESSION>
    ```
-   - 若释放报「会话标识不一致」：通常是 acquire 输出的 `LOCK_SESSION` 被终端输出伪影污染
-     （行尾偶发附加字符，如 `X`），脚本已内置容错匹配（归一化 + 安全前缀）自动放行；
-     仍失败时先执行 `vcs_lock.py status` 查看锁中真实 session，再以其重新 `release`。
+   - 释放报「会话标识不一致」时的容错匹配与排查步骤见 `references/vcs-lock.md`。
    - **禁止**在未释放锁的情况下开始下一笔（会导致锁窗口跨越用户交互）。
 
 **每笔提交完成后的收尾：**
