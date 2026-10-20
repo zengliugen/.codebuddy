@@ -110,6 +110,18 @@ git diff --cached --name-only | sed 's|^<仓库前缀>/||' > <本笔计划清单
 python .codebuddy/skills/git-commit/scripts/verify_staged.py --expect-file <本笔计划清单.txt>
 ```
 
+### 对话层文本比对不可靠（传输层伪影）
+
+不要用 Bash 返回的 stdout 在对话层逐行/逐分隔符比对 `git diff --cached --name-only` 的输出：
+传输层会在行尾附加伪影字符（实测出现尾随 `X` 与空格），且 `-z` 的 NUL 分隔符会被吞掉
+（输出拼接成一行）。两者都会导致「同一批文件被判不一致」的误报。
+暂存区一致性校验一律用 `verify_staged.py --expect-file` 在脚本进程内做集合比对；
+同理，复核 `git log` 落盘消息时忽略行尾伪影，以内容主体为准。
+
+**实测**：某次提交中对话层比对连续两次误报「暂存区与计划不一致」（行尾伪影 / NUL 丢失），
+改用 verify_staged.py 后一次通过。
+
+
 ### 文件计数对不上时的排查
 
 用 `git status --porcelain | wc -l` 统计的**行数**与暂存后 `git diff --cached --name-only | wc -l`
