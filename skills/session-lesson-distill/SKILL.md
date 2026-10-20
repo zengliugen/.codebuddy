@@ -18,7 +18,7 @@ metadata:
 | 维度 | 定义 |
 |------|------|
 | 拥有的任务 | 从当前会话提取可复用经验，映射并写回本次会话实际使用过的技能与规则 |
-| 输出 | 固化报告（`reports/`）、经用户确认后的目标文件改动、改动摘要 |
+| 输出 | 固化报告（项目侧产物目录，经索引 `artifacts.dirs.session_distill.reports` 定位）、经用户确认后的目标文件改动、改动摘要 |
 | 排除 | 创建新技能（走 `yao-meta-skill`）、技能结构审计（走 `yao-meta-skill`）、规则拆分合并（走 `rule-consolidation`）、C# 代码审查（走 `csharp-code-review`）、版本控制提交（走 `vcs-router` / `git-commit`）、与本次会话无关的既有问题 |
 | 前提 | 存在可回溯的当前会话上下文；目标落点位于 `.codebuddy/skills/**` 或 `.codebuddy/rules/**` |
 
@@ -72,7 +72,7 @@ metadata:
 
 ### 阶段四：产出固化清单并请求确认
 
-输出报告至 `reports/<时间戳>_distill-report.md`，包含四段：
+输出报告至项目侧产物目录 `<session_distill.reports>/<时间戳>_distill-report.md`（经 `.codebuddy/project.index.json` 的 `artifacts.dirs.session_distill.reports` 定位，**禁止写入引擎侧技能目录**——报告是会话级运行时产物，不落引擎仓库），包含四段：
 
 | 段 | 内容 |
 |----|------|

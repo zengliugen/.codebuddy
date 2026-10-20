@@ -14,7 +14,7 @@ input_contract:
 
 output_contract:
   required:
-    - distill_report: 固化报告（reports/<时间戳>_distill-report.md），含经验条目、落点映射、建议但未写入项、改动预览
+    - distill_report: 固化报告（项目侧产物目录，经索引 artifacts.dirs.session_distill.reports 定位，文件名 <时间戳>_distill-report.md），含经验条目、落点映射、建议但未写入项、改动预览
     - target_updates: 经确认后的目标文件改动（限定 .codebuddy/skills/** 与 .codebuddy/rules/**）
     - change_summary: 改动文件清单与改动要点（回滚依据）
   optional:
