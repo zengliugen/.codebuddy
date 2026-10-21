@@ -39,6 +39,23 @@
 | `.codebuddy.project/skills/` | 项目 | 项目专有技能（经 `.codebuddy/skills/project-skills` 软链接被加载，**不入本库**） |
 | `.codebuddy/models.json` / `settings.local.json` | 机器 | 机器级/本机级；不入库 |
 
+### 项目侧 `settings.json` 不写 `teamMemory.userId`
+
+项目侧 `settings.json`（源文件在 `.codebuddy.project/configs/settings.json`）**不写入**
+`memory.teamMemory.userId`，该值由 CodeBuddy 本机自动推导：
+
+| 顺序 | 来源 |
+|------|------|
+| 1 | 环境变量 `CODEBUDDY_TEAMMATE_OWNER_KEY` |
+| 2 | `settings.json` 的 `memory.teamMemory.userId`（**新项目不生成此键**） |
+| 3 | `git config user.name` |
+| 4 | 系统登录名 |
+
+原因（实测自 `dist/codebuddy.js` 的 `getTeamUserId()`）：`userId` 位于推导链第 2 位，**高于**
+`git user.name`。写入项目共享文件后，所有使用者被统一为同一标识，团队记忆会写进同一个
+`@<userId>/` 目录而串号。个人需要固定标识时写入 `.codebuddy/settings.local.json`
+（本机项目级，自动 git 忽略）。
+
 ## 新项目接入（三步）
 
 1. **引入引擎**：把本仓库作为 submodule 检出到项目根下的 `.codebuddy/`：

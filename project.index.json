@@ -37,8 +37,7 @@
             "relevanceSelection": false,
             "memoryExtraction": false,
             "teamMemory": {
-              "enabled": false,
-              "userId": "<团队成员标识，如 git 用户名>"
+              "enabled": false
             }
           },
           "permissions": {

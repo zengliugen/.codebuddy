@@ -23,7 +23,7 @@
 | `coverage.golden_samples` | `skills/csharp-test-coverage/scripts/golden_samples.json` | 该技能 `SKILL.md` | 项目已知正确的覆盖率样本（目标路径 + 期望）；新项目可先留空 `samples: []`，后续按需补充 |
 | `coverage.trigger_cases` | `skills/csharp-test-coverage/scripts/trigger_cases.json` | `skills/csharp-test-coverage/references/` | 触发评估用例（应/不应触发样例）；含项目路径的用例仅为举例，可替换 |
 | `format_checker.trigger_cases` | `skills/csharp-format-checker/evals/trigger/trigger_cases.json` | `skills/csharp-format-checker/references/` | 同上 |
-| `codebuddy.settings`（根级软链接外置） | `settings.json`（项目根 `.codebuddy.project/configs/settings.json`） | 本节下方「根级软链接外置文件」 | `language`（界面/回复语言）；`memory.teamMemory.userId`（团队成员标识，通常取 git 用户名）；`permissions`/`enabledPlugins` 按团队约定；**不含凭据**（凭据在引擎根 `models.json`/`settings.local.json`，不外置） |
+| `codebuddy.settings`（根级软链接外置） | `settings.json`（项目根 `.codebuddy.project/configs/settings.json`） | 本节下方「根级软链接外置文件」 | `language`（界面/回复语言）；`permissions`/`enabledPlugins` 按团队约定；**`memory.teamMemory.userId` 不写**（由使用者本机自动推导，见下方说明）；**不含凭据**（凭据在引擎根 `models.json`/`settings.local.json`，不外置） |
 | `rule_shells.*`（规则项目事实正文） | `rules/**` | 各技能 `references/` 与 `rules/` 薄壳内的强制条款 | 项目目录结构、包依赖、启动流程、第三方依赖、测试目录现状、LSP 受影响程序集等**项目事实**；须实测核对（依赖方向读 asmdef、版本读 manifest、忽略范围用 `git check-ignore` 验证） |
 
 ## 运行时产物目录（无需填写）
@@ -38,8 +38,23 @@
 项目侧源文件 `.codebuddy.project/configs/settings.json` + 引擎内软链接 `.codebuddy/settings.json`。
 `codebuddy-init` 生成源文件骨架并建链；**CodeBuddy 本体经软链接直接读取**（无需脚本解析），实测其会解引用符号链接。
 
-- **需填**：`language`、`memory.teamMemory.userId` 等**项目级**值（不含凭据）。
+- **需填**：`language`、`permissions`、`enabledPlugins` 等**项目级**值（不含凭据）。
 - **无需填**：绑定本机的 `models.json`、`settings.local.json` **不外置**（留引擎根、git 忽略）——外置会跨机器失效且不宜入库。
+
+### `memory.teamMemory.userId` 不写入项目侧共享文件
+
+该键**不写入**项目侧 `settings.json`，交由 CodeBuddy 本机自动推导：
+
+| 顺序 | 来源 |
+|------|------|
+| 1 | 环境变量 `CODEBUDDY_TEAMMATE_OWNER_KEY` |
+| 2 | `settings.json` 的 `memory.teamMemory.userId`（**新项目不生成此键**） |
+| 3 | `git config user.name` |
+| 4 | 系统登录名 |
+
+原因：`userId` 处于推导链第 2 位，**高于** `git user.name`（实测自 `dist/codebuddy.js` 的 `getTeamUserId()`）。若写入项目侧共享文件，所有使用者会被统一成同一标识，团队记忆写进同一个 `@<userId>/` 目录而串号。
+
+个人需要固定标识时，写入 `.codebuddy/settings.local.json`（本机项目级，自动 git 忽略），**不改项目侧 `settings.json`**。
 
 ## 分层配置的填写说明
 
