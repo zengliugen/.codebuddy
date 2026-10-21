@@ -91,7 +91,7 @@ ls -d .git 2>/dev/null
 
 为减少重复检测开销，检测结果由脚本缓存到**技能目录**下的本地文件，**不纳入版本控制、不进行上传**：
 
-- **缓存文件**：项目侧 `.codebuddy.project/skills/vcs-router/.cache/vcs-route.json`（经索引 `artifacts.dirs.vcs_router.cache` 定位）
+- **缓存文件**：项目侧 `.codebuddy.project/caches/skills/vcs-router/.cache/vcs-route.json`（经索引 `artifacts.dirs.vcs_router.cache` 定位）
 - **缓存格式**（JSON，仅存 VCS 类型，与操作类型无关）：
   ```json
   {
@@ -109,7 +109,7 @@ ls -d .git 2>/dev/null
   - 检测结果为 `none`（非 Git 仓库）**不写入缓存**，避免目录初始化后旧缓存误导路由。
   - 用户显式指定 Git 上下文时，跳过检测与缓存读写，直接以用户指定为准。
 - **缓存清理**：缓存仅本机本地使用，如需强制重新检测，删除项目侧产物 `.cache/vcs-route.json` 或调用脚本加 `--refresh` 参数。`--quiet` 未指定 `--out` 时产出的结果文件 `.cache/vcs-route.result.json` 同为本地运行期产物，可随时删除。
-- **不进行上传**：项目侧 `.codebuddy.project/.gitignore` 已忽略产物 `.cache/`，缓存文件不会进入版本控制，不会被提交或推送。
+- **不进行上传**：项目侧 `.codebuddy.project/.gitignore` 已整体忽略 `caches/`，缓存文件不会进入版本控制，不会被提交或推送。
 
 ### 3. 判定与路由
 
@@ -134,7 +134,7 @@ ls -d .git 2>/dev/null
 
 - **用途**：git 的暂存区/HEAD 是仓库级共享状态，多会话并发提交、回滚会互相污染。锁保证同一项目
   同一时刻只有一个会话持有写操作权。
-- **机制**：锁文件 `.codebuddy.project/.vcs-lock/codebuddy-vcs.lock`（项目 `.codebuddy` 下的通用锁目录，
+- **机制**：锁文件 `.codebuddy.project/caches/.vcs-lock/codebuddy-vcs.lock`（项目侧通用锁目录，
   运行时生成，不依赖 git 目录，已加入 `.gitignore` 不入库），O_EXCL 原子创建，
   锁内容记录会话标识/操作/开始时间；30 分钟 stale 自动接管，`--force` 可强制覆盖；释放时按 session 校验归属，
   校验支持容错匹配（归一化 + 安全前缀），可容忍终端输出伪影附加的尾部字符。
@@ -162,5 +162,5 @@ ls -d .git 2>/dev/null
 - [ ] 目标技能不存在（`target_exists` 为 `false`）时，是否已提示该操作暂未支持？
 - [ ] 用户显式指定类型时，是否以用户指定为准（跳过缓存）？
 - [ ] 是否已将控制权完整移交给目标技能，未越权执行操作？
-- [ ] 缓存文件是否未进入版本控制（项目侧 `.codebuddy.project/.gitignore` 已忽略产物 `.cache/`）？
+- [ ] 缓存文件是否未进入版本控制（项目侧 `.codebuddy.project/.gitignore` 已整体忽略 `caches/`）？
 - [ ] 写操作（commit/reset 等）技能是否已集成 VCS 互斥锁（`vcs_lock.py`）？

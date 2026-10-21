@@ -19,13 +19,13 @@
   "_comment": "…",
   "project_config_root": ".codebuddy.project",
   "artifacts": {
-    "dirs": { "<逻辑名>": ".codebuddy.project/skills/<技能>/check_logs" }
+    "dirs": { "<逻辑名>": ".codebuddy.project/caches/skills/<技能>/check_logs" }
   },
   "root_symlinks": {
     "entries": {
       "<逻辑名>": {
         "link": ".codebuddy/settings.json",
-        "path": ".codebuddy.project/settings.json",
+        "path": ".codebuddy.project/configs/settings.json",
         "format": "json",
         "template": { "<字段>": "<占位值>" }
       }
@@ -33,14 +33,14 @@
   },
   "files": {
     "<逻辑名>": {
-      "path": ".codebuddy.project/skills/<技能>/<配置文件名>",
+      "path": ".codebuddy.project/configs/skills/<技能>/<配置文件名>",
       "format": "json",
       "template": { "<字段>": "<占位值>" }
     }
   },
   "rule_shells": {
     "rules/<规则名>/RULE.mdc": {
-      "path": ".codebuddy.project/rules/<规则名>/RULE.mdc",
+      "path": ".codebuddy.project/configs/rules/<规则名>/RULE.mdc",
       "format": "markdown",
       "template_outline": ["# 标题", "## 章节"]
     }
@@ -92,8 +92,8 @@
 ### 3.3 镜像路径（`path` 的取值）
 
 - 项目侧路径与引擎侧对应位置**相对路径镜像**，便于人工对照：
-  - `.codebuddy/skills/X/a.json` → `.codebuddy.project/skills/X/a.json`
-  - `.codebuddy/rules/X/a.mdc` → `.codebuddy.project/rules/X/a.mdc`
+  - `.codebuddy/skills/X/a.json` → `.codebuddy.project/configs/skills/X/a.json`
+  - `.codebuddy/rules/X/a.mdc` → `.codebuddy.project/configs/rules/X/a.mdc`
 - 引擎侧通用配置（不随项目变化的部分）**不进入注册表**，留在 `.codebuddy` 内。
 
 ### 3.4 骨架语义（`template` / `template_outline`）
@@ -131,10 +131,10 @@
 
 ### 3.7 项目专有技能目录（软链接）
 
-项目专有技能放**项目根**的 `.codebuddy.project-skills/<技能名>/SKILL.md`，经**目录软链接**
-`.codebuddy/skills/project-skills → ../../.codebuddy.project-skills` 被 CodeBuddy 自动加载——
+项目专有技能放**项目侧**的 `.codebuddy.project/skills/<技能名>/SKILL.md`，经**目录软链接**
+`.codebuddy/skills/project-skills → ../../.codebuddy.project/skills` 被 CodeBuddy 自动加载——
 **不进入索引**（它不是引擎约定，而是项目内容；引擎只需知道"`.codebuddy/skills/` 支持符号链接"这一事实，
-见引擎 README 与 `.codebuddy.project-skills/README.md`）。
+见引擎 README 与 `.codebuddy.project/skills/README.md`）。
 
 `codebuddy-init` 生成其骨架（`README.md` + `.gitkeep`）并**建立软链接**（Windows `mklink /D`，类 Unix
 `os.symlink`；失败则告警并给出手工命令，不阻断）。技能本身由项目维护者按需创建。
@@ -144,7 +144,7 @@
 引擎根下的**项目级单文件**（如 `settings.json`）以软链接外置，引擎内仅留链接、源文件在项目侧：
 
 - `link`：引擎内的链接路径（相对项目根，如 `.codebuddy/settings.json`）；
-- `path`：项目侧源文件路径（相对项目根，如 `.codebuddy.project/settings.json`）；
+- `path`：项目侧源文件路径（相对项目根，如 `.codebuddy.project/configs/settings.json`）；
 - `format` / `template`：同 `files`，供 `codebuddy-init` 生成源文件骨架。
 
 依据：实测 CodeBuddy 会**解引用符号链接**读取（如 `settings.json` 改源文件即生效）。链接记 `120000`（相对路径，

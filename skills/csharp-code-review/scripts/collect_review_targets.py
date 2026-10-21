@@ -10,7 +10,7 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
 
 配置（**项目相关内容独立配置、经索引定位，便于引擎跨项目共享**）：
     经 `.codebuddy/project.index.json` 的 `code_review.config` 定位到
-    `<项目根>/.codebuddy.project/skills/csharp-code-review/config.json`
+    `<项目根>/.codebuddy.project/configs/skills/csharp-code-review/config.json`
 
         {
           "file_patterns": ["*.cs"],

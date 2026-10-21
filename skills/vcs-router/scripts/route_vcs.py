@@ -17,7 +17,7 @@ VCS 操作路由脚本（vcs-router 技能核心）。
 输出：
     stdout 输出 JSON 路由结果（--quiet 时仅输出一行 vcs_type/route_target 摘要）；退出码 0 表示成功。
     --out 指定时，完整 JSON 额外写入该文件；--quiet 且未指定 --out 时，落到默认结果文件
-    项目侧 <项目根>/.codebuddy.project/skills/vcs-router/.cache/vcs-route.result.json
+    项目侧 <项目根>/.codebuddy.project/caches/skills/vcs-router/.cache/vcs-route.result.json
     （与检测缓存 vcs-route.json 分开，避免互相覆盖）。
 
 退出码：

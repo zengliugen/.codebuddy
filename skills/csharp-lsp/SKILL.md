@@ -22,7 +22,7 @@ python .codebuddy/skills/csharp-lsp/scripts/check_env.py --project .
 ```
 
 > **本地缓存机制**：检查全部通过后，脚本会将结果连同环境指纹写入
-> 项目侧 `.codebuddy.project/skills/csharp-lsp/.cache/` 下的缓存文件（按项目隔离，已 git 忽略）。
+> 项目侧 `.codebuddy.project/caches/skills/csharp-lsp/.cache/` 下的缓存文件（按项目隔离，已 git 忽略）。
 > 在 **24 小时有效期**内且环境指纹（csharp-ls 可执行文件路径/修改时间、
 > 插件安装清单修改时间与版本、三处 settings.json 修改时间/大小）未变化时，
 > 脚本直接复用上次通过结论，跳过重复检查，并提示"缓存命中"。

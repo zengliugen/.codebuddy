@@ -1,6 +1,6 @@
 ---
 name: codebuddy-init
-description: 项目配置初始化技能。当新项目拉取（或以 submodule 接入）本 .codebuddy 引擎后，需要创建项目侧配置目录 .codebuddy.project 时触发；用户说"初始化配置"、"接入 codebuddy"、"生成项目配置"、"配置骨架"、"新项目接入"时调用。依据引擎侧配置注册表 .codebuddy/project.index.json 生成全部占位骨架、运行时产物目录、项目侧 .gitignore/清理入口、项目专有技能目录骨架与根级软链接外置（settings.json），并建立软链接使其生效，最后询问是否立即按项目情况填写。不含任何项目专有值。
+description: 项目配置初始化技能。当新项目拉取（或以 submodule 接入）本 .codebuddy 引擎后，需要创建项目侧配置目录 .codebuddy.project 时触发；用户说"初始化配置"、"接入 codebuddy"、"生成项目配置"、"配置骨架"、"新项目接入"时调用。依据引擎侧配置注册表 .codebuddy/project.index.json 生成全部占位骨架（configs/）、运行时产物目录（caches/）与持久化结果骨架（store/）、项目侧 .gitignore/清理入口、项目专有技能目录骨架与根级软链接外置（settings.json），并建立软链接使其生效，最后询问是否立即按项目情况填写。不含任何项目专有值。
 license: MIT
 mode: Production
 metadata:
@@ -23,8 +23,8 @@ metadata:
 
 | 维度 | 定义 |
 |------|------|
-| 拥有的任务 | 依据 `.codebuddy/project.index.json` 在项目根生成 `.codebuddy.project/` 下的配置骨架、运行时产物空目录、`.gitignore`、清理入口，以及 `.codebuddy.project-skills/` 骨架与根级软链接外置文件（`settings.json`），并**建立软链接** |
-| 输出 | 项目侧配置目录（占位骨架 + 产物空目录 + `.gitignore` + `cleanup-check-logs.cmd`）+ 项目专有技能目录骨架 `.codebuddy.project-skills/` + 根级源文件骨架 `.codebuddy.project/settings.json` + **软链接**（`.codebuddy/skills/project-skills`、`.codebuddy/settings.json`）+ 创建清单；随后询问是否立即填写 |
+| 拥有的任务 | 依据 `.codebuddy/project.index.json` 在项目根生成 `.codebuddy.project/` 下的配置骨架（`configs/`）、运行时产物空目录（`caches/`）、持久化结果骨架（`store/`）、`.gitignore`、清理入口，以及 `.codebuddy.project/skills/` 骨架与根级软链接外置文件（`settings.json`），并**建立软链接** |
+| 输出 | 项目侧配置目录（`configs/` 占位骨架 + `caches/` 产物空目录 + `store/` 骨架 + `.gitignore` + `cleanup-caches.cmd`）+ 项目专有技能目录骨架 `.codebuddy.project/skills/` + 根级源文件骨架 `.codebuddy.project/configs/settings.json` + **软链接**（`.codebuddy/skills/project-skills`、`.codebuddy/settings.json`）+ 创建清单；随后询问是否立即填写 |
 | 排除 | 填写具体项目值（仅在用户确认"立即填写"后作为后续动作进行）；修改引擎侧文件；覆盖已填写内容 |
 | 安全保证 | **幂等**：已存在文件默认跳过不覆盖；索引缺失/损坏即报错退出，不猜测 |
 
@@ -55,17 +55,18 @@ python .codebuddy/skills/codebuddy-init/scripts/init_project_config.py
 - `files` 中 `format: json` 项 → 写入 `template`（占位值原样落盘，UTF-8 无 BOM、2 空格缩进）。
 - `files` 中 `format: markdown` 项 → 按 `template_outline` 生成章节骨架，每节留 `<填写说明>`。
 - `rule_shells` 项 → 生成规则项目事实正文骨架（Markdown 章节占位）。
-- **`artifacts.dirs` 项 → 创建运行时产物空目录**（各技能 `check_logs/`、`.cache/`、根 `.vcs-lock/` 等），供脚本落盘。
+- **`artifacts.dirs` 项 → 创建运行时产物空目录**（`caches/` 下的各技能 `check_logs/`、`.cache/`、`.vcs-lock/` 等），供脚本落盘。
 - 额外生成固定文件/骨架：
   - `.codebuddy.project/README.md`（目录用途与维护约定）；
-  - `.codebuddy.project/.gitignore`（**忽略全部运行时产物目录**，不入库）；
-  - `.codebuddy.project/cleanup-check-logs.cmd`（清理入口，薄入口调用引擎侧
+  - `.codebuddy.project/.gitignore`（**整体忽略 `caches/` 运行时产物根目录**，不入库）；
+  - `.codebuddy.project/store/`（持久化项目结果目录骨架：`README.md` + `.gitkeep`，**入库**）；
+  - `.codebuddy.project/cleanup-caches.cmd`（清理入口，薄入口调用引擎侧
     `.codebuddy/scripts/cleanup_artifacts.py`）；
-  - `.codebuddy.project-skills/`（**项目专有技能目录**：`README.md` + `.gitkeep`），
-    并**建立软链接** `.codebuddy/skills/project-skills` → `../../.codebuddy.project-skills`，
+  - `.codebuddy.project/skills/`（**项目专有技能目录**：`README.md` + `.gitkeep`），
+    并**建立软链接** `.codebuddy/skills/project-skills` → `../../.codebuddy.project/skills`，
     使项目专有技能被 CodeBuddy 自动加载（失败则告警并给出手工命令，不阻断）。
-  - **`root_symlinks.entries` 项** → 生成项目侧源文件骨架（如 `.codebuddy.project/settings.json`）并
-    **建立软链接**（如 `.codebuddy/settings.json` → `../.codebuddy.project/settings.json`），使 CodeBuddy
+  - **`root_symlinks.entries` 项** → 生成项目侧源文件骨架（如 `.codebuddy.project/configs/settings.json`）并
+    **建立软链接**（如 `.codebuddy/settings.json` → `../.codebuddy.project/configs/settings.json`），使 CodeBuddy
     经软链接读取外置的根级文件（失败则告警并给出手工命令，不阻断）。
 - **幂等保护**：目标文件/目录已存在时**跳过不覆盖**（列出"已存在，跳过"）；确需覆盖文件时用 `--force`（须先确认用户知晓将丢失已有内容）。
 
@@ -101,9 +102,9 @@ python .codebuddy/skills/codebuddy-init/scripts/init_project_config.py
 
 - [ ] 是否先定位项目根并校验索引（缺失即报错退出 3）？
 - [ ] 生成是否经过脚本（而非手工臆造字段）？
-- [ ] 是否依据索引 `artifacts.dirs` 创建了运行时产物空目录，并生成了 `.gitignore` 与 `cleanup-check-logs.cmd`？
-- [ ] 是否生成了 `.codebuddy.project-skills/` 骨架并**建立了软链接** `.codebuddy/skills/project-skills`（失败时是否已告警并给出命令）？
-- [ ] 是否依据索引 `root_symlinks.entries` 生成了根级源文件骨架（如 `.codebuddy.project/settings.json`）并**建立了软链接**（失败时是否已告警并给出命令）？
+- [ ] 是否依据索引 `artifacts.dirs` 创建了 `caches/` 运行时产物空目录，并生成了 `.gitignore`、`cleanup-caches.cmd` 与 `store/` 骨架？
+- [ ] 是否生成了 `.codebuddy.project/skills/` 骨架并**建立了软链接** `.codebuddy/skills/project-skills`（失败时是否已告警并给出命令）？
+- [ ] 是否依据索引 `root_symlinks.entries` 生成了根级源文件骨架（如 `.codebuddy.project/configs/settings.json`）并**建立了软链接**（失败时是否已告警并给出命令）？
 - [ ] 已存在文件是否跳过未覆盖（未获确认不使用 `--force`）？
 - [ ] 是否输出了创建清单？
 - [ ] 是否经 `AskUserQuestion` 询问是否立即填写？

@@ -76,7 +76,7 @@ def list_dirs(path, skip_symlinks=False):
     """列出目录下的一级子目录名（排序）。
 
     skip_symlinks：跳过符号链接目录（如 .codebuddy/skills/ 下的项目专有技能链接
-    `project-skills`，它指向项目侧 .codebuddy.project-skills，不属引擎技能清单）。
+    `project-skills`，它指向项目侧 .codebuddy.project/skills，不属引擎技能清单）。
     """
     if not os.path.isdir(path):
         return []

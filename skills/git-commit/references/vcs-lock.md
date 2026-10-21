@@ -15,7 +15,7 @@ git 的暂存区（index）与 HEAD 是**仓库级共享状态**。多个 CodeBu
 
 ### 锁文件
 
-- 位置：`.codebuddy.project/.vcs-lock/codebuddy-vcs.lock`（项目 `.codebuddy` 下的通用锁目录，运行时生成，不入库）。
+- 位置：`.codebuddy.project/caches/.vcs-lock/codebuddy-vcs.lock`（项目 `.codebuddy` 下的通用锁目录，运行时生成，不入库）。
 - 通过从当前工作目录向上查找 `.codebuddy` 目录定位（回退到脚本自身位置推导），不依赖 git 目录。
 - 采用 **O_CREAT|O_EXCL 原子创建**获取锁，杜绝两个进程同时拿锁的竞态。
 
@@ -160,7 +160,7 @@ git diff --cached --name-status -M   # 复核：应恢复为 R（R0xx 表示重�
 - 锁工具放在 `vcs-router` 技能目录下，作为 VCS 写操作的通用基础设施，供 git-commit 及未来
   git-merge / git-revert 等写操作技能复用。
 - `vcs-router` 的路由缓存（`.cache/vcs-route.json`）只做 VCS 类型检测结果缓存，与写操作锁无关。
-- 锁文件位于 `.codebuddy.project/.vcs-lock/`（运行时生成），已被 `.codebuddy/.gitignore` 与项目根 `.gitignore` 忽略，不入库。
+- 锁文件位于 `.codebuddy.project/caches/.vcs-lock/`（运行时生成），已被 `.codebuddy.project/.gitignore` 忽略（`caches/` 整体忽略），不入库。
 
 ## 边界与局限
 

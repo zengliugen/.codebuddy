@@ -34,9 +34,9 @@
 | 本仓库（检出为 `.codebuddy/`） | 引擎 | 纯通用内容；跨项目共享 |
 | `.codebuddy/project.index.json` | 引擎 | 配置注册表；路径 + 骨架，**无项目专有值** |
 | `.codebuddy/skills/**/tools/**/<工具>.json` | 引擎 | **分层配置的通用部分**（规则、算法参数等） |
-| `.codebuddy.project/` | 项目 | 项目侧配置**与运行时产物**（含 `settings.json` 源文件）；随项目独立维护 |
-| `.codebuddy/settings.json` | 项目（链接） | **软链接** → `.codebuddy.project/settings.json`（由项目侧创建，**不入本库**） |
-| `.codebuddy.project-skills/` | 项目 | 项目专有技能（经 `.codebuddy/skills/project-skills` 软链接被加载，**不入本库**） |
+| `.codebuddy.project/` | 项目 | 项目侧内容根：`configs/` 配置、`caches/` 运行时产物（不入库）、`store/` 持久化结果、`skills/` 项目专有技能（含 `settings.json` 源文件）；随项目独立维护 |
+| `.codebuddy/settings.json` | 项目（链接） | **软链接** → `.codebuddy.project/configs/settings.json`（由项目侧创建，**不入本库**） |
+| `.codebuddy.project/skills/` | 项目 | 项目专有技能（经 `.codebuddy/skills/project-skills` 软链接被加载，**不入本库**） |
 | `.codebuddy/models.json` / `settings.local.json` | 机器 | 机器级/本机级；不入库 |
 
 ## 新项目接入（三步）
@@ -51,7 +51,7 @@
    python .codebuddy/skills/codebuddy-init/scripts/init_project_config.py
    ```
    依据 `project.index.json` 在项目根生成 `.codebuddy.project/` 的占位配置骨架、运行时产物空目录、
-   `.gitignore` 与 `cleanup-check-logs.cmd` 清理入口；并建立项目侧软链接
+   `.gitignore` 与 `cleanup-caches.cmd` 清理入口；并建立项目侧软链接
    （`.codebuddy/skills/project-skills` 与 `.codebuddy/settings.json`）。
 3. **按项目填写**：按各技能 `references/config-guide.md` 填写占位值（`codebuddy-init` 会询问是否立即填写）。
 
@@ -77,11 +77,11 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 两个软链接是**项目侧绑定**，指向消费项目独有的目录：
 
 ```
-<项目根>/.codebuddy/settings.json          ──软链接──▶  ../.codebuddy.project/settings.json
-<项目根>/.codebuddy/skills/project-skills  ──软链接──▶  ../../.codebuddy.project-skills
+<项目根>/.codebuddy/settings.json          ──软链接──▶  ../.codebuddy.project/configs/settings.json
+<项目根>/.codebuddy/skills/project-skills  ──软链接──▶  ../../.codebuddy.project/skills
 ```
 
-- **为什么不入本库**：链接目标（`.codebuddy.project/`、`.codebuddy.project-skills/`）是本项目独有的；
+- **为什么不入本库**：链接目标（`.codebuddy.project/`、`.codebuddy.project/skills/`）是本项目独有的；
   若纳入共享库，其他项目 clone 后链接会**悬空**，并可能与同名路径**冲突污染**。故本库 `.gitignore` 已排除
   （`/settings.json`、`/skills/project-skills`）。
 - **如何创建**：消费项目 clone 本引擎后，运行 `codebuddy-init` 自动创建（幂等；失败时告警并给出手工 `mklink` 命令）。
@@ -91,11 +91,12 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 
 ## 运行时产物（外置到项目侧）
 
-脚本执行过程中生成的产物（各技能 `check_logs/`、`.cache/`、根 `.vcs-lock/`）**外置到项目侧**
-`.codebuddy.project/`（镜像引擎结构），由项目侧 `.gitignore` 统一忽略、**不入库**。
+脚本执行过程中生成的产物（各技能 `check_logs/`、`.cache/`、`.vcs-lock/` 等）**外置到项目侧**
+`.codebuddy.project/caches/`（镜像引擎结构），由项目侧 `.gitignore` 整体忽略、**不入库**；
+需持久化保留的项目结果放 `.codebuddy.project/store/`（入库）。
 
 - 产物目录清单由索引 `artifacts.dirs` 声明；各脚本经**逻辑名**解析（不硬编码到技能目录）。
-- 清理：项目侧 `cleanup-check-logs.cmd`（薄入口）调用引擎侧通用工具
+- 清理：项目侧 `cleanup-caches.cmd`（薄入口）调用引擎侧通用工具
   `.codebuddy/scripts/cleanup_artifacts.py`（清单由索引驱动，删除文件并重建空目录）。
 
 ## 分层配置（通用留引擎、项目值外置）
@@ -112,7 +113,7 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 规则的项目事实（目录结构、包依赖、存量清单等）外置到项目侧，引擎侧保留**薄壳**：
 
 - 薄壳保留 frontmatter、`description`/触发条件、强制条款与**通用规范**；
-- 项目事实正文移到 `.codebuddy.project/rules/`，薄壳内声明「见索引 `rule_shells` 指向的正文」。
+- 项目事实正文移到 `.codebuddy.project/configs/rules/`，薄壳内声明「见索引 `rule_shells` 指向的正文」。
 
 ## 仓库更新（update_repo.py）
 

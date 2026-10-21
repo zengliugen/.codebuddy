@@ -1,6 +1,6 @@
 ---
 name: csharp-format-checker
-description: C# 代码格式检查与修复技能（基于 dotnet format + 项目根 .editorconfig）。当用户要求"检查/扫描 C# 代码格式"、"执行 dotnet format"、"格式化 C# 代码"、"代码风格是否符合规范"、或把格式检查作为提交前步骤时触发。使用 dotnet format 工具按项目根目录 .editorconfig 规则检查 C# 代码格式，默认 check 模式只检查不修改文件（--verify-no-changes，可配合 git diff 查看将变更内容），支持 fix 模式落盘应用格式修改；忽略目录由项目侧配置文件（索引逻辑名 `format_checker.config`，位于 .codebuddy.project/skills/csharp-format-checker/config.json）指定，排除三方插件与生成代码目录（既不会被检查也不会被修改）。调用时将用户指定的目录或文件路径直接传递给技能脚本执行，禁止预先扫描或手动判断文件列表。
+description: C# 代码格式检查与修复技能（基于 dotnet format + 项目根 .editorconfig）。当用户要求"检查/扫描 C# 代码格式"、"执行 dotnet format"、"格式化 C# 代码"、"代码风格是否符合规范"、或把格式检查作为提交前步骤时触发。使用 dotnet format 工具按项目根目录 .editorconfig 规则检查 C# 代码格式，默认 check 模式只检查不修改文件（--verify-no-changes，可配合 git diff 查看将变更内容），支持 fix 模式落盘应用格式修改；忽略目录由项目侧配置文件（索引逻辑名 `format_checker.config`，位于 .codebuddy.project/configs/skills/csharp-format-checker/config.json）指定，排除三方插件与生成代码目录（既不会被检查也不会被修改）。调用时将用户指定的目录或文件路径直接传递给技能脚本执行，禁止预先扫描或手动判断文件列表。
 license: MIT
 compatibility: 需要 .NET SDK 6.0+（dotnet format 已内置于 SDK；已在 .NET 10.0.400 环境验证）。无需额外 Agent，由 CodeBuddy Code 直接执行脚本。
 metadata:

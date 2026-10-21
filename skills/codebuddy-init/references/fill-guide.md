@@ -23,19 +23,19 @@
 | `coverage.golden_samples` | `skills/csharp-test-coverage/scripts/golden_samples.json` | 该技能 `SKILL.md` | 项目已知正确的覆盖率样本（目标路径 + 期望）；新项目可先留空 `samples: []`，后续按需补充 |
 | `coverage.trigger_cases` | `skills/csharp-test-coverage/scripts/trigger_cases.json` | `skills/csharp-test-coverage/references/` | 触发评估用例（应/不应触发样例）；含项目路径的用例仅为举例，可替换 |
 | `format_checker.trigger_cases` | `skills/csharp-format-checker/evals/trigger/trigger_cases.json` | `skills/csharp-format-checker/references/` | 同上 |
-| `codebuddy.settings`（根级软链接外置） | `settings.json`（项目根 `.codebuddy.project/settings.json`） | 本节下方「根级软链接外置文件」 | `language`（界面/回复语言）；`memory.teamMemory.userId`（团队成员标识，通常取 git 用户名）；`permissions`/`enabledPlugins` 按团队约定；**不含凭据**（凭据在引擎根 `models.json`/`settings.local.json`，不外置） |
+| `codebuddy.settings`（根级软链接外置） | `settings.json`（项目根 `.codebuddy.project/configs/settings.json`） | 本节下方「根级软链接外置文件」 | `language`（界面/回复语言）；`memory.teamMemory.userId`（团队成员标识，通常取 git 用户名）；`permissions`/`enabledPlugins` 按团队约定；**不含凭据**（凭据在引擎根 `models.json`/`settings.local.json`，不外置） |
 | `rule_shells.*`（规则项目事实正文） | `rules/**` | 各技能 `references/` 与 `rules/` 薄壳内的强制条款 | 项目目录结构、包依赖、启动流程、第三方依赖、测试目录现状、LSP 受影响程序集等**项目事实**；须实测核对（依赖方向读 asmdef、版本读 manifest、忽略范围用 `git check-ignore` 验证） |
 
 ## 运行时产物目录（无需填写）
 
 索引 `artifacts.dirs` 声明的产物目录（各技能 `check_logs/`、`.cache/`、根 `.vcs-lock/`）由 `codebuddy-init`
 创建为空目录，**无需填写任何值**；它们由项目侧 `.gitignore` 忽略、不入库。清理用项目侧
-`cleanup-check-logs.cmd`。本项不属"填写"范畴，仅作说明。
+`cleanup-caches.cmd`。本项不属"填写"范畴，仅作说明。
 
 ## 根级软链接外置文件（root_symlinks.entries）
 
 索引 `root_symlinks.entries` 声明的文件（如 `settings.json`）是**项目级单文件**，外置为：
-项目侧源文件 `.codebuddy.project/settings.json` + 引擎内软链接 `.codebuddy/settings.json`。
+项目侧源文件 `.codebuddy.project/configs/settings.json` + 引擎内软链接 `.codebuddy/settings.json`。
 `codebuddy-init` 生成源文件骨架并建链；**CodeBuddy 本体经软链接直接读取**（无需脚本解析），实测其会解引用符号链接。
 
 - **需填**：`language`、`memory.teamMemory.userId` 等**项目级**值（不含凭据）。

@@ -18,7 +18,6 @@ provider:
 <项目根>/                       ← 项目仓库（Git 仓库 A）
 ├── .git/
 ├── .codebuddy.project/          ← 项目侧（归项目仓库 A）
-├── .codebuddy.project-skills/   ← 项目侧（归项目仓库 A）
 ├── <项目代码/资源>               ← 项目侧（归项目仓库 A）
 └── <路径>/.codebuddy/           ← 引擎仓库（Git 仓库 B）
     ├── .git                     ← 文件（gitdir 指针，表明它是 submodule）
@@ -66,7 +65,7 @@ esac
 
 | 维度 | 引擎仓库（`.codebuddy/`） | 项目仓库（项目根） |
 |------|--------------------------|-------------------|
-| 管辖文件 | `.codebuddy/**`（skills、rules、agents、scripts、`project.index.json`、其 `.gitignore`/`.gitattributes`） | 项目代码/资源、`.codebuddy.project/**`、`.codebuddy.project-skills/**`、`.gitmodules` |
+| 管辖文件 | `.codebuddy/**`（skills、rules、agents、scripts、`project.index.json`、其 `.gitignore`/`.gitattributes`） | 项目代码/资源、`.codebuddy.project/**`、`.gitmodules` |
 | 远程 | 引擎远程（如 `<引擎远程地址>`） | 项目远程（如 `<项目远程地址>`） |
 | 分支 | 引擎分支（如 `main`） | 项目分支（如 `<项目分支>`） |
 | 提交命令所在目录 | 引擎根（`.codebuddy/`） | 项目根 |

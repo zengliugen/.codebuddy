@@ -160,7 +160,7 @@ git diff --cached   # 若需含暂存区
    - 文件头 auto-generated 标记 → 由 dotnet format 内置识别排除。
 
    若目标为上述范围之外的文件，格式维度直接标注「不在检查范围内」。
-1. **优先复用最近报告**（避免重复耗时）：检查 `.codebuddy.project/skills/csharp-format-checker/check_logs/` 下是否存在 **5 分钟内**生成的报告。
+1. **优先复用最近报告**（避免重复耗时）：检查 `.codebuddy.project/caches/skills/csharp-format-checker/check_logs/` 下是否存在 **5 分钟内**生成的报告。
    - 用户或先前流程刚跑过 `csharp-format-checker` 时，**直接解析该报告，不再重复运行脚本**（注意本阶段在提交流程的审查门禁中先于 H1 格式检查执行，故此处通常无新鲜报告，需自行运行）。
    - 报告超过 5 分钟或不存在时，按下述步骤自行运行脚本。
    - 本阶段生成的报告（`.json` 中的 `scope_key` 与范围信息）会被提交流程的 H1 格式检查**严格匹配范围后复用**（见 `git-commit/references/project-config.md` §3.1），一次提交只需跑一次格式检查。
@@ -180,7 +180,7 @@ git diff --cached   # 若需含暂存区
 
 ### 阶段六：生成报告
 
-按阶段一读取的报告格式规则生成报告，写入 `.codebuddy.project/skills/csharp-code-review/check_logs/` 目录，命名格式：
+按阶段一读取的报告格式规则生成报告，写入 `.codebuddy.project/caches/skills/csharp-code-review/check_logs/` 目录，命名格式：
 
 ```
 {时间戳}_csharp-code_{目标名称}_{问题统计}_{8位GUID}.md

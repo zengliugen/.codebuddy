@@ -59,30 +59,33 @@ provider:
 ```
 .codebuddy/                                  # 引擎（可迁移、可跨项目共享），只放通用内容
 ├── project.index.json                       # 配置注册表（入库，路径 + 骨架，无项目专有值）
-├── settings.json -> ../.codebuddy.project/settings.json   # 项目级设置的软链接（源文件外置，入库）
+├── settings.json -> ../.codebuddy.project/configs/settings.json   # 项目级设置的软链接（源文件外置，入库）
 ├── models.json / settings.local.json        # 机器级/本机级（绑定本机，git 忽略，不外置）
 └── skills/
     ├── <技能名>/…                           # 引擎技能
-    └── project-skills -> ../../.codebuddy.project-skills   # 项目专有技能软链接（入库）
-<项目根>/.codebuddy.project/                  # 项目侧配置与产物（具体项目）
-├── settings.json                             # 项目级设置源文件（被引擎内软链接引用，入库）
-├── skills/<技能名>/<配置>.json               # 项目配置（相对路径镜像引擎侧技能目录）
-├── skills/<技能名>/check_logs/、.cache/      # 运行时产物（不入库，脚本落盘）
-├── .vcs-lock/                                # VCS 写操作互斥锁（运行时生成，不入库）
-├── rules/<规则名>/<规则>.mdc                 # 规则项目事实正文（薄壳引用）
-├── .gitignore                                # 忽略运行时产物
-└── cleanup-check-logs.cmd                    # 清理入口（薄入口，调用引擎侧工具）
-<项目根>/.codebuddy.project-skills/           # 项目专有技能（独立目录，随项目入库）
-└── <技能名>/SKILL.md                         # 经 skills/project-skills 软链接被自动加载
+    └── project-skills -> ../../.codebuddy.project/skills   # 项目专有技能软链接（入库）
+<项目根>/.codebuddy.project/                  # 项目侧（具体项目）
+├── configs/                                  # 配置（入库）
+│   ├── settings.json                         # 项目级设置源文件（被引擎内软链接引用）
+│   ├── skills/<技能名>/<配置>.json           # 项目配置（相对路径镜像引擎侧技能目录）
+│   └── rules/<规则名>/<规则>.mdc             # 规则项目事实正文（薄壳引用）
+├── caches/                                   # 运行时产物根目录（不入库，.gitignore 整体忽略）
+│   ├── skills/<技能名>/check_logs/、.cache/  # 各技能产物（脚本落盘，镜像引擎结构）
+│   └── .vcs-lock/                            # VCS 写操作互斥锁（运行时生成）
+├── store/                                    # 持久化项目结果（入库）
+├── skills/                                   # 项目专有技能（入库）
+│   └── <技能名>/SKILL.md                     # 经 .codebuddy/skills/project-skills 软链接被自动加载
+├── .gitignore                                # 忽略 caches/ 与系统临时文件
+└── cleanup-caches.cmd                        # 缓存清理入口（薄入口，调用引擎侧工具）
 ```
 
 **约定**：
 
 - 引擎侧只放**通用内容**；与项目绑定的配置与**运行时产物**全部外置到项目根下的 `.codebuddy.project/`。
 - 项目侧位置由 `.codebuddy/project.index.json` 声明（`files` 配置类、`rule_shells` 规则正文、`artifacts.dirs` 产物目录、`root_symlinks.entries` 根级软链接外置文件）。
-- 项目侧路径与引擎侧**相对路径镜像**（`.codebuddy/skills/X/a.json` → `.codebuddy.project/skills/X/a.json`）。
+- 项目侧路径与引擎侧**相对路径镜像**（`.codebuddy/skills/X/a.json` → `.codebuddy.project/configs/skills/X/a.json`）。
 - **运行时产物**（`check_logs`/`.cache`/`.vcs-lock`）经索引 `artifacts.dirs` 定位，由项目侧 `.gitignore` 忽略、不入库。
-- **项目专有技能**放项目根 `.codebuddy.project-skills/`（独立于配置目录），经 `.codebuddy/skills/project-skills` **软链接**被 CodeBuddy 扫描加载（实测技能目录支持符号链接；插件机制不适用）。
+- **项目专有技能**放 `.codebuddy.project/skills/`（与 `configs/` 平级，随项目入库），经 `.codebuddy/skills/project-skills` **软链接**被 CodeBuddy 扫描加载（实测技能目录支持符号链接；插件机制不适用）。
 - **根级项目级单文件**（如 `settings.json`）经索引 `root_symlinks.entries` 外置：引擎内留**软链接**、源文件在项目侧，CodeBuddy 本体解引用软链接读取（实测支持），源文件与链接均入库。
 - **机器级文件不外置**：`models.json`（含 API Key）、`settings.local.json`（本机）绑定本机，留在引擎根并 git 忽略——外置会跨机器失效且不宜入库。
 - **禁止**：把项目相关配置放在 `.codebuddy/` 内部（含历史遗留的 `.codebuddy/config/` 与各技能目录）。
@@ -222,7 +225,7 @@ provider:
 
 ## 5. 项目事实的标注
 
-**首选外置**：项目事实（存量清单、实测数据、项目结构说明）应外置到 `.codebuddy.project/rules/`，
+**首选外置**：项目事实（存量清单、实测数据、项目结构说明）应外置到 `.codebuddy.project/configs/rules/`，
 引擎侧规则以**薄壳**引用（见 §5.3）。仅当确需留在引擎侧时，才在**文件内**标注。
 
 ### 5.1 标注形式
@@ -358,10 +361,10 @@ ls .codebuddy/skills/*/tools/*/*.cs        # 应列出工具源码（若无输�
 
 ```
 新增技能，需要排除本项目的三方库目录：
-  1. 引擎侧只保留通用部分；项目值外置到 .codebuddy.project/skills/foo/config.json：
+  1. 引擎侧只保留通用部分；项目值外置到 .codebuddy.project/configs/skills/foo/config.json：
      { "_comment": "本文件为 foo 的项目配置…", "exclude_dirs": ["<三方库>", "<生成代码目录>"] }
   2. 在 .codebuddy/project.index.json 的 files 登记：
-     "foo.config": { "path": ".codebuddy.project/skills/foo/config.json", "format": "json",
+     "foo.config": { "path": ".codebuddy.project/configs/skills/foo/config.json", "format": "json",
                      "template": { "exclude_dirs": ["<三方库>"] } }
   3. 脚本经索引读取（配置为唯一来源，缺失即报错）：
      config = load_config()          # 索引/配置缺失/缺键 → 抛 ConfigError，输出可操作错误消息
@@ -388,7 +391,7 @@ ls .codebuddy/skills/*/tools/*/*.cs        # 应列出工具源码（若无输�
    # 正确做法：项目值外置到 .codebuddy.project/，引擎侧只留通用部分
 
 ❌ 索引写入绝对路径或项目专有值
-   "path": "D:/proj/.codebuddy.project/skills/foo/config.json"   # 绝对路径，他项目无效
+   "path": "D:/proj/.codebuddy.project/configs/skills/foo/config.json"   # 绝对路径，他项目无效
    "template": { "workspace": "Client.slnx" }                    # 项目专有值，应写占位 <解决方案名>
 
 ❌ 配置缺失时静默回退默认值（无论默认值是否通用）

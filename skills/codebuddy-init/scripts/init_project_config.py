@@ -160,24 +160,18 @@ def build_artifact_dirs(index, project_root):
 
 
 def build_gitignore_content():
-    """生成 `.codebuddy.project/.gitignore` 内容（忽略全部运行时产物目录，由索引驱动语义）。"""
+    """生成 `.codebuddy.project/.gitignore` 内容（整体忽略 caches/ 运行时产物根目录）。"""
     return """# ============================================================
 #  项目侧配置目录（.codebuddy.project）忽略规则
 #
-#  运行时产物（check_logs / .cache / .vcs-lock 等）由脚本执行生成，不入库；
+#  caches/ 为运行时产物根目录（不持久化的临时结果：各技能 check_logs、
+#  .cache、.vcs-lock 等），由脚本执行生成，不入库；
 #  产物目录清单见 .codebuddy/project.index.json 的 artifacts.dirs。
+#  configs/ 与 store/ 为入库内容，不在此忽略。
 # ============================================================
 
-# 运行时产物目录（各技能 check_logs 与 .cache）
-skills/*/check_logs/
-skills/*/.cache/
-skills/*/tools/**/check_logs/
-
-# VCS 写操作互斥锁（运行时生成）
-.vcs-lock/
-
-# 会话经验固化报告（每次运行生成，本地留档）
-skills/session-lesson-distill/reports/*_distill-report.md
+# 运行时产物根目录（整体忽略）
+caches/
 
 # 系统/编辑器临时文件
 .DS_Store
@@ -186,65 +180,74 @@ Thumbs.db
 
 
 def build_cleanup_cmd_content():
-    """生成 `.codebuddy.project/cleanup-check-logs.cmd` 薄入口内容（调用引擎侧清理工具）。"""
-    return r"""@echo off
-chcp 65001 > nul
-setlocal EnableDelayedExpansion
+    """生成 `.codebuddy.project/cleanup-caches.cmd` 薄入口内容（调用引擎侧清理工具）。
 
-rem ============================================================
-rem  清理项目侧运行时产物目录（check_logs / .cache / .vcs-lock 等）。
-rem
-rem  本脚本为薄入口：实际清理逻辑由引擎侧通用工具
-rem  （.codebuddy/scripts/cleanup_artifacts.py）承担，待清理目录清单
-rem  由 .codebuddy/project.index.json 的 artifacts.dirs 驱动，
-rem  不硬编码任何技能名或路径。
-rem
-rem  用法：
-rem    cleanup-check-logs.cmd            交互确认后清理
-rem    cleanup-check-logs.cmd all        跳过确认直接清理
-rem ============================================================
-
-set "BASE=%~dp0"
-if "%BASE:~-1%"=="\" set "BASE=%BASE:~0,-1%"
-set "CLEANUP_TOOL=%BASE%\..\.codebuddy\scripts\cleanup_artifacts.py"
-
-if not exist "%CLEANUP_TOOL%" (
-    echo [错误] 未找到引擎侧清理工具：%CLEANUP_TOOL%
-    echo        请确认 .codebuddy 引擎包完整。
-    pause
-    exit /b 1
-)
-
-set "PYEXE="
-where python >nul 2>&1
-if not errorlevel 1 set "PYEXE=python"
-if not defined PYEXE (
-    where py >nul 2>&1
-    if not errorlevel 1 set "PYEXE=py"
-)
-if not defined PYEXE (
-    echo [错误] 未找到 Python，请先安装 Python 3 并加入 PATH。
-    pause
-    exit /b 1
-)
-
-if /i "%~1"=="all" (
-    "%PYEXE%" "%CLEANUP_TOOL%" all
-) else (
-    "%PYEXE%" "%CLEANUP_TOOL%"
-)
-set "RC=%ERRORLEVEL%"
-
-echo.
-echo 提示：清理完成，按任意键关闭窗口。
-pause
-exit /b %RC%
-"""
+    遵循 cmd-script-writing 规范：含中文的行行尾补 ASCII 空格（规避 chcp 65001 下
+    CMD 把后续内容误判为命令）；行尾为 CRLF（由写入方按 .cmd 特判，LF 会撕裂语句）。
+    """
+    lines = [
+        "@echo off",
+        "chcp 65001 > nul",
+        "setlocal EnableDelayedExpansion",
+        "",
+        "rem ============================================================ ",
+        "rem  清理项目侧运行时缓存目录（caches/ 下的 check_logs / .cache / .vcs-lock 等）。 ",
+        "rem ",
+        "rem  本脚本为薄入口：实际清理逻辑由引擎侧通用工具 ",
+        "rem  （.codebuddy/scripts/cleanup_artifacts.py）承担，待清理目录清单 ",
+        "rem  由 .codebuddy/project.index.json 的 artifacts.dirs 驱动， ",
+        "rem  不硬编码任何技能名或路径。 ",
+        "rem ",
+        "rem  用法： ",
+        "rem    cleanup-caches.cmd            交互确认后清理 ",
+        "rem    cleanup-caches.cmd all        跳过确认直接清理 ",
+        "rem ============================================================ ",
+        "",
+        "rem 定位引擎侧清理工具（相对本脚本：<项目根>/.codebuddy.project/ -> <项目根>/.codebuddy/scripts/） ",
+        "set \"BASE=%~dp0\"",
+        "rem 去除脚本路径末尾的反斜杠。 ",
+        "if \"%BASE:~-1%\"==\"\\\" set \"BASE=%BASE:~0,-1%\"",
+        "set \"CLEANUP_TOOL=%BASE%\\..\\.codebuddy\\scripts\\cleanup_artifacts.py\"",
+        "",
+        "if not exist \"%CLEANUP_TOOL%\" (",
+        "    echo [错误] 未找到引擎侧清理工具：%CLEANUP_TOOL% ",
+        "    echo        请确认 .codebuddy 引擎包完整。 ",
+        "    pause",
+        "    exit /b 1",
+        ")",
+        "",
+        "rem 查找可用的 Python（python 优先，回退 py）。 ",
+        "set \"PYEXE=\"",
+        "where python >nul 2>&1",
+        "if not errorlevel 1 set \"PYEXE=python\"",
+        "if not defined PYEXE (",
+        "    where py >nul 2>&1",
+        "    if not errorlevel 1 set \"PYEXE=py\"",
+        ")",
+        "if not defined PYEXE (",
+        "    echo [错误] 未找到 Python，请先安装 Python 3 并加入 PATH。 ",
+        "    pause",
+        "    exit /b 1",
+        ")",
+        "",
+        "if /i \"%~1\"==\"all\" (",
+        "    \"%PYEXE%\" \"%CLEANUP_TOOL%\" all",
+        ") else (",
+        "    \"%PYEXE%\" \"%CLEANUP_TOOL%\"",
+        ")",
+        "set \"RC=%ERRORLEVEL%\"",
+        "",
+        "echo.",
+        "echo 提示：清理完成，按任意键关闭窗口。 ",
+        "pause",
+        "exit /b %RC%",
+    ]
+    return "\r\n".join(lines) + "\r\n"
 
 
 def build_project_skills_readme_content():
-    """生成 `.codebuddy.project-skills/README.md` 内容（项目专有技能落点与加载机制说明）。"""
-    return """# 项目专有技能（.codebuddy.project-skills）
+    """生成 `.codebuddy.project/skills/README.md` 内容（项目专有技能落点与加载机制说明）。"""
+    return """# 项目专有技能（.codebuddy.project/skills）
 
 本目录存放**本项目专有**的技能，随本项目仓库版本控制；`.codebuddy` 引擎（可 submodule 化、
 多项目共享）不含本项目内容。
@@ -254,7 +257,7 @@ def build_project_skills_readme_content():
 `.codebuddy/skills/` 是 CodeBuddy 的**内置技能扫描目录**。本目录经一个**目录软链接**挂载到该扫描目录下：
 
 ```
-.codebuddy/skills/project-skills  ──软链接──▶  ../../.codebuddy.project-skills
+.codebuddy/skills/project-skills  ──软链接──▶  ../../.codebuddy.project/skills
 ```
 
 即本目录下的技能自动出现在 `.codebuddy/skills/project-skills/`，被 CodeBuddy 扫描并加载
@@ -267,7 +270,7 @@ def build_project_skills_readme_content():
 ## 目录结构
 
 ```
-.codebuddy.project-skills/
+.codebuddy.project/skills/
 ├── .gitkeep                 # 占位（保证空目录入库）
 └── <技能名>/
     ├── SKILL.md             # 技能定义（frontmatter 含 name、description）
@@ -277,7 +280,7 @@ def build_project_skills_readme_content():
 
 ## 创建项目专有技能
 
-1. 建技能目录：`.codebuddy.project-skills/<技能名>/`
+1. 建技能目录：`.codebuddy.project/skills/<技能名>/`
 2. 写 `SKILL.md`（frontmatter 含 `name`、`description`）。
 3. **无需其他操作**——软链接已存在，CodeBuddy 自动扫描；新开会话即可见。
 
@@ -288,7 +291,7 @@ def build_project_skills_readme_content():
 - **创建链接的权限**：Windows 需开启"开发者模式"或以管理员身份运行；`mklink /D` 失败时，
   初始化脚本会告警并给出手工命令。
 - **平台**：macOS / Linux 原生支持符号链接，无额外要求。
-- **链接目标用相对路径**（`../../.codebuddy.project-skills`），保证跨机器有效。
+- **链接目标用相对路径**（`../../.codebuddy.project/skills`），保证跨机器有效。
 
 ## 与引擎的关系
 
@@ -300,27 +303,27 @@ def build_project_skills_readme_content():
 def build_project_skills_targets(project_root):
     """构造项目专有技能目录骨架的待生成文件清单：[(绝对路径, 内容)]。
 
-    - `.codebuddy.project-skills/README.md`：落点与加载机制说明；
-    - `.codebuddy.project-skills/.gitkeep`：占位（保证空目录入库）。
+    - `.codebuddy.project/skills/README.md`：落点与加载机制说明；
+    - `.codebuddy.project/skills/.gitkeep`：占位（保证空目录入库）。
     """
-    base = os.path.normpath(os.path.join(project_root, ".codebuddy.project-skills"))
+    base = os.path.normpath(os.path.join(project_root, ".codebuddy.project/skills"))
     return [
         (os.path.join(base, "README.md"), build_project_skills_readme_content()),
         (os.path.join(base, ".gitkeep"),
-         "# 占位文件：保证空的 .codebuddy.project-skills/ 目录能入库。\n"
+         "# 占位文件：保证空的 .codebuddy.project/skills/ 目录能入库。\n"
          "# 项目专有技能放在本目录下的 <技能名>/SKILL.md，经 .codebuddy/skills/project-skills 软链接被自动加载。\n"),
     ]
 
 
 def ensure_project_skills_link(project_root, force=False):
-    """建立 `.codebuddy/skills/project-skills` 软链接，指向 `../../.codebuddy.project-skills`。
+    """建立 `.codebuddy/skills/project-skills` 软链接，指向 `../../.codebuddy.project/skills`。
 
     返回 (状态, 说明)：状态为 `created` / `exists` / `failed`。
     Windows 用 `mklink /D`（相对路径，可入库为符号链接）；类 Unix 用 `os.symlink`。
     失败时不抛错，由调用方告警并提示手工命令。
     """
     link_path = os.path.normpath(os.path.join(project_root, ".codebuddy", "skills", "project-skills"))
-    target_rel = os.path.join("..", "..", ".codebuddy.project-skills")
+    target_rel = os.path.join("..", "..", ".codebuddy.project/skills")
 
     # 已存在（链接或目录）：默认不处理；force 时先移除再重建
     if os.path.lexists(link_path):
@@ -417,10 +420,33 @@ def ensure_file_symlink(link_abs, src_abs, force=False):
 
 def readme_content(project_config_root):
     """生成 `.codebuddy.project/README.md` 内容（技能零项目值，通用说明）。"""
-    return """# 项目侧配置目录（.codebuddy.project）
+    return """# 项目侧配置目录（{root}）
 
-本目录存放**与具体项目绑定**的配置与运行时产物，与 `.codebuddy` 引擎目录分离：引擎可整体迁移
+本目录存放**与具体项目绑定**的全部内容，与 `.codebuddy` 引擎目录分离：引擎可整体迁移
 （如以 git submodule 在多项目共享），本目录则随当前项目独立维护。
+
+## 目录结构
+
+```
+{root}/
+├── configs/            # 配置（入库）：settings.json、skills/<技能>/、rules/<规则>/ 等
+├── caches/             # 运行时产物（不入库）：各技能 check_logs/、.cache/、.vcs-lock/ 等
+├── store/              # 持久化项目结果（入库）：需长期保留的运行结果
+├── skills/             # 项目专有技能（入库）：经 .codebuddy/skills/project-skills 软链接被加载
+├── README.md
+├── .gitignore          # 忽略 caches/ 与系统临时文件
+└── cleanup-caches.cmd  # 缓存清理入口（薄入口，调用引擎侧清理工具）
+```
+
+三类内容的边界约定：
+
+| 子目录 | 语义 | 是否入库 | 可否删除 |
+|--------|------|---------|---------|
+| `configs/` | 与项目绑定的配置 | 是 | 删除后技能按「配置缺失即报错」 |
+| `caches/` | 运行时生成、**不持久化**的临时结果 | 否（整体忽略） | 随时可删，可重新生成 |
+| `store/` | 运行时生成、需**持久化保留**的项目结果 | 是 | 删除即丢失，需谨慎 |
+
+**约定**：后续所有运行时生成的、不持久化的临时结果一律放 `caches/`，不得散落到其他目录。
 
 ## 文件从何而来
 
@@ -433,28 +459,58 @@ def readme_content(project_config_root):
 ## 与引擎的对应关系
 
 `.codebuddy/skills/<技能>/a.json` 的项目侧对应位置为
-`{root}/skills/<技能>/a.json`（相对路径镜像）；规则项目事实正文同理位于
-`{root}/rules/...`。定位逻辑由各技能脚本经 `.codebuddy/project.index.json` 解析。
+`{root}/configs/skills/<技能>/a.json`（相对路径镜像）；规则项目事实正文同理位于
+`{root}/configs/rules/...`。定位逻辑由各技能脚本经 `.codebuddy/project.index.json` 解析。
 
-## 运行时产物目录
+## 运行时产物目录（caches/）
 
-脚本执行过程中生成的产物（各技能 `check_logs/`、`.cache/`、根 `.vcs-lock/`）也落在本目录下
-（镜像引擎结构），由本目录 `.gitignore` 统一忽略、不入库。产物目录清单见索引
-`artifacts.dirs`；清理用本目录的 `cleanup-check-logs.cmd`（薄入口，调用引擎侧
-`.codebuddy/scripts/cleanup_artifacts.py`）。
+脚本执行过程中生成的产物（各技能 `check_logs/`、`.cache/`、`.vcs-lock/` 等）统一落在
+`caches/` 下（产物清单见索引 `artifacts.dirs`），由本目录 `.gitignore` 整体忽略、不入库。
+清理用本目录的 `cleanup-caches.cmd`（薄入口，调用引擎侧 `.codebuddy/scripts/cleanup_artifacts.py`）。
 
 ## 项目专有技能
 
-项目专有技能放在**项目根**的 `.codebuddy.project-skills/<技能名>/SKILL.md`（与本目录同级、独立目录），
+项目专有技能放在本目录的 `skills/<技能名>/SKILL.md`（随项目入库），
 经软链接 `.codebuddy/skills/project-skills` 被 CodeBuddy 自动加载（详见其 `README.md`）。
 这样与 `.codebuddy` 引擎解耦：引擎可 submodule 化、多项目共享，项目专有内容只随本仓库版本控制、不进入引擎。
 
 ## 维护约定
 
-- 本目录**配置入库**（随项目版本控制），产物目录**不入库**；不含敏感信息（凭据等机器级配置保留在
-  `.codebuddy` 根的 `models.json` / `settings.local.json`，已被忽略）。
+- `configs/` 与 `store/` **入库**（随项目版本控制），`caches/` **不入库**；不含敏感信息
+  （凭据等机器级配置保留在 `.codebuddy` 根的 `models.json` / `settings.local.json`，已被忽略）。
 - 修改引擎侧索引（新增配置项或产物目录）后，可重新运行 `codebuddy-init` 补齐缺失内容。
 """.format(root=project_config_root)
+
+
+def build_store_targets(project_root, project_config_root):
+    """构造持久化项目结果目录（store/）骨架的待生成文件清单：[(绝对路径, 内容)]。
+
+    store/ 入库：存放运行时生成但需持久化保留的项目结果；临时产物一律放 caches/。
+    """
+    base = os.path.normpath(os.path.join(project_root, project_config_root, "store"))
+    readme = """# 持久化项目结果目录（store/）
+
+本目录存放**运行时生成但需要持久化保留**的项目结果内容，随项目仓库版本控制。
+
+## 与 caches/ 的边界
+
+| 目录 | 语义 | 是否入库 | 可否删除 |
+|------|------|---------|---------|
+| `../caches/` | 运行时临时产物（不持久化） | 否（整体忽略） | 随时可删，可重新生成 |
+| `store/`（本目录） | 持久化项目结果 | 是 | 删除即丢失，需谨慎 |
+
+## 约定
+
+- 后续所有「运行时生成但不持久化」的结果一律放 `../caches/`，不要放本目录。
+- 放入本目录的内容按子目录组织，并在子目录内说明用途与生成来源。
+- 本目录由 `codebuddy-init` 技能初始化创建；初始化只建骨架，不写入任何项目值。
+"""
+    gitkeep = ("# 占位文件：保证空的 store/ 目录能入库。\n"
+               "# 本目录存放需持久化保留的项目结果（入库）；运行时临时产物请放 caches/（不入库）。\n")
+    return [
+        (os.path.join(base, "README.md"), readme),
+        (os.path.join(base, ".gitkeep"), gitkeep),
+    ]
 
 
 def main():
@@ -499,7 +555,7 @@ def main():
         (None, readme_path, "markdown_text", readme_text),
         (None, os.path.normpath(os.path.join(project_root, readme_rel, ".gitignore")),
          "markdown_text", build_gitignore_content()),
-        (None, os.path.normpath(os.path.join(project_root, readme_rel, "cleanup-check-logs.cmd")),
+        (None, os.path.normpath(os.path.join(project_root, readme_rel, "cleanup-caches.cmd")),
          "markdown_text", build_cleanup_cmd_content()),
     ]
     for code_name, abs_path, fmt, entry in targets:
@@ -510,11 +566,15 @@ def main():
             return 3
         all_files.append((code_name, abs_path, fmt, payload))
 
-    # 项目专有技能目录骨架（.codebuddy.project-skills/）
+    # 项目专有技能目录骨架（.codebuddy.project/skills/）
     for abs_path, payload in build_project_skills_targets(project_root):
         all_files.append((None, abs_path, "markdown_text", payload))
 
-    # 根级软链接的项目侧源文件骨架（如 .codebuddy.project/settings.json）
+    # 持久化项目结果目录骨架（store/，入库）
+    for abs_path, payload in build_store_targets(project_root, readme_rel):
+        all_files.append((None, abs_path, "markdown_text", payload))
+
+    # 根级软链接的项目侧源文件骨架（如 .codebuddy.project/configs/settings.json）
     try:
         root_symlinks = build_root_symlink_targets(index, project_root)
     except InitError as error:
@@ -534,7 +594,9 @@ def main():
             continue
         try:
             os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-            with open(abs_path, "w", encoding="utf-8", newline="\n") as handle:
+            # .cmd 需 CRLF 行尾（LF 会撕裂 CMD 语句）；其内容已内嵌 \r\n，关闭换行翻译
+            newline = "" if abs_path.lower().endswith(".cmd") else "\n"
+            with open(abs_path, "w", encoding="utf-8", newline=newline) as handle:
                 handle.write(payload)
         except OSError as error:
             sys.stderr.write("[错误] 写入失败：%s（%s）\n" % (abs_path, error))
@@ -557,10 +619,10 @@ def main():
             return 1
         created_dirs.append(abs_path)
 
-    # 建立项目专有技能软链接：.codebuddy/skills/project-skills -> ../../.codebuddy.project-skills
+    # 建立项目专有技能软链接：.codebuddy/skills/project-skills -> ../../.codebuddy.project/skills
     link_status, link_info = ensure_project_skills_link(project_root, force=args.force)
 
-    # 建立根级文件软链接（如 .codebuddy/settings.json -> ../.codebuddy.project/settings.json）
+    # 建立根级文件软链接（如 .codebuddy/settings.json -> ../.codebuddy.project/configs/settings.json）
     root_link_results = []
     for code_name, link_abs, src_abs, fmt, entry in root_symlinks:
         status, info = ensure_file_symlink(link_abs, src_abs, force=args.force)
@@ -601,14 +663,14 @@ def main():
 
     # 软链接结果
     if link_status == "created":
-        print("[链接] 已创建：.codebuddy/skills/project-skills -> ../../.codebuddy.project-skills")
+        print("[链接] 已创建：.codebuddy/skills/project-skills -> ../../.codebuddy.project/skills")
     elif link_status == "exists":
         print("[链接] 已存在（未改动）：.codebuddy/skills/project-skills")
     else:
         print("[警告] 项目专有技能软链接创建失败：%s" % link_info)
         print("       项目专有技能将无法被自动加载。请手工创建（Windows 需开发者模式/管理员）：")
-        print("         cd .codebuddy\\skills && mklink /D project-skills ..\\..\\.codebuddy.project-skills")
-        print("       （类 Unix： ln -s ../../.codebuddy.project-skills .codebuddy/skills/project-skills）")
+        print("         cd .codebuddy\\skills && mklink /D project-skills ..\\..\\.codebuddy.project\\skills")
+        print("       （类 Unix： ln -s ../../.codebuddy.project/skills .codebuddy/skills/project-skills）")
 
     # 根级文件软链接结果
     for code_name, link_abs, src_abs, status, info in root_link_results:
@@ -629,7 +691,7 @@ def main():
     print()
     print("下一步：按项目实际情况填写上述配置中的 `<...>` 占位值。")
     print("        未填写的配置在首次运行对应技能时会报错（配置缺失即报错）。")
-    print("        项目专有技能放 .codebuddy.project-skills/<技能名>/SKILL.md（经软链接自动加载）。")
+    print("        项目专有技能放 .codebuddy.project/skills/<技能名>/SKILL.md（经软链接自动加载）。")
     return 0
 
 

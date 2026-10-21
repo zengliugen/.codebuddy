@@ -10,7 +10,7 @@ VCS 写操作互斥锁工具。
     同一时刻只有一个会话持有写操作权。
 
 锁设计：
-    - 锁文件位于项目侧 .codebuddy.project/.vcs-lock/codebuddy-vcs.lock（通用锁目录），
+    - 锁文件位于项目侧 .codebuddy.project/caches/.vcs-lock/codebuddy-vcs.lock（通用锁目录），
       不依赖 git 目录，非 git 项目同样可用。
     - 定位方式：优先从当前工作目录向上查找 .codebuddy 目录，未命中时
       回退到脚本自身位置推导（脚本位于 .codebuddy 内）。
@@ -97,7 +97,7 @@ def new_session_id():
 def resolve_lock_dir(codebuddy_dir):
     """经索引 `artifacts.dirs.vcs_router.lock` 解析锁目录（相对路径基准为项目根）。
 
-    锁目录位于项目侧 `.codebuddy.project/.vcs-lock/`（运行时生成，不入库、不随引擎共享）。
+    锁目录位于项目侧 `.codebuddy.project/caches/.vcs-lock/`（运行时生成，不入库、不随引擎共享）。
     索引缺失或缺少该项时回退到引擎内 `.codebuddy/.vcs-lock/`（保持可用性）。
     """
     index_path = codebuddy_dir / "project.index.json"
@@ -335,7 +335,7 @@ def main():
         print_result("FAIL", "未找到项目 .codebuddy 目录，VCS 写操作锁不可用。")
         return 1
 
-    # 通用锁目录：经索引解析到项目侧 .codebuddy.project/.vcs-lock/（回退引擎内 .vcs-lock/）
+    # 通用锁目录：经索引解析到项目侧 .codebuddy.project/caches/.vcs-lock/（回退引擎内 .vcs-lock/）
     lock_dir = resolve_lock_dir(codebuddy_dir)
     try:
         lock_dir.mkdir(parents=True, exist_ok=True)

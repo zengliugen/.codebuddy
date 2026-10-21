@@ -55,7 +55,7 @@ python .codebuddy/skills/unity-pipeline/scripts/check_unity_cli.py
 ```
 
 > **本地缓存机制**：检查通过后，脚本将结果连同环境指纹写入
-> 项目侧 `.codebuddy.project/skills/unity-pipeline/.cache/unity_cli_ok.json`（已 git 忽略，Unity CLI 为机器级安装，不按项目隔离）。
+> 项目侧 `.codebuddy.project/caches/skills/unity-pipeline/.cache/unity_cli_ok.json`（已 git 忽略，Unity CLI 为机器级安装，不按项目隔离）。
 > 在 **24 小时有效期**内且环境指纹（`unity` 命令路径、`unity --version` 输出）未变化时，
 > 脚本直接复用上次通过结论，跳过重复检查，并提示"缓存命中"。
 > 卸载/重装/升级 CLI 会使指纹失效自动重查；**失败结果不缓存**，修复后重跑立即重查。
