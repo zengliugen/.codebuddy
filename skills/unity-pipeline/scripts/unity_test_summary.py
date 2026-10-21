@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-unity-pipeline 测试结果归一化脚本：从 `test_status` / `run_tests` 输出中提取摘要与失败清单。
+unity-pipeline 测试结果归一化脚本：从 `test status` / `test run` 输出中提取摘要与失败清单。
 
 背景：
-    `unity command run_tests` / `test_status` 的输出是「结果 JSON + 参数回显」两段 JSON
+    `unity command test run` / `test status` 的输出是「结果 JSON + 参数回显」两段 JSON（0.9 起命令分组命名）
     拼接（如 `{"Summary":{...},"Results":[...]}   {"mode":"editor","filter":"..."}`），
     直接 `json.load` 会因尾随内容报错，需用 raw_decode 只解首个对象。本脚本完成该解析，
     并归一化为「总数/通过/失败/跳过」摘要与失败用例清单（含消息与堆栈首 3 行）。
@@ -28,7 +28,7 @@ unity-pipeline 测试结果归一化脚本：从 `test_status` / `run_tests` 输
 退出码：
     0 —— 全部通过（无失败用例）
     1 —— 存在失败用例
-    2 —— 解析失败（可能仍在运行，请先轮询 test_status）或参数/文件错误
+    2 —— 解析失败（可能仍在运行，请先轮询 `test status`）或参数/文件错误
 """
 
 import argparse
@@ -229,7 +229,7 @@ def main():
 
     payload = parse_first_json(text)
     if payload is None:
-        log("[FAIL] 无法从输入中解析出测试结果 JSON（可能仍在运行，请先轮询 test_status）")
+        log("[FAIL] 无法从输入中解析出测试结果 JSON（可能仍在运行，请先轮询 `test status`）")
         if args.raw:
             log("[INFO] 原始输入如下：")
             print(text)

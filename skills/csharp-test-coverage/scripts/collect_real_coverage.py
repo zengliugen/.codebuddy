@@ -4,7 +4,7 @@
 Unity 真实代码覆盖率采集编排脚本。
 
 凭据来源（全部经 P0 活体实测确认，详见 references/real-coverage-guide.md）：
-  1. 状态读取必须走 `unity command eval` 读内存真实值；
+  1. 状态读取必须走 `unity command script eval` 读内存真实值；
      实测同一时刻 Settings.json 为 true 而内存 Coverage.enabled 为 false，
      文件不能作为状态依据。
   2. 配置写入必须经 CodeCoverageWindow.AssembliesToInclude setter
@@ -75,6 +75,7 @@ def run_unity_command(command, extra_args=None, timeout=60, check=False):
 
     返回原始文本，交由调用方解析，避免对整段 JSON 做关键字匹配。
     """
+    # 0.9 起命令名为 "分组 名称"，CLI 要求整串作为单个参数传入，故不做切分
     args = ["unity", "command", command]
     if extra_args:
         args.extend(extra_args)
@@ -100,7 +101,7 @@ def unity_eval(code, timeout=60):
 
     eval 返回形如 {"result": <值>, ...}；域重载期间会连接中断，此时返回 None。
     """
-    ok, output = run_unity_command("eval", ["--code", code], timeout=timeout)
+    ok, output = run_unity_command("script eval", ["--code", code], timeout=timeout)
     if not ok:
         return None
     # 从首个 { 起做增量解析，避免日志前缀干扰
@@ -267,7 +268,7 @@ def trigger_domain_reload():
     （AppDomain 哈希不变）。
     """
     code = "UnityEditor.EditorUtility.RequestScriptReload(); return \"RELOAD_REQUESTED\";"
-    ok, _ = run_unity_command("eval", ["--code", code], timeout=30)
+    ok, _ = run_unity_command("script eval", ["--code", code], timeout=30)
     # 域重载会中断连接，不视为失败
     return True
 
@@ -390,10 +391,10 @@ def add_paths_to_exclude():
 def run_tests(mode):
     """异步触发测试并轮询至终态，返回测试摘要文本。"""
     ok, output = run_unity_command(
-        "run_tests", ["--mode", mode, "--async_tests", "true"], timeout=60
+        "test run", ["--mode", mode, "--async_tests", "true"], timeout=60
     )
     if not ok:
-        log("run_tests 触发失败：%s" % output.strip()[:200])
+        log("test run 触发失败：%s" % output.strip()[:200])
         return None
     log("测试已启动（异步），开始轮询……")
 
@@ -405,7 +406,8 @@ def run_tests(mode):
         # 轮询脚本会把完整测试结果 JSON 打到 stdout，此处只需其退出码，
         # 故重定向到 DEVNULL，避免海量输出淹没采集进度。
         subprocess.run(
-            [sys.executable, wait_script, "--command", "test_status"],
+            [sys.executable, wait_script, "--command", "test status",
+             "--until", "completed", "--fail-field", "status", "--fail-value", "error,cancelled"],
             cwd=PROJECT_ROOT, timeout=3600,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
@@ -607,7 +609,7 @@ def main():
                 % file_state.get("include_count"))
 
     # ---- 第 6 步：保活并运行测试 ----
-    run_unity_command("set_autotick", ["--enable", "true"], timeout=30)
+    run_unity_command("editor set_auto_tick", ["--enable", "true"], timeout=30)
     code_opt = after.get("code_opt")
     if code_opt != "Debug":
         log("警告：代码优化为 %s，报告生成可能弹模态框阻断流程" % code_opt)

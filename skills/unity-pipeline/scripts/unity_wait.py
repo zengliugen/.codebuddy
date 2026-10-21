@@ -4,24 +4,26 @@
 unity-pipeline 异步命令轮询脚本：按 JSON 字段判定终态。
 
 背景：
-    `unity command <名称>` 的异步命令（recompile_status、test_status、audit_status 等）
+    `unity command <分组> <名称>` 的异步命令（`script recompile_status`、`test status`、
+    `diagnostics audit_status` 等）
     需要反复调用直至进入终态。手写 shell 轮询常用 `grep -qE 'completed|up_to_date|failed'`
     对整段 JSON 做关键字匹配，会被 `"failed":false` 这类子串误命中而提前退出，掩盖真实
     进行中的状态。本脚本严格**按 JSON 字段取值**判定终态，解析失败时重试而非误判成功。
 
 用法：
-    python unity_wait.py --command recompile_status
+    python unity_wait.py --command "script recompile_status"
                          [--field status] [--until completed,up_to_date]
                          [--fail-field failed] [--fail-value true]
                          [--timeout 300] [--interval 3] [--json]
                          [--unity unity] [--dir <工作目录>] [--extra ...]
 
 参数：
-    --command      轮询的 unity 命令名（如 recompile_status / test_status）
+    --command      轮询的 unity 命令名，含分组（如 "script recompile_status" / "test status"）；
+                   按空白切分为多个参数传给 CLI，故带空格的命令名必须整体加引号
     --field        判终态所依据的 JSON 字段（默认 status）
     --until        终态取值集合，逗号分隔（默认 completed,up_to_date）
     --fail-field   失败态字段（默认 failed；传空字符串可关闭失败态判定）
-    --fail-value   失败态取值（默认 true）
+    --fail-value   失败态取值（默认 true；可用逗号分隔多个，如 error,cancelled）
     --timeout      总超时秒数（默认 300）
     --interval     轮询间隔秒数（默认 3）
     --json         仅向 stdout 输出终态 JSON（便于管道）；提示信息走 stderr
@@ -39,7 +41,7 @@ unity-pipeline 异步命令轮询脚本：按 JSON 字段判定终态。
     2 —— 超时、参数错误或始终无法解析出 JSON
 
 注意：
-    本脚本只负责「轮询至终态」，命令本身的触发（如 `unity command recompile`）仍需另行执行。
+    本脚本只负责「轮询至终态」，命令本身的触发（如 `unity command script recompile`）仍需另行执行。
 """
 
 import argparse
@@ -63,8 +65,10 @@ def log(message):
 
 
 def run_unity_command(unity, command, extra, workdir):
-    """执行一次 `unity command <名称> [附加参数]`，返回（退出码, stdout, stderr）。
+    """执行一次 `unity command <分组> <名称> [附加参数]`，返回（退出码, stdout, stderr）。
 
+    0.9 起命令一律 "分组 名称"，CLI 要求它作为**单个参数**传入（拆成两个参数会被当成
+    「执行名为分组的那条命令」而失败），因此这里整串直传、不做切分。
     命令不存在或执行异常时退出码记为 -1，由调用方按「解析失败」处理（重试而非误判）。
     """
     argv = [unity, "command", command] + list(extra or [])
@@ -104,6 +108,25 @@ def parse_json_object(text):
     return None
 
 
+def unwrap_envelope(obj, fields):
+    """剥掉 CLI 的结果外壳，返回真正承载命令结果的 JSON 对象。
+
+    CLI 的 `--json` 输出形如 {success, command, data:{command, parameters, result:{...}}}，
+    human 输出则是表格（result 列已是结果对象本身）。若当前对象不含待判定的字段，
+    就按 data.result → result 逐层下钻；都没有则原样返回（由调用方按解析失败重试）。
+    """
+    wanted = [f for f in fields if f]
+    if not wanted or any(get_field(obj, f) is not None for f in wanted):
+        return obj
+    for key in ("data", "result"):
+        inner = get_field(obj, key)
+        if isinstance(inner, dict):
+            deep = unwrap_envelope(inner, fields)
+            if any(get_field(deep, f) is not None for f in wanted):
+                return deep
+    return obj
+
+
 def get_field(obj, field):
     """按字段名取值（大小写不敏感），缺失或字段名为空时返回 None。"""
     if not field:
@@ -125,11 +148,11 @@ def main():
     init_stdout()
 
     parser = argparse.ArgumentParser(description="unity-pipeline 异步命令轮询（按 JSON 字段判终态）")
-    parser.add_argument("--command", required=True, help="轮询的 unity 命令名（如 recompile_status / test_status）")
+    parser.add_argument("--command", required=True, help='轮询的 unity 命令名，含分组（如 "script recompile_status" / "test status"）')
     parser.add_argument("--field", default="status", help="判终态所依据的 JSON 字段（默认 status）")
     parser.add_argument("--until", default="completed,up_to_date", help="终态取值集合，逗号分隔（默认 completed,up_to_date）")
     parser.add_argument("--fail-field", default="failed", help="失败态字段（默认 failed；传空字符串关闭失败态判定）")
-    parser.add_argument("--fail-value", default="true", help="失败态取值（默认 true）")
+    parser.add_argument("--fail-value", default="true", help="失败态取值（默认 true；可逗号分隔多个，如 error,cancelled）")
     parser.add_argument("--timeout", type=int, default=300, help="总超时秒数（默认 300）")
     parser.add_argument("--interval", type=int, default=3, help="轮询间隔秒数（默认 3）")
     parser.add_argument("--json", action="store_true", help="仅向 stdout 输出终态 JSON（提示信息走 stderr）")
@@ -146,6 +169,8 @@ def main():
     if not until_values:
         log("[FAIL] --until 至少需要一个取值")
         return 2
+
+    fail_values = {v.strip().lower() for v in args.fail_value.split(",") if v.strip()}
 
     deadline = time.time() + args.timeout
     attempt = 0
@@ -164,11 +189,13 @@ def main():
             detail = detail[-1] if detail else "无输出"
             log(f"[WARN] 第 {attempt} 次轮询未取到可解析 JSON（退出码 {returncode}）：{detail}")
         else:
+            # 剥掉 CLI 外壳：--json 时结果在 data.result 里，human 时已在最外层
+            obj = unwrap_envelope(obj, [args.field, args.fail_field])
             last_object = obj
 
-            # 失败态优先判定：如 recompile_status 的 failed=true
+            # 失败态优先判定：如 script recompile_status 的 failed=true
             fail_value = get_field(obj, args.fail_field)
-            if fail_value is not None and as_text(fail_value) == args.fail_value.strip().lower():
+            if fail_value is not None and as_text(fail_value) in fail_values:
                 if not args.json:
                     log(f"[FAIL] 命令 {args.command} 进入失败态（{args.fail_field}={fail_value}），完整结果如下：")
                 print(json.dumps(obj, ensure_ascii=False, indent=2))
@@ -194,7 +221,7 @@ def main():
     elif last_raw:
         log("[INFO] 命令可能仍在运行；最后一次原始输出如下：")
         print(last_raw)
-    log("[INFO] 可加大 --timeout 后重试，或用 `unity command cancel_tests` 等命令中止。")
+    log("[INFO] 可加大 --timeout 后重试，或用 `unity command test cancel` 等命令中止。")
     return 2
 
 

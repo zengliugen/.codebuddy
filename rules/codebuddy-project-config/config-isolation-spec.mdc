@@ -401,7 +401,7 @@ ls .codebuddy/skills/*/tools/*/*.cs        # 应列出工具源码（若无输�
    # 正确做法：缺配置直接抛错退出，让问题立刻暴露
 
 ❌ 文档示例未泛化且未标注
-   unity command reload_file --filename Assets/Spinner.cs    # Spinner 是什么？需要替换吗？
+   unity command "script.methodreload reload" --filename Assets/Spinner.cs   # Spinner 是什么？需要替换吗？
 
 ❌ 标注位置破坏结构
    | 默认值 | 说明 |

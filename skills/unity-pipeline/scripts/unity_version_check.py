@@ -6,7 +6,7 @@ unity-pipeline 版本一致性检查脚本：比对编辑器实际版本与项�
 背景：
     项目文档曾硬编码 Unity 版本（如 6000.3.18f1），但实际运行编辑器版本可能不同
     （如 6000.5.7f1），导致认知失配。权威来源应为 `ProjectSettings/ProjectVersion.txt`
-    （项目声明）与正在运行的编辑器（`unity command editor_status`）。本脚本做两件事：
+    （项目声明）与正在运行的编辑器（`unity command editor status`）。本脚本做两件事：
     1. 比对编辑器实际版本与项目声明版本，不一致时告警；
     2. 扫描规则文档中残留的硬编码版本号（约定「以 Hub 实际安装为准」，不应写死版本）。
 
@@ -65,7 +65,7 @@ def query_editor_version(unity):
     """查询正在运行编辑器的版本，返回（版本, 错误信息）。编辑器未运行时版本为 None。"""
     try:
         result = subprocess.run(
-            [unity, "command", "editor_status"],
+            [unity, "command", "editor status"],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -73,21 +73,21 @@ def query_editor_version(unity):
             timeout=60,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        return None, f"调用 editor_status 失败：{error}"
+        return None, f"调用 editor status 失败：{error}"
 
     text = result.stdout or ""
     start = text.find("{")
     if start == -1:
-        return None, "editor_status 未返回可解析 JSON（编辑器可能未运行）"
+        return None, "editor status 未返回可解析 JSON（编辑器可能未运行）"
     try:
         payload, _ = json.JSONDecoder().raw_decode(text[start:])
     except ValueError:
-        return None, "editor_status 返回的 JSON 解析失败"
+        return None, "editor status 返回的 JSON 解析失败"
 
     for key, value in payload.items():
         if str(key).lower() == "unityversion":
             return str(value).strip(), None
-    return None, "editor_status 结果中缺少 unityVersion 字段"
+    return None, "editor status 结果中缺少 unityVersion 字段"
 
 
 def scan_hardcoded_versions(rules_dir):
@@ -151,7 +151,7 @@ def main():
         print("== Unity 版本一致性检查 ==")
         print(f"项目声明版本（{args.project_version_file}）：{project_version}")
         if editor_version is not None:
-            print(f"编辑器实际版本（editor_status）：{editor_version}")
+            print(f"编辑器实际版本（editor status）：{editor_version}")
         else:
             print(f"编辑器实际版本：未取得（{editor_error}）")
         print()

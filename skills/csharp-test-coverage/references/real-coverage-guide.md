@@ -10,12 +10,12 @@ Unity 6000.5.7f1 + `com.unity.testtools.codecoverage@1.3.0` 上实测验证，
 
 | 事项 | 结论 | 实测证据 |
 |------|------|---------|
-| **状态读取** | 必须走 `unity command eval` 读内存 | 同一时刻 `Settings.json` 为 `true` 而内存 `Coverage.enabled=false`，文件不可信 |
+| **状态读取** | 必须走 `unity command "script eval"` 读内存 | 同一时刻 `Settings.json` 为 `true` 而内存 `Coverage.enabled=false`，文件不可信 |
 | **配置写入** | 必须经 `CodeCoverageWindow` 的 setter | 直接反射调 `CoveragePreferences.SetString` 不落盘；窗口 setter 内部走 `Settings.Save` 才落盘 |
 | **域重载 API** | 必须用 `EditorUtility.RequestScriptReload()` | `CompilationPipeline.RequestScriptCompilation()` 调用后 AppDomain 哈希不变，域未重载 |
 | **写入时序** | 先写内存偏好，再触发域重载 | 域重载会用内存缓存回写偏好文件；「改文件→重载」会被覆盖 |
 | **程序集过滤** | 必须写显式清单，不可用 `<all>` | 非 batchmode 路径不展开别名，`Parse("<all>")` 实测返回字面量 `"<all>"` |
-| **`recompile` 状态** | 不可信 | 首次轮询即返回 `completed`，但域实际未重载 |
+| **`script recompile` 状态** | 不可信 | 首次轮询即返回 `completed`，但域实际未重载 |
 
 ---
 
@@ -26,7 +26,7 @@ Unity 6000.5.7f1 + `com.unity.testtools.codecoverage@1.3.0` 上实测验证，
 | 来源 | 值 |
 |------|-----|
 | `Settings.json` 文件 | `EnableCodeCoverage = true` |
-| `unity command eval` 内存 | `Coverage.enabled = false` |
+| `unity command "script eval"` 内存 | `Coverage.enabled = false` |
 
 **根因**：`CoverageReporterStarter` 是 `[InitializeOnLoad]` 静态构造类，
 只在**编辑器进程启动时**执行一次。启动时若 `Coverage.enabled == false`，
@@ -39,13 +39,13 @@ Unity 6000.5.7f1 + `com.unity.testtools.codecoverage@1.3.0` 上实测验证，
 **因此**：判断覆盖率是否开启，一律用：
 
 ```bash
-unity command eval --code "return UnityEngine.TestTools.Coverage.enabled;"
+unity command "script eval" --code "return UnityEngine.TestTools.Coverage.enabled;"
 ```
 
 判断回调链是否注册：
 
 ```bash
-unity command eval --code "var asm = System.AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == \"Unity.TestTools.CodeCoverage.Editor\"); var t = asm.GetType(\"UnityEditor.TestTools.CodeCoverage.CoverageReporterStarter\"); var f = t.GetField(\"CoverageReporterManager\", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static); var v = f.GetValue(null); return v == null ? \"NULL\" : \"REGISTERED\";"
+unity command "script eval" --code "var asm = System.AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == \"Unity.TestTools.CodeCoverage.Editor\"); var t = asm.GetType(\"UnityEditor.TestTools.CodeCoverage.CoverageReporterStarter\"); var f = t.GetField(\"CoverageReporterManager\", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static); var v = f.GetValue(null); return v == null ? \"NULL\" : \"REGISTERED\";"
 ```
 
 `REGISTERED` 才算回调链就绪（这是测试运行时能采集到覆盖率的前提）。
@@ -81,7 +81,7 @@ prop.SetValue(w, "<逗号分隔的程序集清单>");
 | `CompilationPipeline.RequestScriptCompilation()` | **无效**——调用后 AppDomain 哈希不变、`DomainId` 恒为 1 |
 | `EditorUtility.RequestScriptReload()` | **有效**——AppDomain 哈希连续变化，探针数据被清空 |
 
-验证域是否真的重载，用这两个探针（比 `recompile_status` 可靠）：
+验证域是否真的重载，用这两个探针（比 `script recompile_status` 可靠）：
 
 ```csharp
 // 探针 1：域哈希，重载后会变化
@@ -92,7 +92,7 @@ System.AppDomain.CurrentDomain.SetData("Probe", "v1");   // 重载前设置
 var d = System.AppDomain.CurrentDomain.GetData("Probe");  // 重载后应为 null
 ```
 
-**注意**：`run_tests` / `recompile` 的首次轮询即返回 `completed` 属于
+**注意**：`test run` / `script recompile` 的首次轮询即返回 `completed` 属于
 「复用上一轮状态」，不能据此认定改动已生效。
 
 ---
@@ -167,8 +167,8 @@ python .codebuddy/skills/csharp-test-coverage/scripts/parse_unity_coverage.py
    `Coverage.enabled = true`。
 6. `EditorUtility.RequestScriptReload()` → 轮询等待 → 校验
    `enabled=true` 且回调链 `REGISTERED`。
-7. `set_autotick` → 检查 `codeOptimization` → `run_tests --async_tests true`
-   → 轮询 `test_status`。
+7. `editor set_auto_tick` → 检查 `codeOptimization` → `run_tests --async_tests true`
+   → 轮询 `test status`。
 8. 解析 `CodeCoverage/Report/Summary.json`。
 9. 还原 `Settings.json`（`--no-restore` 可跳过）。
 

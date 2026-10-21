@@ -168,7 +168,7 @@ Parse("<all>", "")  →  includedAssemblies = "<all>"   ← 匹配不到任何�
 - 静态分析需 .NET 10.0+ SDK；首次运行自动 `dotnet publish`（约 10–30 秒）
 - 符号解析依赖 Unity `Library/ScriptAssemblies` 作为程序集引用；该目录缺失时降级为纯语法分析（精度下降）
 - 真实采集需 unity CLI 且全程不关闭编辑器
-- 覆盖率开关状态必须经 `unity command eval` 读取，**读 `Settings.json` 会得到错误答案**（实测文件与内存可相反）
+- 覆盖率开关状态必须经 `unity command "script eval"` 读取，**读 `Settings.json` 会得到错误答案**（实测文件与内存可相反）
 
 ### 5.1 必须补入 Unity 参考程序集（corlib）
 

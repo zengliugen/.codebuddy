@@ -1,6 +1,6 @@
 ---
 name: csharp-test-coverage
-description: C# 测试覆盖率检查技能。对指定目录/文件/包做测试覆盖率分析：静态分析（Roslyn 解析运行时成员与 Tests/ 引用的映射，识别零引用成员）为主，Unity Code Coverage 真实采集为辅，双路可合并并标出分歧项。当用户要求"检查测试覆盖率"、"看看哪些代码没有测试"、"找出未覆盖的成员/文件"、"零测试代码"、"跑一次覆盖率"、"未覆盖清单"，或要求为缺失测试生成骨架时，应主动调用此技能。扫描完成后必须询问是否生成 Test 骨架（默认不生成）；骨架需经 unity-pipeline 编译验证。真实采集全程不关闭编辑器，状态读取一律走 unity command eval 读内存值，禁止读 Settings.json 判断开关。
+description: C# 测试覆盖率检查技能。对指定目录/文件/包做测试覆盖率分析：静态分析（Roslyn 解析运行时成员与 Tests/ 引用的映射，识别零引用成员）为主，Unity Code Coverage 真实采集为辅，双路可合并并标出分歧项。当用户要求"检查测试覆盖率"、"看看哪些代码没有测试"、"找出未覆盖的成员/文件"、"零测试代码"、"跑一次覆盖率"、"未覆盖清单"，或要求为缺失测试生成骨架时，应主动调用此技能。扫描完成后必须询问是否生成 Test 骨架（默认不生成）；骨架需经 unity-pipeline 编译验证。真实采集全程不关闭编辑器，状态读取一律走 unity command "script eval" 读内存值，禁止读 Settings.json 判断开关。
 license: MIT
 compatibility: 需要 .NET 10.0+ SDK 与 Python 3.8+（静态分析工具首次运行自动 dotnet publish）。真实采集需 unity CLI 可用（经 unity-pipeline 技能）。无需额外 Agent，由 CodeBuddy Code 直接执行。
 metadata:
@@ -73,14 +73,14 @@ python scripts/parse_unity_coverage.py
 **禁止读取 `Settings.json` 判断覆盖率开关状态。** 实测同一时刻文件为 `true` 而内存 `Coverage.enabled` 为 `false`（编辑器进程未重启时静态构造已提前 return）。状态判断必须用：
 
 ```bash
-unity command eval --code "return UnityEngine.TestTools.Coverage.enabled;"
+unity command "script eval" --code "return UnityEngine.TestTools.Coverage.enabled;"
 ```
 
 ### 规则四：骨架落盘后必须经 unity-pipeline 编译
 
-骨架写入 `Tests/` 后，必须通过 `unity-pipeline` 执行 `recompile` 并轮询至终态，确认 `failed=false`、`errors=[]`；失败则在报告中列出编译错误。
+骨架写入 `Tests/` 后，必须通过 `unity-pipeline` 执行 `script recompile` 并轮询至终态，确认 `failed=false`、`errors=[]`；失败则在报告中列出编译错误。
 
-> **注意 `recompile_status` 的 `completed` 不一定是真信号**（可能复用上一轮状态）。若需确认改动已生效，用域哈希探针验证（见 `unity-pipeline/references/commands.md` 的「是否真的重编译」探针）。
+> **注意 `script recompile_status` 的 `completed` 不一定是真信号**（可能复用上一轮状态）。若需确认改动已生效，用域哈希探针验证（见 `unity-pipeline/references/commands.md` 的「是否真的重编译」探针）。
 
 ### 规则五：`--json` 模式下日志一律走 stderr
 
@@ -158,7 +158,7 @@ unity command eval --code "return UnityEngine.TestTools.Coverage.enabled;"
 | 事项 | 约束 |
 |------|------|
 | 编辑器 | **全程不关闭**；未运行时用 `unity open . --args "-automated"` 后台打开 |
-| 状态读取 | 一律 `unity command eval` 读内存值 |
+| 状态读取 | 一律 `unity command "script eval"` 读内存值 |
 | 状态写入 | 经 `CodeCoverageWindow` 的 setter（内存 + 落盘），再触发域重载 |
 | 域重载 | 必须用 `EditorUtility.RequestScriptReload()`（`RequestScriptCompilation()` 实测无效） |
 | 程序集过滤 | 必须写**显式清单**（非 batchmode 路径不展开 `<all>` 别名） |
@@ -190,9 +190,9 @@ unity command eval --code "return UnityEngine.TestTools.Coverage.enabled;"
 - [ ] 骨架是否已做 `partial` 成员查重？
 - [ ] 骨架落盘后是否经 `unity-pipeline` 编译验证（`failed=false`、`errors=[]`）？
 - [ ] 真实采集是否**全程未关闭编辑器**？
-- [ ] 覆盖率开关状态是否经 `unity command eval` 读取（而非读文件）？
+- [ ] 覆盖率开关状态是否经 `unity command "script eval"` 读取（而非读文件）？
 - [ ] 报告是否含未覆盖成员清单、零测试文件清单、弱引用清单？
 - [ ] 是否对分支覆盖率标注「不可用」？
 - [ ] 每次扫描是否已生成 `check_logs/` 下的 `.md` + `.json`（除非 `--no-save`）？
 - [ ] `--json` 模式下 `stdout` 是否只含 JSON（日志均已走 `stderr`）？
-- [ ] 骨架落盘后编译验证时，是否用域哈希/探针确认过改动**真的**生效（未仅依赖 `recompile_status`）？
+- [ ] 骨架落盘后编译验证时，是否用域哈希/探针确认过改动**真的**生效（未仅依赖 `script recompile_status`）？

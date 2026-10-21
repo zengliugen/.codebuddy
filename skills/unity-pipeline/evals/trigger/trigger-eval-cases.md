@@ -10,16 +10,16 @@
 |------|------------|---------|
 | ST-01 | 打开 Unity 项目 | `unity open` |
 | ST-02 | 启动这个 Unity 编辑器 | `unity open` |
-| ST-03 | 重新编译并检查编译错误 | recompile + recompile_status |
-| ST-04 | 运行编辑器测试 | run_tests（editor） |
-| ST-05 | 运行 PlayMode 测试 | run_tests（playmode，异步轮询） |
-| ST-06 | 对这段代码做代码重载 | reload_file / reload_file_editor_interpreter |
-| ST-07 | 在 Unity 里求值这段 C# | eval / eval_file |
-| ST-08 | 保持编辑器存活别让它停 | set_autotick |
+| ST-03 | 重新编译并检查编译错误 | script recompile + script recompile_status |
+| ST-04 | 运行编辑器测试 | test run（editor） |
+| ST-05 | 运行 PlayMode 测试 | test run（playmode，异步轮询） |
+| ST-06 | 对这段代码做方法重载 | script.methodreload reload / reload_editor |
+| ST-07 | 在 Unity 里求值这段 C# | script eval / script eval_file |
+| ST-08 | 保持编辑器存活别让它停 | editor set_auto_tick |
 | ST-09 | 列出当前有哪些 Unity 实例 | unity pipeline list |
-| ST-10 | 批量创建这些游戏对象并连线字段 | run_script（构造器模式）或 batch（事务化批处理） |
-| ST-11 | 等游戏进入结束状态再截图 | wait_for（服务端条件等待，同帧 on_met.capture） |
-| ST-12 | 看下编辑器控制台有什么报错 | console / console_status |
+| ST-10 | 批量创建这些游戏对象并连线字段 | script run（构造器模式）或 job batch（事务化批处理） |
+| ST-11 | 等游戏进入结束状态再截图 | job wait（服务端条件等待，同帧 on_met.capture） |
+| ST-12 | 看下编辑器控制台有什么报错 | console get / console status |
 
 ## 二、不应触发（Should Not Trigger）
 
@@ -39,10 +39,10 @@
 
 | 编号 | 用户 Prompt | 潜在误路由 | 正确路由 |
 |------|------------|-----------|---------|
-| NN-01 | 修改代码后想验证能不能编译 | 可能是评论/注释 | unity-pipeline recompile 验证编译（正确） |
+| NN-01 | 修改代码后想验证能不能编译 | 可能是评论/注释 | unity-pipeline script recompile 验证编译（正确） |
 | NN-02 | 找一下代码里的性能问题 | 可能是测试 | `csharp-code-review`（架构/性能维度） |
-| NN-03 | 测试代码逻辑对不对（不改代码） | 可能是单元测试 | 若指 Unity 测试 → unity-pipeline run_tests；若指代码审查 → csharp-code-review，需确认语境 |
-| NN-04 | 打开 Unity 并自动跑一遍所有测试 | 单一操作 | 本技能：open → set_autotick → run_tests（多命令组合） |
+| NN-03 | 测试代码逻辑对不对（不改代码） | 可能是单元测试 | 若指 Unity 测试 → unity-pipeline test run；若指代码审查 → csharp-code-review，需确认语境 |
+| NN-04 | 打开 Unity 并自动跑一遍所有测试 | 单一操作 | 本技能：open → editor set_auto_tick → test run（多命令组合） |
 
 ## 判定标准
 

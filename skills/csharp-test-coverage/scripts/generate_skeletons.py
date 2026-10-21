@@ -524,8 +524,8 @@ def main():
 
     print()
     print(">>> 后续必做：经 unity-pipeline 编译验证")
-    print(">>>   unity command recompile")
-    print(">>>   python .codebuddy/skills/unity-pipeline/scripts/unity_wait.py --command recompile_status")
+    print(">>>   unity command script recompile")
+    print(">>>   python .codebuddy/skills/unity-pipeline/scripts/unity_wait.py --command \"script recompile_status\"")
     print(">>> 确认 failed=false、errors=[] 后方可进入补断言阶段。")
 
     return 0 if not failed else 1
