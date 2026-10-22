@@ -4,7 +4,7 @@
 
 ## 通用原则
 
-1. **实际探测，不套经验值**：每项填写前必须读取项目实际内容（解决方案/工程文件、目录结构、程序集清单、`manifest.json`、`.editorconfig` 等），不得凭记忆或套用其他项目的值。
+1. **实际探测，不套经验值**：每项填写前必须读取项目实际内容（构建清单、目录结构、依赖声明、模块/程序集清单、格式化配置等），不得凭记忆或套用其他项目的值。
 2. **探测不到就问**：无法从项目自动探测的值（如团队约定的提交 type 枚举、术语白名单的用户偏好），**向用户询问**，不猜测。
 3. **填写后复述确认**：写入前向用户复述「键 → 值」供确认。
 4. **口径一致**：同一份清单出现在多处时（如排除目录）须同步，避免漂移。
@@ -24,7 +24,7 @@
 | `coverage.trigger_cases` | `skills/csharp-test-coverage/scripts/trigger_cases.json` | `skills/csharp-test-coverage/references/` | 触发评估用例（应/不应触发样例）；含项目路径的用例仅为举例，可替换 |
 | `format_checker.trigger_cases` | `skills/csharp-format-checker/evals/trigger/trigger_cases.json` | `skills/csharp-format-checker/references/` | 同上 |
 | `codebuddy.settings`（根级软链接外置） | `settings.json`（项目根 `.codebuddy.project/configs/settings.json`） | 本节下方「根级软链接外置文件」 | `language`（界面/回复语言）；`permissions`/`enabledPlugins` 按团队约定；**`memory.teamMemory.userId` 不写**（由使用者本机自动推导，见下方说明）；**不含凭据**（凭据在引擎根 `models.json`/`settings.local.json`，不外置） |
-| `rule_shells.*`（规则项目事实正文） | `rules/**` | 各技能 `references/` 与 `rules/` 薄壳内的强制条款 | 项目目录结构、包依赖、启动流程、第三方依赖、测试目录现状、LSP 受影响程序集等**项目事实**；须实测核对（依赖方向读 asmdef、版本读 manifest、忽略范围用 `git check-ignore` 验证） |
+| `rule_shells.*`（规则项目事实正文） | `rules/**` | 各技能 `references/` 与 `rules/` 薄壳内的强制条款 | 项目目录结构、依赖关系、启动流程、第三方依赖、测试目录现状等**项目事实**；须实测核对（依赖方向读构建清单、版本读依赖锁定文件、忽略范围用 `git check-ignore` 验证） |
 
 ## 运行时产物目录（无需填写）
 

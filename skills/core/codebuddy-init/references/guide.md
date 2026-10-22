@@ -111,7 +111,7 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 
 **B. 按项目情况填写**
 
-逐项读取该配置所属技能的 `references/config-guide.md`，并结合项目实际探测（解决方案/工程文件、`Assets/` 与 `Packages/` 目录结构、程序集清单、`manifest.json`、`.editorconfig` 等）填充占位值：
+逐项读取该配置所属技能的 `references/config-guide.md`，并结合项目实际探测（构建清单、目录结构、依赖声明、模块/程序集清单、格式化配置等）填充占位值：
 
 1. **每项填写前须实际读取项目，不得凭经验假设**；探测不到的值明确向用户询问，不猜测。
 2. 填写后**向用户复述改动**（键 → 值）供确认；确认无误再写入。

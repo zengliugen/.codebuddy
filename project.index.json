@@ -297,10 +297,10 @@
       "format": "markdown",
       "template_outline": [
         "# 常用命令",
-        "## Unity 打开",
+        "## 启动与运行",
         "## 构建",
         "## 测试",
-        "## CDN 模拟"
+        "## 发布与分发"
       ]
     },
     "rules/core/project-guide/dependencies.mdc": {
@@ -308,9 +308,9 @@
       "format": "markdown",
       "template_outline": [
         "# 第三方依赖",
-        "## UPM 包",
-        "## 本地插件",
-        "## NuGet 手动安装包"
+        "## 包管理器依赖",
+        "## 本地与私有依赖",
+        "## 手动安装依赖"
       ]
     },
     "rules/core/project-guide/git-ignore.mdc": {
@@ -319,7 +319,7 @@
       "template_outline": [
         "# Git 忽略内容清单",
         "## 已忽略需重建",
-        "## 产物入库的 Gen 目录",
+        "## 生成目录的入库例外",
         "## 未被忽略规则覆盖的生成目录"
       ]
     },
@@ -328,9 +328,9 @@
       "format": "markdown",
       "template_outline": [
         "# 测试约束",
-        "## 程序集限制",
+        "## 运行环境限制",
         "## 断言与测试运行器",
-        "## 内存与池化约束"
+        "## 资源与性能约束"
       ]
     },
     "rules/csharp/csharp-code/architecture-spec.mdc": {
