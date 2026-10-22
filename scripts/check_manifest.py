@@ -194,6 +194,15 @@ def main():
                     problems.append("索引 %s.%s.path 为绝对路径（须为相对路径）：%s"
                                     % (group_key, code_name, path))
 
+        # rule_shells 的键为「薄壳相对 .codebuddy 的路径」，必须真实存在（防路径随目录重构漂移）
+        for key in (index.get("rule_shells") or {}):
+            if os.path.isabs(key):
+                problems.append("索引 rule_shells 的键必须为相对路径：%s" % key)
+                continue
+            shell_abs = os.path.normpath(os.path.join(codebuddy_dir, key))
+            if not os.path.isfile(shell_abs):
+                problems.append("索引 rule_shells 的键在磁盘不存在（目录重构后未同步）：%s" % key)
+
         # artifacts.dirs：产物目录路径相对性
         for logical_name, rel in (index.get("artifacts") or {}).get("dirs", {}).items():
             if not isinstance(rel, str) or not rel:

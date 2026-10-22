@@ -133,7 +133,7 @@ provider:
 本规范约束**新增 / 修改 / 重命名 / 拆分**的测试文件；历史遗留文件在因需求改动到时顺带按本规范对齐，并在改动说明中注明。
 
 > **存量现状表已外置**：各包 `Tests/` 目录的实际情况（**本项目实际值，迁移时须按目标项目的测试目录重新核对并重写**）
-> 见 `.codebuddy/project.index.json` 的 `rule_shells["rules/csharp-test/naming-layout.mdc"].path`
+> 见 `.codebuddy/project.index.json` 的 `rule_shells["rules/csharp/csharp-test/naming-layout.mdc"].path`
 > 指向的项目侧文件。核对存量对齐状态时**以该正文为准**。
 
 ### 8.1 生成测试代码的豁免口径（**仅适用于覆盖率统计**）

@@ -9,7 +9,7 @@ provider:
 # 架构细则
 
 > **本子规则的项目事实正文已外置**：见 `.codebuddy/project.index.json` 的
-> `rule_shells["rules/project-guide/architecture.mdc"].path` 指向的项目侧文件。
+> `rule_shells["rules/core/project-guide/architecture.mdc"].path` 指向的项目侧文件。
 > 涉及本主题时必须先读取该正文，不得凭经验假设。
 
 ## 强制条款（始终生效，不可外置）

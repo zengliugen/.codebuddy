@@ -9,7 +9,7 @@ provider:
 # 项目指导
 
 > **本规则的项目事实正文已外置**：见 `.codebuddy/project.index.json` 的
-> `rule_shells["rules/project-guide/RULE.mdc"].path` 指向的
+> `rule_shells["rules/core/project-guide/RULE.mdc"].path` 指向的
 > `.codebuddy.project/configs/rules/project-guide/RULE.mdc`。
 > 迁移到其他项目时改写项目侧文件，不改本薄壳。
 

@@ -266,7 +266,7 @@
     }
   },
   "rule_shells": {
-    "rules/project-guide/RULE.mdc": {
+    "rules/core/project-guide/RULE.mdc": {
       "path": ".codebuddy.project/configs/rules/project-guide/RULE.mdc",
       "format": "markdown",
       "template_outline": [
@@ -278,7 +278,7 @@
         "## 加载机制说明"
       ]
     },
-    "rules/project-guide/architecture.mdc": {
+    "rules/core/project-guide/architecture.mdc": {
       "path": ".codebuddy.project/configs/rules/project-guide/architecture.mdc",
       "format": "markdown",
       "template_outline": [
@@ -292,7 +292,7 @@
         "## 第三方工具链"
       ]
     },
-    "rules/project-guide/commands.mdc": {
+    "rules/core/project-guide/commands.mdc": {
       "path": ".codebuddy.project/configs/rules/project-guide/commands.mdc",
       "format": "markdown",
       "template_outline": [
@@ -303,7 +303,7 @@
         "## CDN 模拟"
       ]
     },
-    "rules/project-guide/dependencies.mdc": {
+    "rules/core/project-guide/dependencies.mdc": {
       "path": ".codebuddy.project/configs/rules/project-guide/dependencies.mdc",
       "format": "markdown",
       "template_outline": [
@@ -313,7 +313,7 @@
         "## NuGet 手动安装包"
       ]
     },
-    "rules/project-guide/git-ignore.mdc": {
+    "rules/core/project-guide/git-ignore.mdc": {
       "path": ".codebuddy.project/configs/rules/project-guide/git-ignore.mdc",
       "format": "markdown",
       "template_outline": [
@@ -323,7 +323,7 @@
         "## 未被忽略规则覆盖的生成目录"
       ]
     },
-    "rules/project-guide/testing.mdc": {
+    "rules/core/project-guide/testing.mdc": {
       "path": ".codebuddy.project/configs/rules/project-guide/testing.mdc",
       "format": "markdown",
       "template_outline": [
@@ -333,7 +333,7 @@
         "## 内存与池化约束"
       ]
     },
-    "rules/csharp-code/architecture-spec.mdc": {
+    "rules/csharp/csharp-code/architecture-spec.mdc": {
       "path": ".codebuddy.project/configs/rules/csharp-code/architecture-spec.mdc",
       "format": "markdown",
       "template_outline": [
@@ -343,7 +343,7 @@
         "## 热更新程序集清单"
       ]
     },
-    "rules/csharp-lsp/RULE.mdc": {
+    "rules/csharp/csharp-lsp/RULE.mdc": {
       "path": ".codebuddy.project/configs/rules/csharp-lsp/RULE.mdc",
       "format": "markdown",
       "template_outline": [
@@ -352,7 +352,7 @@
         "## 受 LSP 索引影响的程序集（实测）"
       ]
     },
-    "rules/csharp-test/naming-layout.mdc": {
+    "rules/csharp/csharp-test/naming-layout.mdc": {
       "path": ".codebuddy.project/configs/rules/csharp-test/naming-layout.mdc",
       "format": "markdown",
       "template_outline": [
