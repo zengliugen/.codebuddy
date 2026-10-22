@@ -1,0 +1,225 @@
+{
+  "ok": true,
+  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\unity-pipeline\\skills\\unity-pipeline",
+  "summary": {
+    "scanned_files": 14,
+    "script_count": 4,
+    "internal_module_count": 0,
+    "secret_findings": 0,
+    "dependency_files": [],
+    "network_script_count": 0,
+    "network_policy_covered_count": 0,
+    "network_policy_missing_count": 0,
+    "file_write_script_count": 1,
+    "permission_required_count": 2,
+    "permission_approved_count": 1,
+    "permission_missing_count": 1,
+    "permission_invalid_count": 0,
+    "permission_expired_count": 0,
+    "help_smoke_checked_count": 4,
+    "help_smoke_failed_count": 0,
+    "interactive_script_count": 0,
+    "package_hash_scope": "source-contract-without-generated-reports",
+    "package_hash_file_count": 14,
+    "package_sha256": "5575139fdc7bb49b9e851743f681d45bd378f609b84bd968658ba535e24264d4"
+  },
+  "failures": [],
+  "warnings": [
+    "No dependency or lock file detected",
+    "Permission approvals missing: file_write"
+  ],
+  "secrets": [],
+  "scripts": [
+    {
+      "path": "scripts\\check_unity_cli.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\unity_test_summary.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": false,
+      "uses_subprocess": false,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\unity_version_check.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": false,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\unity_wait.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": false,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    }
+  ],
+  "dependencies": {
+    "present": [],
+    "pinned": [],
+    "unpinned": []
+  },
+  "network_policy": {
+    "present": false,
+    "path": "security/network_policy.json",
+    "schema_version": "",
+    "network_script_count": 0,
+    "covered_scripts": [],
+    "missing_scripts": [],
+    "mismatches": [],
+    "default_policy": {}
+  },
+  "help_smoke": {
+    "enabled": true,
+    "timeout_seconds": 5.0,
+    "candidate_count": 4,
+    "checked_count": 4,
+    "passed_count": 4,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "failed_scripts": [],
+    "results": [
+      {
+        "path": "scripts\\check_unity_cli.py",
+        "command": "python3 scripts\\check_unity_cli.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: check_unity_cli.py [-h] [--no-cache] [--cache-dir CACHE_DIR]\n\nunity-pipeline 技能环境检查（Unity CLI 安装状态）\n\noptions:\n  -h, --help            show this help message and exit\n  --no-cache            跳过缓存，强制重新检查\n  --cache-dir CACHE_DIR\n       ",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\unity_test_summary.py",
+        "command": "python3 scripts\\unity_test_summary.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: unity_test_summary.py [-h] [--file FILE] [--stdin] [--filter FILTER]\n                             [--fail-only] [--json] [--raw]\n\nunity-pipeline 测试结果归一化（摘要 + 失败清单）\n\noptions:\n  -h, --help       show this help message and exit\n  --file",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\unity_version_check.py",
+        "command": "python3 scripts\\unity_version_check.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: unity_version_check.py [-h]\n                              [--project-version-file PROJECT_VERSION_FILE]\n                              [--rules-dir RULES_DIR] [--skip-editor]\n                              [--unity UNITY] [--json]\n\nuni",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\unity_wait.py",
+        "command": "python3 scripts\\unity_wait.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: unity_wait.py [-h] --command COMMAND [--field FIELD] [--until UNTIL]\n                     [--fail-field FAIL_FIELD] [--fail-value FAIL_VALUE]\n                     [--timeout TIMEOUT] [--interval INTERVAL] [--json]\n                   ",
+        "stderr_excerpt": ""
+      }
+    ],
+    "skipped": []
+  },
+  "permission_governance": {
+    "present": true,
+    "path": "security/permission_policy.json",
+    "schema_version": "1.0",
+    "reviewed_at": "2026-10-22",
+    "required_capabilities": [
+      "file_write",
+      "subprocess"
+    ],
+    "approved_capabilities": [
+      "subprocess"
+    ],
+    "missing_capabilities": [
+      "file_write"
+    ],
+    "invalid_capabilities": [],
+    "expired_capabilities": [],
+    "approval_count": 1,
+    "required_count": 2,
+    "missing_count": 1,
+    "invalid_count": 0,
+    "expired_count": 0,
+    "approvals": [
+      {
+        "capability": "file_write",
+        "status": "missing",
+        "scripts": [
+          "scripts\\check_unity_cli.py"
+        ],
+        "validation": [
+          "approval entry is missing"
+        ]
+      },
+      {
+        "capability": "subprocess",
+        "status": "approved",
+        "scripts": [
+          "scripts\\check_unity_cli.py",
+          "scripts\\unity_version_check.py",
+          "scripts\\unity_wait.py"
+        ],
+        "reviewer": "zengliugen",
+        "scope": "['scripts/unity_wait.py', 'scripts/unity_test_summary.py', 'scripts/unity_version_check.py', 'scripts/check_unity_cli.py']",
+        "reason": "调用 unity CLI 驱动本地 Unity 实例；命令名与参数以参数数组形式传入，不经过 shell 拼接。",
+        "expires_at": "2027-10-22",
+        "evidence": [
+          "reports/skill-overview.html"
+        ],
+        "target_enforcement": {
+          "openai": "metadata-only：目标平台不强制子进程白名单，由操作者按 scope 复核",
+          "claude": "metadata-only：同上",
+          "generic": "metadata-only：同上",
+          "vscode": "metadata-only：同上"
+        },
+        "validation": []
+      }
+    ]
+  },
+  "trust_metadata": {
+    "source_tier": "plugin",
+    "remote_inline_execution": "forbid",
+    "remote_metadata_policy": "allow-metadata-only"
+  },
+  "artifacts": {
+    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
+    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\unity-pipeline\\skills\\unity-pipeline\\reports\\security_trust_report.md"
+  }
+}

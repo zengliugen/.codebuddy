@@ -1,0 +1,22 @@
+{
+  "skill": "csharp-format-checker",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "检查代码格式",
+    "跑一下 dotnet format",
+    "这个文件格式对不对",
+    "格式化整个项目",
+    "代码风格是否符合规范"
+  ],
+  "should_not_trigger": [
+    "审查这段代码",
+    "重构这个方法",
+    "优化性能",
+    "跑一下单元测试"
+  ],
+  "near_neighbor": [
+    "补全注释",
+    "检查注释是否合规",
+    "审查代码质量"
+  ]
+}

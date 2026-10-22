@@ -1,0 +1,164 @@
+{
+  "ok": true,
+  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\csharp\\skills\\csharp-format-checker",
+  "summary": {
+    "scanned_files": 12,
+    "script_count": 2,
+    "internal_module_count": 0,
+    "secret_findings": 0,
+    "dependency_files": [],
+    "network_script_count": 0,
+    "network_policy_covered_count": 0,
+    "network_policy_missing_count": 0,
+    "file_write_script_count": 1,
+    "permission_required_count": 2,
+    "permission_approved_count": 0,
+    "permission_missing_count": 2,
+    "permission_invalid_count": 0,
+    "permission_expired_count": 0,
+    "help_smoke_checked_count": 2,
+    "help_smoke_failed_count": 0,
+    "interactive_script_count": 0,
+    "package_hash_scope": "source-contract-without-generated-reports",
+    "package_hash_file_count": 12,
+    "package_sha256": "cfd424b4774ff808dde6b46345fc506ae231020a4f68222b70fdfbad00781884"
+  },
+  "failures": [],
+  "warnings": [
+    "No dependency or lock file detected",
+    "Permission approvals missing: file_write, subprocess"
+  ],
+  "secrets": [],
+  "scripts": [
+    {
+      "path": "scripts\\check_eol.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": false,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\dotnet_format.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    }
+  ],
+  "dependencies": {
+    "present": [],
+    "pinned": [],
+    "unpinned": []
+  },
+  "network_policy": {
+    "present": false,
+    "path": "security/network_policy.json",
+    "schema_version": "",
+    "network_script_count": 0,
+    "covered_scripts": [],
+    "missing_scripts": [],
+    "mismatches": [],
+    "default_policy": {}
+  },
+  "help_smoke": {
+    "enabled": true,
+    "timeout_seconds": 5.0,
+    "candidate_count": 2,
+    "checked_count": 2,
+    "passed_count": 2,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "failed_scripts": [],
+    "results": [
+      {
+        "path": "scripts\\check_eol.py",
+        "command": "python3 scripts\\check_eol.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: check_eol.py [-h] [--root ROOT] [--path PATH] [--fix] [--no-save]\n\nC# 工作区行尾合规检测（git ls-files --eol，期望工作区为 CRLF）\n\noptions:\n  -h, --help   show this help message and exit\n  --root ROOT  项目根目录（含 .editorconfig），默认从当前目录向上查找\n  --path PATH ",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\dotnet_format.py",
+        "command": "python3 scripts\\dotnet_format.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: dotnet_format.py [-h] [--root ROOT] [--path PATH] [--project PROJECT]\n                        [--changed] [--changed-from-file 清单文件]\n                        [--max-projects MAX_PROJECTS] [--reuse-report]\n                        [--se",
+        "stderr_excerpt": ""
+      }
+    ],
+    "skipped": []
+  },
+  "permission_governance": {
+    "present": false,
+    "path": "security/permission_policy.json",
+    "schema_version": "",
+    "reviewed_at": "",
+    "required_capabilities": [
+      "file_write",
+      "subprocess"
+    ],
+    "approved_capabilities": [],
+    "missing_capabilities": [
+      "file_write",
+      "subprocess"
+    ],
+    "invalid_capabilities": [],
+    "expired_capabilities": [],
+    "approval_count": 0,
+    "required_count": 2,
+    "missing_count": 2,
+    "invalid_count": 0,
+    "expired_count": 0,
+    "approvals": [
+      {
+        "capability": "file_write",
+        "status": "missing",
+        "scripts": [
+          "scripts\\dotnet_format.py"
+        ],
+        "validation": [
+          "approval entry is missing"
+        ]
+      },
+      {
+        "capability": "subprocess",
+        "status": "missing",
+        "scripts": [
+          "scripts\\check_eol.py",
+          "scripts\\dotnet_format.py"
+        ],
+        "validation": [
+          "approval entry is missing"
+        ]
+      }
+    ]
+  },
+  "trust_metadata": {
+    "source_tier": "local",
+    "remote_inline_execution": "forbid",
+    "remote_metadata_policy": "allow-metadata-only"
+  },
+  "artifacts": {
+    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
+    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\csharp\\skills\\csharp-format-checker\\reports\\security_trust_report.md"
+  }
+}

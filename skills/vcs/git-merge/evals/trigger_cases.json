@@ -1,0 +1,20 @@
+{
+  "skill": "git-merge",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "合并分支",
+    "git merge main",
+    "把 feature 合到 main",
+    "合并分支前先看看差异"
+  ],
+  "should_not_trigger": [
+    "合并这两个文档",
+    "合并表格",
+    "rebase 分支",
+    "提交代码"
+  ],
+  "near_neighbor": [
+    "合并配置文件",
+    "rebase 到 main"
+  ]
+}

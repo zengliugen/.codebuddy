@@ -1,0 +1,32 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "提交代码",
+        "提交一下",
+        "commit",
+        "git merge",
+        "合并分支",
+        "版本控制"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "提交表单",
+        "提交报告",
+        "提交 bug",
+        "合并文档",
+        "查看 git log",
+        "怎么用"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

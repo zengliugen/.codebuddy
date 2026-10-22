@@ -1,0 +1,260 @@
+{
+  "ok": true,
+  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\csharp\\skills\\csharp-test-coverage",
+  "summary": {
+    "scanned_files": 16,
+    "script_count": 6,
+    "internal_module_count": 0,
+    "secret_findings": 0,
+    "dependency_files": [],
+    "network_script_count": 0,
+    "network_policy_covered_count": 0,
+    "network_policy_missing_count": 0,
+    "file_write_script_count": 5,
+    "permission_required_count": 2,
+    "permission_approved_count": 0,
+    "permission_missing_count": 2,
+    "permission_invalid_count": 0,
+    "permission_expired_count": 0,
+    "help_smoke_checked_count": 5,
+    "help_smoke_failed_count": 0,
+    "interactive_script_count": 0,
+    "package_hash_scope": "source-contract-without-generated-reports",
+    "package_hash_file_count": 16,
+    "package_sha256": "f4fe206193a38075acb4d4ac1261c22a89a7f6295cf0781983600afbddfa5b8a"
+  },
+  "failures": [],
+  "warnings": [
+    "No dependency or lock file detected",
+    "CLI scripts without argparse/help surface: scripts\\skill_config.py",
+    "Permission approvals missing: file_write, subprocess"
+  ],
+  "secrets": [],
+  "scripts": [
+    {
+      "path": "scripts\\check_coverage.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\collect_real_coverage.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\generate_skeletons.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": false,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\parse_unity_coverage.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": false,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\skill_config.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": false,
+      "has_main_guard": false,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": false,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\trigger_eval.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": false,
+      "uses_subprocess": false,
+      "network_urls": [],
+      "network_hosts": []
+    }
+  ],
+  "dependencies": {
+    "present": [],
+    "pinned": [],
+    "unpinned": []
+  },
+  "network_policy": {
+    "present": false,
+    "path": "security/network_policy.json",
+    "schema_version": "",
+    "network_script_count": 0,
+    "covered_scripts": [],
+    "missing_scripts": [],
+    "mismatches": [],
+    "default_policy": {}
+  },
+  "help_smoke": {
+    "enabled": true,
+    "timeout_seconds": 5.0,
+    "candidate_count": 5,
+    "checked_count": 5,
+    "passed_count": 5,
+    "failed_count": 0,
+    "skipped_count": 1,
+    "failed_scripts": [],
+    "results": [
+      {
+        "path": "scripts\\check_coverage.py",
+        "command": "python3 scripts\\check_coverage.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: check_coverage.py [-h] [--scope {all,packages,assets}] [--json]\n                         [--no-save] [--output-dir OUTPUT_DIR]\n                         [--summary SUMMARY] [--real-coverage]\n                         [target ...]\n\nC# 测",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\collect_real_coverage.py",
+        "command": "python3 scripts\\collect_real_coverage.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: collect_real_coverage.py [-h] [--confirm] [--dry-run]\n                                [--mode {editor,playmode}] [--no-restore]\n\nUnity 真实代码覆盖率采集编排（全程不关闭编辑器）\n\noptions:\n  -h, --help            show this help message and exit\n  --confir",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\generate_skeletons.py",
+        "command": "python3 scripts\\generate_skeletons.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: generate_skeletons.py [-h] [--apply] [--limit LIMIT]\n                             [--out-log OUT_LOG]\n                             report\n\n为未覆盖成员生成测试骨架\n\npositional arguments:\n  report             check_coverage.py 产出的 JSON 报告路径\n\nopti",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\parse_unity_coverage.py",
+        "command": "python3 scripts\\parse_unity_coverage.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: parse_unity_coverage.py [-h] [--report REPORT] [--json] [--out OUT]\n                               [--markdown]\n\n解析 Unity 代码覆盖率产物\n\noptions:\n  -h, --help       show this help message and exit\n  --report REPORT  Report 目录或 Summary.json",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\trigger_eval.py",
+        "command": "python3 scripts\\trigger_eval.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: trigger_eval.py [-h] [--description DESCRIPTION] [--cases CASES]\n                       [--threshold THRESHOLD] [--json]\n\ncsharp-test-coverage 触发评估\n\noptions:\n  -h, --help            show this help message and exit\n  --description DES",
+        "stderr_excerpt": ""
+      }
+    ],
+    "skipped": [
+      {
+        "path": "scripts\\skill_config.py",
+        "reason": "missing argparse/help surface"
+      }
+    ]
+  },
+  "permission_governance": {
+    "present": false,
+    "path": "security/permission_policy.json",
+    "schema_version": "",
+    "reviewed_at": "",
+    "required_capabilities": [
+      "file_write",
+      "subprocess"
+    ],
+    "approved_capabilities": [],
+    "missing_capabilities": [
+      "file_write",
+      "subprocess"
+    ],
+    "invalid_capabilities": [],
+    "expired_capabilities": [],
+    "approval_count": 0,
+    "required_count": 2,
+    "missing_count": 2,
+    "invalid_count": 0,
+    "expired_count": 0,
+    "approvals": [
+      {
+        "capability": "file_write",
+        "status": "missing",
+        "scripts": [
+          "scripts\\check_coverage.py",
+          "scripts\\collect_real_coverage.py",
+          "scripts\\generate_skeletons.py",
+          "scripts\\parse_unity_coverage.py",
+          "scripts\\skill_config.py"
+        ],
+        "validation": [
+          "approval entry is missing"
+        ]
+      },
+      {
+        "capability": "subprocess",
+        "status": "missing",
+        "scripts": [
+          "scripts\\check_coverage.py",
+          "scripts\\collect_real_coverage.py"
+        ],
+        "validation": [
+          "approval entry is missing"
+        ]
+      }
+    ]
+  },
+  "trust_metadata": {
+    "source_tier": "local",
+    "remote_inline_execution": "forbid",
+    "remote_metadata_policy": "allow-metadata-only"
+  },
+  "artifacts": {
+    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
+    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\csharp\\skills\\csharp-test-coverage\\reports\\security_trust_report.md"
+  }
+}

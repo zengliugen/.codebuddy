@@ -1,0 +1,42 @@
+interface:
+  display_name: "C# 注释生成"
+  short_description: "为 .cs 文件生成与修正 XML 文档注释和行内注释，基于 checker 报告逐项修复"
+  default_prompt: "使用 $csharp-comment-generator 为 C# 代码补全或修正注释。须先有 csharp-comment-checker 的报告，再逐项修复并复扫验证。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "补全.*注释"
+      - keyword: "生成.*注释"
+      - keyword: "修正.*注释"
+      - keyword: "注释.*修复"
+      - keyword: "添加.*注释"
+  execution:
+    context: "fork"
+    shell: "powershell"
+    environment:
+      dotnet_sdk: ">=10.0"
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: "csharp-comment-generator"
+version: "1.3"
+mode: "Production"

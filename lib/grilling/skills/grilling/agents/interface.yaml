@@ -1,0 +1,45 @@
+interface:
+  display_name: "方案拷问"
+  short_description: "以设计树逐轮追问的方式，把方案、决策或想法拷问到无遗漏"
+  default_prompt: "使用 $grilling 对当前方案做逐轮拷问。每轮只问当前已解锁的决策，给出推荐答案，等待回答后再展开下一轮。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "拷问"
+      - keyword: "grill"
+      - keyword: "压力测试.*方案"
+      - keyword: "追问.*设计"
+      - keyword: "挑战.*想法"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "plugin"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: "grilling"
+version: "1.0"
+mode: "Production"
+source:
+  origin: "third-party"
+  vendor_root: "lib/grilling"
+  editable: "metadata-only"

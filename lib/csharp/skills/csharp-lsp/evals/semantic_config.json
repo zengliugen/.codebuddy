@@ -1,0 +1,39 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "跳转",
+        "查找",
+        "引用",
+        "悬停",
+        "类型信息",
+        "查看实现",
+        "符号结构",
+        "调用链",
+        "LSP",
+        "csharp-ls",
+        "代码智能",
+        "定义处",
+        "接口有哪些实现"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "grep",
+        "搜一下",
+        "全文搜索",
+        "代码审查",
+        "补全注释",
+        "格式化"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

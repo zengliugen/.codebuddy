@@ -1,0 +1,33 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "cmd 脚本",
+        "bat 脚本",
+        "批处理",
+        "乱码",
+        "is not recognized",
+        "goto",
+        "mklink",
+        "cmd"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "bash 脚本",
+        "powershell 脚本",
+        "python 脚本",
+        "shell 脚本",
+        "python"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "初始化配置",
+        "接入 codebuddy",
+        "生成配置",
+        "配置骨架",
+        "装了哪些包",
+        "安装包",
+        "卸载包",
+        "新项目接入",
+        "链接漂移",
+        "装了哪些",
+        "csharp 包",
+        "grilling 包",
+        "初始化项目配置",
+        "链接"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "初始化 git",
+        "初始化仓库",
+        "npm install",
+        "生成 README",
+        "配置编译器"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

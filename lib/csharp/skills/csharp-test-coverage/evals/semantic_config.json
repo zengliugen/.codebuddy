@@ -1,0 +1,36 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "覆盖率",
+        "测试覆盖",
+        "没有测试",
+        "未覆盖",
+        "零引用",
+        "测试骨架",
+        "跑覆盖率",
+        "覆盖到",
+        "缺失测试",
+        "骨架"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "跑一下单测",
+        "运行所有测试",
+        "修一个测试",
+        "代码审查",
+        "补全注释",
+        "格式化"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

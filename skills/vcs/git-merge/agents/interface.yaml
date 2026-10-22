@@ -1,0 +1,40 @@
+interface:
+  display_name: "Git 合并占位"
+  short_description: "Git 合并路由目标的空实现，仅返回未实现提示"
+  default_prompt: "使用 $git-merge 处理合并请求。当前为空实现，仅返回未实现提示，不执行任何 Git 命令。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "git merge"
+      - keyword: "合并分支"
+      - keyword: "把.*合到"
+      - keyword: "merge.*分支"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: "git-merge"
+version: "1.0"
+mode: "Production"

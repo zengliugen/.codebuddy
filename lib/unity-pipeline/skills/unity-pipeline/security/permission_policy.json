@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-10-22",
+  "capabilities": {
+    "subprocess": {
+      "decision": "approved",
+      "reviewer": "zengliugen",
+      "scope": [
+        "scripts/unity_wait.py",
+        "scripts/unity_test_summary.py",
+        "scripts/unity_version_check.py",
+        "scripts/check_unity_cli.py"
+      ],
+      "reason": "调用 unity CLI 驱动本地 Unity 实例；命令名与参数以参数数组形式传入，不经过 shell 拼接。",
+      "expires_at": "2027-10-22",
+      "evidence": [
+        "reports/skill-overview.html"
+      ],
+      "target_enforcement": {
+        "openai": "metadata-only：目标平台不强制子进程白名单，由操作者按 scope 复核",
+        "claude": "metadata-only：同上",
+        "generic": "metadata-only：同上",
+        "vscode": "metadata-only：同上"
+      }
+    }
+  }
+}

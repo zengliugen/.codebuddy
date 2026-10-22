@@ -1,0 +1,33 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "导出目录",
+        "打包目录",
+        "压缩目录",
+        "导出 zip",
+        "压缩包",
+        "导出到下载",
+        "打包成 zip",
+        "保留被忽略",
+        "目录"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "导出这个文件",
+        "复制单个文件",
+        "导出单个文件",
+        "删除目录"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

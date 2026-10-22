@@ -1,0 +1,244 @@
+# 详细流程与规则
+
+
+
+本文件由 `SKILL.md` 拆分而来，承载完整执行细节；主文件只保留触发、契约与流程骨架。
+
+
+
+## 快速上手
+```bash
+# 默认 check 模式：按项目根 .editorconfig 检查整个项目（自动忽略配置的三方插件目录，不修改任何文件）
+python scripts/dotnet_format.py
+
+# 【提交门禁 H1 专用】只检查「本笔提交计划清单」内文件所属的工程
+# 清单每行一个路径（项目根相对或仓库根相对均可）；清单内文件全在忽略目录时返回「无需检查」（退出码 0）
+python scripts/dotnet_format.py check --changed-from-file <清单文件>
+
+# 同上，且 5 分钟内有范围一致的报告时直接复用（避免重复执行）
+python scripts/dotnet_format.py check --changed-from-file <清单文件> --reuse-report
+
+# 【手动检查专用】按工作区 git status 的全部变更定位工程
+# 注意：会带上与本次提交无关的工作区改动，**不要用于提交门禁**
+python scripts/dotnet_format.py check --changed
+
+# 检查指定目录或文件
+python scripts/dotnet_format.py check --path <目标目录>
+
+# 检查指定工程（.slnx/.sln/.csproj）
+python scripts/dotnet_format.py check --project <工程文件>
+
+# 修复模式：应用格式修改落盘（被忽略目录内的文件不会被修改）
+python scripts/dotnet_format.py fix
+
+# 【修复链路收尾】工作区行尾合规检测（期望 CRLF，仅 git ls-files --eol 能稳定检出）
+# 退出码 0=合规 / 1=忽略目录外存在异常 / 3=配置或环境不可用
+python scripts/check_eol.py
+python scripts/check_eol.py --path Assets/Game   # 限定范围
+python scripts/check_eol.py --fix                # 额外打印修复命令（不自动执行）
+```
+
+运行后自动在技能目录 `check_logs/` 下生成报告：
+- `.log` 文件：dotnet format 完整原始输出
+- `.md` 文件：可读摘要（工作区、检查范围、退出码、诊断统计）
+- `.json` 文件：结构化报告（含 `scope_key` 与检查范围字段，供 `--reuse-report` 严格匹配复用）
+
+> **清单文件路径写法（Windows + Git Bash 必读）**：使用 `--changed-from-file` 时，临时清单文件须写作
+> `$TEMP/xxx.txt` 或 `/tmp/xxx.txt`——**目录与文件名之间必须有斜杠**。写成 `/tmp_xxx.txt` 会被 Git Bash
+> 解析为 Git 安装目录下的文件（实测 `cygpath -w /tmp_fmt_list.txt` → `C:\Program Files\Git\tmp_fmt_list.txt`），
+> 因无写权限而**写入失败**；而脚本遇到清单文件不存在时会**静默回退整仓检查**，把「本笔变更工程」（约 41 秒/工程）
+> 退化为「整仓」（约 162 秒），且不报错、不中断。实测踩坑：一次提交的 H1 门禁因该写法丢失清单文件，
+> 无谓触发整仓扫描约 2.7 分钟。
+
+---
+
+## 前置规则：直接传递目标路径，禁止预分析
+**调用本技能时，直接将用户指定的目录或文件路径传给脚本，由脚本执行 dotnet format 并解析结果。禁止以下行为：**
+
+1. **禁止预扫描**：不要在调用技能前用 Glob/Grep 搜索 `.cs` 文件列表。
+2. **禁止逐个分析**：不要在调用技能前逐一分析文件内容。
+3. **禁止自行筛选**：忽略哪些目录、哪些文件参与检查由配置文件 `csharp-format-checker/config.json` 决定，不要人工判断。
+
+技能脚本内部已经处理了：
+- 读取项目根 `.editorconfig` 作为唯一格式标准
+- 读取 `exclude_dirs` 配置，自动跳过三方插件与生成代码目录（本项目已默认排除 `Assets/Plugins`、`Library/PackageCache` 等）
+- 自动探测工作区（优先配置的 workspace，其次按 `.slnx` / `.sln` / `.csproj`）
+- 仅针对 `.cs` 文件按 editorconfig 规则检查（由 dotnet format 自身保证）
+
+---
+
+## 强制规则：必须生成结果文件
+**除非用户显式指定 `--no-save`，否则每次执行检查后必须生成结果文件**（`.md` 摘要 + `.log` 原始输出），保存至技能目录 `check_logs/`。
+
+> **清理策略**：`check_logs/` 会随使用持续累积，建议定期清理历史报告，仅保留最近 30 次或关键节点（修复前/修复后对比）；`check_logs/` 已被技能目录 `.gitignore` 忽略，不进入版本控制与迁移包。
+
+**禁止行为**：仅在对话中展示结果而不生成文件、以"结果已输出到控制台"替代文件生成（除非用户显式 `--no-save`）。
+
+---
+
+# C# 代码格式检查 / 修复
+
+使用 `dotnet format` 工具按项目根目录 `.editorconfig` 规则对 C# 代码做格式合规检查与修复。
+
+## 忽略目录配置（三方插件保护）
+技能的忽略目录在项目侧配置（索引 `format_checker.config`）的 `exclude_dirs` 中声明，语义为**既不被检查、也不被修改**：
+
+> **下表为本项目当前取值**（迁移时以 `config.json` 的 `exclude_dirs` 为准）。
+
+| 默认值（本项目） | 说明 |
+|------------------|------|
+| `Assets/Plugins` | 三方插件源码目录（DOTween、Sirenix/Odin、XLua、Proxima、HybridCLR、TextMeshPro、StompyRobot 等） |
+| `Library/PackageCache` | Unity 官方/社区 Package 缓存（com.unity.*、com.cysharp.unitask 等） |
+| `HybridCLRData` | HybridCLR 生成的补充元数据等目录 |
+| 各 `Gen/`、`Generated/` 目录 | 生成代码目录（`Assets/Game/Runtime/Game/Gen`、`Packages/com.littlebaby.framework.*/Runtime/Gen` 等，共 10 个，逐一显式声明） |
+| `Packages/com.littlebaby.framework.core/Runtime/ThreadLib/UnityHook` | 自研包内嵌的三方挂钩库（命名空间 `MonoHook`） |
+
+**检查范围口径**：仅覆盖 `Assets/` 与 `Packages/` 下的**自研代码**（`Assets/Game`、`Assets/Battle`、`Packages/com.littlebaby.framework.*`）。
+
+- `Assets/`、`Packages/` 之外的目录（如 `.codebuddy/` 技能自带工具的 `.cs` 源码、根目录工具产物）**不在检查范围内**，无需为其新增排除项。
+- `Packages/TouchSocket.*` 等三方包当前无 `.cs` 文件；若后续引入源码，应追加进 `exclude_dirs`。
+- 生成代码受**三重保护**：`exclude_dirs` 显式声明 + dotnet format 内置 auto-generated 标记识别 + 上述范围限定。
+
+其他 `PackageCache` 之外的 Package 目录（如本项目 `Packages/com.littlebaby.framework.*` 自研包）不在排除之列，正常参与检查。
+
+- 新增三方插件/生成目录时，编辑 `csharp-format-checker/config.json` 的 `exclude_dirs` 即可，无需改动技能脚本。
+- 检查/修复时脚本通过 `--exclude` 将忽略目录原样传给 dotnet format，保证 dotnet format 不会触碰其中任何文件。
+
+## 执行流程
+### 1. 识别用户意图与范围
+
+| 用户表述 | 模式 | 范围 |
+|---------|------|------|
+| "检查代码格式"、"看看格式是否符合规范" | `check`（默认，只读） | 整个项目（自动忽略三方插件） |
+| 提交门禁 / 代码审查流程内调用 | `check --changed-from-file <清单>` | **仅本笔提交计划内文件所属工程**（推荐，速度最快） |
+| 手动查看「当前工作区改了什么」 | `check --changed` | 工作区全部变更所属工程（**不可用于提交门禁**） |
+| "把代码格式化一下"、"应用格式修改" | `fix`（落盘修改，需用户确认） | 整个项目（自动忽略三方插件） |
+| 附带具体路径（文件或目录） | 对应模式 | 仅该路径范围 |
+| 附带具体工程名（如 `Example.csproj`） | 对应模式 | 仅该工程 |
+
+> **两个范围参数的语义区别（易混，勿用错）**：
+>
+> | 参数 | 变更来源 | 用途 |
+> |------|---------|------|
+> | `--changed-from-file <清单>` | **只取清单列出的文件** | **提交门禁 H1 必须用这个**（语义 = 本笔提交计划） |
+> | `--changed` | 工作区 `git status` 的**全部**变更 | 手动检查工作区改动；**不可用于提交门禁** |
+>
+> 二者互斥（同时指定报错）。清单内文件若全在忽略目录内，返回「无需检查」（退出码 0），**不回退整仓**——
+> 这是正常的「本次无需检查」。实测踩坑：只改 `.codebuddy` 时用 `--changed`，因工作区另有 106 个 `Assets`
+> 改动而回退整仓，扫出 2133 处存量 `ENDOFLINE` 被误判为失败。
+>
+> 两者都经「源文件 → 工程」映射（扫描项目根 `*.csproj` 的 `<Compile Include>`）定位所属工程，只检查这些工程；
+> 无法定位时**回退整仓并输出告警**，不会静默跳过。
+
+### 2. 运行脚本
+
+直接运行（不要预扫描，由脚本完成发现与过滤）：
+
+```bash
+python scripts/dotnet_format.py [check|fix] [--changed-from-file <清单> | --changed | --path <相对路径> | --project <工作区文件>] [--reuse-report] [--max-projects <N>] [--no-save] [--severity <级别>]
+```
+
+- 脚本自动向上定位含 `.editorconfig` 的项目根目录，读取 `csharp-format-checker/config.json`（配置为唯一来源，缺失/缺必需键时报错退出，不生成模板也不回退默认值）。
+- 默认执行 `whitespace` 与 `style` 两个分组（见配置 `groups`），不运行第三方 analyzer 分组，避免 Unity 自带分析器的非格式类告警混入。
+- `--changed-from-file` / `--changed` / `--path` / `--project` **四者互斥**（手动指定范围会与自动定位冲突，脚本报错退出）。
+- `--reuse-report`：仅 `check` 模式有效，存在 5 分钟内且**检查范围一致**（`scope_key` 严格匹配）的报告时直接复用。
+  > **复用可能命中编辑中间态的报告**：若上一步是批量改写源码（编码转换、注释修复、行尾归一等），
+  > 期间生成的报告可能记录了**当时存在、随后已消失**的诊断（典型如 `ENDOFLINE`）。
+  > 遇到「复用结果报失败、但工作区实际合规」时，去掉 `--reuse-report` 重跑确认，
+  > **不要**据此直接进入 `fix`。可用字节级核对交叉验证（如统计 `\r\n` 与孤立 `\n` 的条数）。
+
+**耗时参考**：整仓（本项目 `Client.slnx` 含 133 个工程）约 162 秒；单工程约 41 秒。
+变更范围检查命中单工程时提速约 75%；工程数超过 `changed_scope.max_projects`（本项目配 3）时回退整仓
+（每个工程需独立重载一次工作区，实测约 40 秒/工程，超过 3 个的串行耗时已不低于整仓）。
+
+> **耗时的决定因素是「工程数」，不是「文件数」**：瓶颈在**工程加载**（约 41 秒/工程的固定开销），
+> 与清单内文件数量无关——单工程下 1 个文件与 100 个文件的耗时几乎相同。因此判断"是否值得按变更工程检查"
+> 应看**涉及的工程数**；也不要因为"本次只改了很少几个文件"就预期检查很快。
+> 实测教训：一次提交实际有 6 个有效 `.cs`，因清单文件写入失败回退整仓（133 个工程），
+> 耗时从预期的秒级复用量级跳到约 162 秒。
+
+### 3. 解读结果
+
+- 退出码 `0`：格式合规（或 fix 已应用完成）。
+- 退出码 `2`（check 模式）：存在需要格式化的文件——将 `.md`/`.log` 报告内容摘要反馈用户，列出主要涉及目录与诊断类型（如 using 排序、命名风格、空格换行等），**不自行修改文件**。
+- 退出码 `1`：执行出错，向用户说明错误原因。
+
+### 4. fix 模式要求
+
+- fix 模式会**真实修改源码**。整仓 fix 前必须通过 AskUserQuestion 与用户确认（修复范围、影响的文件规模），确认后才执行。
+- 支持 `fix --changed-from-file <清单>`：只修复本笔提交计划内文件所属工程，范围最精确，适合提交前修复本次改动引入的格式问题。
+- fix 仅影响配置忽略目录之外的 owned 代码；执行后可用 `git status`/`git diff` 核对变更，确认三方插件目录无任何改动。
+
+### 5. 报告文件
+
+检查结果自动保存到技能目录 `check_logs/`（`{时间戳}_code-format_{8位随机}.log` / `.md` / `.json`），其中：
+- `.md` 摘要含工作区、**检查范围**、执行分组、退出码与诊断统计，便于快速汇报；
+- `.log` 为 dotnet format 完整输出，便于逐条核对；
+- `.json` 为结构化报告（含 `scope_key`、`scope` 范围信息与诊断统计），供 `--reuse-report` 严格匹配后复用。
+
+> **检查范围字段**：命中工程时标注「检查范围：变更工程（N 个，来源 <清单或 git status>）」并列出各工程退出码；
+> 回退整仓时标注「检查范围：整仓（回退：<原因>）」；变更文件全在忽略目录时标注「无需检查」（退出码 0）。
+> 报告还会列出「未纳入检查的变更文件」（命中忽略目录或不在任何工程内），避免把「未检查」误读为「已合规」。
+>
+> **「已排除」计数口径（勿误读）**：报告中的「已排除 N」统计的是**忽略目录下命中的全部已存在文件**
+> （如 `Gen/` 目录内已生成的 31 个文件），**不等于本次变更文件数**；本次实际检查的文件数以「映射 N」为准。
+> 实测踩坑：一次提交实际变更 6 个有效 `.cs`，报告显示「共 37 个（映射 6 / 已排除 31）」，
+> 曾误以为「变更被大量误排除」，实为两个口径混用所致。
+
+### 6. 工作区行尾检测（修复链路收尾）
+
+`check_eol.py` 是本技能**唯一负责工作区行尾合规**的脚本，用于修复链路收尾把关。
+
+**为何需要独立检测**：`.editorconfig` 声明 `end_of_line = crlf`，`dotnet format` 也能报出 `ENDOFLINE`，
+但它只在**指定范围跑格式检查时**才覆盖；而工具（编码转换、批量重写等）直接以 LF 写回工作区文件后，
+`git status` 因比对前归一化行尾而**看不到差异**（实测：仅 `git ls-files --eol` 可稳定检出）。
+历史上 `Assets/Battle` 曾有 20 个文件因此静默变成 LF，直到偶然跑格式检查才发现。
+
+**执行时机**：修复链路（注释修复、格式修复、批量重写等会改动源码的操作）**收尾时**执行一次，锁定改动范围。
+
+```bash
+python scripts/check_eol.py --path <本笔改动目录>
+```
+
+**结果处理**：
+
+| 退出码 | 含义 | 处理 |
+|--------|------|------|
+| 0 | 合规（异常全在忽略目录内） | 通过 |
+| 1 | 忽略目录外存在行尾异常 | 按 `--fix` 输出的命令修复后复检 |
+| 3 | 配置/环境不可用 | 排查项目根 `.editorconfig`、config.json、git 仓库 |
+
+**修复方式**（脚本 `--fix` 会打印，不自动执行）：
+
+```bash
+rm -f "<文件>" && git checkout -- "<仓库相对路径>"
+```
+
+删除工作区文件后由 git 按 `autocrlf` 规则重新检出为 CRLF。修复前请先确认该文件无未提交的内容改动
+（删除会丢弃工作区副本），可用 `git diff --ignore-cr-at-eol -- <文件>` 验证除行尾外无差异。
+
+> **不要把行尾异常寄望于 `git status` 报警**：实测 `core.autocrlf=true` 下，
+> 修改 `.gitattributes`（含 `*.cs text eol=crlf`）或 `git diff --check` 均无法检出，
+> `commit` 也无法修复。`git ls-files --eol` 是唯一可靠手段。
+
+## 边界排除（不触发/不支持）
+- **注释规范检查**：XML 文档注释/行内注释合规性请用 `csharp-comment-checker` 技能（本技能仅格式，不含注释内容规范）。
+- **生成代码豁免**：`Library/PackageCache`、`Assets/Plugins` 及配置 `exclude_dirs` 中的目录一律跳过，不检查也不修改。
+- **非 C# 文件**：`.editorconfig` 未覆盖的文件类型不检查。
+- **其他语言格式化**：Lua/Shader 等脚本的格式化不属于本技能。
+
+## 检查清单
+- [ ] 是否已直接传递用户目标路径给脚本，未预扫描文件列表？
+- [ ] 项目根目录是否存在 `.editorconfig`（技能唯一格式标准）？
+- [ ] `csharp-format-checker/config.json` 的 `exclude_dirs` 是否覆盖了三方插件/生成代码目录？
+- [ ] 提交门禁/审查流程内调用时是否用了 `--changed-from-file <本笔清单>`（只查本笔计划内文件所属工程）？
+- [ ] 变更范围检查回退整仓时是否已向用户说明回退原因，未把回退结果当作「变更范围通过」？
+- [ ] 使用 `--reuse-report` 时，复用的报告范围（`scope_key`）是否与本次一致？
+- [ ] check 模式是否未修改任何源码文件？
+- [ ] 默认执行分组是否为 `whitespace` + `style`（未误跑第三方 analyzer 分组）？
+- [ ] 退出码 `2` 时是否未自行修改文件、而是汇总报告给用户？
+- [ ] fix 模式是否已通过 AskUserQuestion 获得用户确认？
+- [ ] fix 后是否核对 git 状态，确认忽略目录内文件未被改动？
+- [ ] 每次执行是否已生成 `check_logs/` 下的 `.md` + `.log` + `.json`（除非用户 `--no-save`）？
+- [ ] 修复链路（注释/格式修复、批量重写）收尾时是否跑了 `check_eol.py` 检测工作区行尾？
+- [ ] `check_eol.py` 报异常（退出码 1）时，是否先确认文件无未提交改动再删除重检出？

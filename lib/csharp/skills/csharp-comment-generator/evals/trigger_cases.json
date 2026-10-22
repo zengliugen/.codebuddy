@@ -1,0 +1,23 @@
+{
+  "skill": "csharp-comment-generator",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "为 GameLoader.cs 补全注释",
+    "给这个类添加注释",
+    "修正这个文件的注释问题",
+    "根据报告修复注释",
+    "把英文注释改成中文"
+  ],
+  "should_not_trigger": [
+    "审查这段代码",
+    "格式化代码",
+    "跑覆盖率",
+    "重构这个方法"
+  ],
+  "near_neighbor": [
+    "只检查不修改注释",
+    "扫描注释出个报告",
+    "检查注释是否合规",
+    "检查代码质量"
+  ]
+}

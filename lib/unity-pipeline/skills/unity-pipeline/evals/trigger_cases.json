@@ -1,0 +1,21 @@
+{
+  "skill": "unity-pipeline",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "打开 Unity 项目",
+    "驱动 Unity 编辑器重编译",
+    "跑 Unity 测试",
+    "应用运行时代码重载",
+    "评估一段 C# 代码",
+    "打开 Unity 并跑测试",
+    "重编译后立即跑测试"
+  ],
+  "should_not_trigger": [
+    "打开 Unreal 项目",
+    "打开 Godot 项目",
+    "写一段 C# 代码"
+  ],
+  "near_neighbor": [
+    "Unity 版本是多少"
+  ]
+}

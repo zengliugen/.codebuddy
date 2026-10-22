@@ -1,0 +1,26 @@
+{
+  "skill": "csharp-code-review",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "审查这次未提交的变更",
+    "review 下今天的改动",
+    "审查 MyClass.cs",
+    "检查 MyClass.cs 有没有问题",
+    "扫描 MyModule 包代码质量",
+    "帮我看下这段代码有什么问题",
+    "审查这次 Git 变更里有哪些隐患"
+  ],
+  "should_not_trigger": [
+    "写一个登录界面",
+    "修一个空指针 bug",
+    "把这段逻辑改成异步",
+    "写个单元测试",
+    "给这个类加个方法"
+  ],
+  "near_neighbor": [
+    "检查这个 .cs 文件的注释是否合规",
+    "格式化这个文件",
+    "跳转到 Start 方法的定义",
+    "为 GameLoader.cs 补全注释"
+  ]
+}

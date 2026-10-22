@@ -1,0 +1,30 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "合并分支",
+        "git merge",
+        "合到 main",
+        "merge",
+        "合并差异"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "合并文档",
+        "合并表格",
+        "合并配置",
+        "rebase",
+        "提交代码"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

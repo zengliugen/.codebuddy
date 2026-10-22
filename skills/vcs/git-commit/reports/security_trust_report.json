@@ -1,0 +1,161 @@
+{
+  "ok": true,
+  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\vcs\\git-commit",
+  "summary": {
+    "scanned_files": 17,
+    "script_count": 2,
+    "internal_module_count": 0,
+    "secret_findings": 0,
+    "dependency_files": [],
+    "network_script_count": 0,
+    "network_policy_covered_count": 0,
+    "network_policy_missing_count": 0,
+    "file_write_script_count": 0,
+    "permission_required_count": 1,
+    "permission_approved_count": 1,
+    "permission_missing_count": 0,
+    "permission_invalid_count": 0,
+    "permission_expired_count": 0,
+    "help_smoke_checked_count": 2,
+    "help_smoke_failed_count": 0,
+    "interactive_script_count": 0,
+    "package_hash_scope": "source-contract-without-generated-reports",
+    "package_hash_file_count": 17,
+    "package_sha256": "76e031733c7bd5906d123a0ed6b6fb02fce1abc61617bfc89237b1ba7336eb15"
+  },
+  "failures": [],
+  "warnings": [
+    "No dependency or lock file detected"
+  ],
+  "secrets": [],
+  "scripts": [
+    {
+      "path": "scripts\\validate_commit_subject.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": false,
+      "uses_subprocess": false,
+      "network_urls": [],
+      "network_hosts": []
+    },
+    {
+      "path": "scripts\\verify_staged.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": false,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    }
+  ],
+  "dependencies": {
+    "present": [],
+    "pinned": [],
+    "unpinned": []
+  },
+  "network_policy": {
+    "present": false,
+    "path": "security/network_policy.json",
+    "schema_version": "",
+    "network_script_count": 0,
+    "covered_scripts": [],
+    "missing_scripts": [],
+    "mismatches": [],
+    "default_policy": {}
+  },
+  "help_smoke": {
+    "enabled": true,
+    "timeout_seconds": 5.0,
+    "candidate_count": 2,
+    "checked_count": 2,
+    "passed_count": 2,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "failed_scripts": [],
+    "results": [
+      {
+        "path": "scripts\\validate_commit_subject.py",
+        "command": "python3 scripts\\validate_commit_subject.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: validate_commit_subject.py [-h] [--file FILE] [subject]\n\ngit-commit 提交摘要格式校验\n\npositional arguments:\n  subject      提交摘要（如 'feat(Core): 新增对象池'）\n\noptions:\n  -h, --help   show this help message and exit\n  --file FILE  含提交摘要的文件路径（读取第一行）",
+        "stderr_excerpt": ""
+      },
+      {
+        "path": "scripts\\verify_staged.py",
+        "command": "python3 scripts\\verify_staged.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: verify_staged.py [-h] --expect-file EXPECT_FILE [--json]\n                        [--allow-extras] [--ignore-meta] [--dir DIR]\n\ngit-commit 暂存区与本笔提交计划比对\n\noptions:\n  -h, --help            show this help message and exit\n  --expect-file ",
+        "stderr_excerpt": ""
+      }
+    ],
+    "skipped": []
+  },
+  "permission_governance": {
+    "present": true,
+    "path": "security/permission_policy.json",
+    "schema_version": "1.0",
+    "reviewed_at": "2026-10-22",
+    "required_capabilities": [
+      "subprocess"
+    ],
+    "approved_capabilities": [
+      "subprocess"
+    ],
+    "missing_capabilities": [],
+    "invalid_capabilities": [],
+    "expired_capabilities": [],
+    "approval_count": 1,
+    "required_count": 1,
+    "missing_count": 0,
+    "invalid_count": 0,
+    "expired_count": 0,
+    "approvals": [
+      {
+        "capability": "subprocess",
+        "status": "approved",
+        "scripts": [
+          "scripts\\verify_staged.py"
+        ],
+        "reviewer": "zengliugen",
+        "scope": "['scripts/verify_staged.py', 'scripts/validate_commit_subject.py']",
+        "reason": "调用 git 读取暂存区与提交元数据，并执行提交动作；命令参数固定或来自经校验的用户输入。",
+        "expires_at": "2027-10-22",
+        "evidence": [
+          "reports/security_trust_report.json"
+        ],
+        "target_enforcement": {
+          "openai": "metadata-only：目标平台不强制子进程白名单，由操作者按 scope 复核",
+          "claude": "metadata-only：同上",
+          "generic": "metadata-only：同上",
+          "vscode": "metadata-only：同上"
+        },
+        "validation": []
+      }
+    ]
+  },
+  "trust_metadata": {
+    "source_tier": "local",
+    "remote_inline_execution": "forbid",
+    "remote_metadata_policy": "allow-metadata-only"
+  },
+  "artifacts": {
+    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
+    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\vcs\\git-commit\\reports\\security_trust_report.md"
+  }
+}

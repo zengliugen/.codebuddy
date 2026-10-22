@@ -1,0 +1,24 @@
+{
+  "skill": "csharp-comment-checker",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "检查 MyClass.cs 的注释是否合规",
+    "扫描整个目录的注释",
+    "看看哪些成员缺注释",
+    "注释质量检查一下",
+    "注释检查",
+    "统计注释缺失情况"
+  ],
+  "should_not_trigger": [
+    "审查这段代码",
+    "格式化代码",
+    "跑一下单元测试",
+    "重构这个方法"
+  ],
+  "near_neighbor": [
+    "补全 GameLoader.cs 的注释",
+    "把英文注释改成中文",
+    "检查代码质量并修复",
+    "给这个类添加注释"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "skill": "vcs-router",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "提交代码",
+    "提交一下",
+    "帮我 commit",
+    "git merge",
+    "合并分支并推送"
+  ],
+  "should_not_trigger": [
+    "提交表单",
+    "提交报告给领导",
+    "合并两个文档",
+    "查看 git log"
+  ],
+  "near_neighbor": [
+    "提交一个 bug report",
+    "版本控制怎么用"
+  ]
+}

@@ -1,0 +1,49 @@
+interface:
+  display_name: "Unity 管线驱动"
+  short_description: "打开 Unity 项目并经 CLI 驱动运行中的 Editor 或 Player 执行命令、测试与重载"
+  default_prompt: "使用 $unity-pipeline 打开或驱动 Unity 实例。先校验 CLI 安装，再按命令分组执行编译、测试或代码重载。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "打开.*Unity"
+      - keyword: "启动.*Unity 项目"
+      - keyword: "unity pipeline"
+      - keyword: "Unity.*重编译"
+      - keyword: "Unity.*测试"
+      - keyword: "Unity.*代码重载"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      python: ">=3.8"
+      unity_cli: ">=0.9.0"
+    artifacts:
+      - "SKILL.md"
+      - "references/commands.md"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "plugin"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: "unity-pipeline"
+version: "2.0"
+mode: "Production"
+source:
+  origin: "third-party"
+  upstream: "com.unity.pipeline 0.9.0-exp.1"
+  vendor_root: "lib/unity-pipeline"
+  editable: "local-patches-documented"

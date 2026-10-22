@@ -1,0 +1,36 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "提交代码",
+        "提交到 git",
+        "git commit",
+        "commit",
+        "提交改动",
+        "提交变更",
+        "提交这次的变更",
+        "提交一下"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "git push",
+        "切换分支",
+        "创建分支",
+        "rebase",
+        "cherry-pick",
+        "stash",
+        "git log",
+        "合并分支"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

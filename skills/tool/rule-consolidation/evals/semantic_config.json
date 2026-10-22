@@ -1,0 +1,34 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "规则拆分",
+        "规则合并",
+        "拆分子规则",
+        "合并子规则",
+        "规则结构",
+        "过度拆分",
+        "入口加子规则",
+        "拆得太细",
+        "规则内容太多"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "拆分技能",
+        "合并技能",
+        "技能结构",
+        "skill 拆分",
+        "修改代码"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

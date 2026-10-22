@@ -1,0 +1,21 @@
+{
+  "skill": "cmd-script-writing",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "写一个 cmd 脚本",
+    "修复 cmd 中文乱码",
+    "这个 bat 报 is not recognized",
+    "批处理 goto 出错",
+    "写一个 mklink 链接脚本",
+    "cmd 脚本乱码而且 goto 也有问题"
+  ],
+  "should_not_trigger": [
+    "写一个 bash 脚本",
+    "写个 powershell 脚本",
+    "写个 python 脚本"
+  ],
+  "near_neighbor": [
+    "写个 shell 脚本",
+    "写个 python 批处理工具"
+  ]
+}

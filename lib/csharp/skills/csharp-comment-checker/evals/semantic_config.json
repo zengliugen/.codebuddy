@@ -1,0 +1,39 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "检查注释",
+        "扫描注释",
+        "目录的注释",
+        "注释合规",
+        "注释检查",
+        "注释质量",
+        "注释缺失",
+        "缺注释",
+        "注释是否合规",
+        "统计注释",
+        "哪些成员缺注释"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "代码审查",
+        "审查代码",
+        "补全注释",
+        "添加注释",
+        "修正注释",
+        "格式化代码",
+        "生成注释",
+        "改成中文"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

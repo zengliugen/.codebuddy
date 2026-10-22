@@ -1,0 +1,34 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "沉淀经验",
+        "固化经验",
+        "沉淀到技能",
+        "复盘踩的坑",
+        "踩的坑",
+        "写回规则",
+        "写回技能",
+        "经验固化",
+        "记下来"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "总结一下",
+        "写个总结",
+        "生成文档",
+        "代码审查",
+        "提交代码"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

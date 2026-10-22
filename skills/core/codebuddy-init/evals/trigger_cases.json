@@ -1,0 +1,24 @@
+{
+  "skill": "codebuddy-init",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "初始化项目配置",
+    "接入 codebuddy",
+    "生成配置骨架",
+    "装了哪些包",
+    "安装 csharp 包",
+    "卸载 grilling 包",
+    "检查链接是否漂移",
+    "看看现在装了哪些包再决定装什么"
+  ],
+  "should_not_trigger": [
+    "初始化一个 git 仓库",
+    "npm install",
+    "生成 README",
+    "配置编译器"
+  ],
+  "near_neighbor": [
+    "安装一个 npm 包",
+    "生成项目文档"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-10-22",
+  "capabilities": {
+    "subprocess": {
+      "decision": "approved",
+      "reviewer": "zengliugen",
+      "scope": [
+        "scripts/verify_staged.py",
+        "scripts/validate_commit_subject.py"
+      ],
+      "reason": "调用 git 读取暂存区与提交元数据，并执行提交动作；命令参数固定或来自经校验的用户输入。",
+      "expires_at": "2027-10-22",
+      "evidence": [
+        "reports/security_trust_report.json"
+      ],
+      "target_enforcement": {
+        "openai": "metadata-only：目标平台不强制子进程白名单，由操作者按 scope 复核",
+        "claude": "metadata-only：同上",
+        "generic": "metadata-only：同上",
+        "vscode": "metadata-only：同上"
+      }
+    }
+  }
+}

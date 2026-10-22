@@ -1,0 +1,20 @@
+{
+  "skill": "export-zipped-dir",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "导出这个目录",
+    "打包目录成 zip",
+    "压缩 .codebuddy 目录",
+    "导出到下载目录",
+    "把目录打包但保留被忽略的配置"
+  ],
+  "should_not_trigger": [
+    "导出这个文件",
+    "复制单个文件到下载",
+    "删除目录"
+  ],
+  "near_neighbor": [
+    "导出单个文件到下载",
+    "压缩这个 zip 包"
+  ]
+}

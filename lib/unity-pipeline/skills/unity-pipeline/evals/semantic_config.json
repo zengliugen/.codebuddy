@@ -1,0 +1,35 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "打开 Unity",
+        "Unity 项目",
+        "unity pipeline",
+        "重编译",
+        "Unity 测试",
+        "代码重载",
+        "Unity 编辑器",
+        "跑测试",
+        "打开 Unity 并",
+        "评估",
+        "跑测试"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "Unreal",
+        "Godot",
+        "Cocos",
+        "纯 C# 代码"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

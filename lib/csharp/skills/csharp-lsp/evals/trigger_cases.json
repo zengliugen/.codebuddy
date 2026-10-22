@@ -1,0 +1,23 @@
+{
+  "skill": "csharp-lsp",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "跳转到 Start 方法的定义",
+    "查找 GameEntrance 的引用",
+    "这个接口有哪些实现",
+    "看一下这个文件的符号结构",
+    "查看调用链",
+    "LSP 是否可用"
+  ],
+  "should_not_trigger": [
+    "审查这段代码",
+    "补全注释",
+    "格式化代码",
+    "跑一下单元测试"
+  ],
+  "near_neighbor": [
+    "用 grep 搜一下这个字符串",
+    "全文搜索这个标识符",
+    "检查代码质量"
+  ]
+}

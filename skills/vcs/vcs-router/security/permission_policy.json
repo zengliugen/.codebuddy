@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-10-22",
+  "capabilities": {
+    "subprocess": {
+      "decision": "approved",
+      "reviewer": "zengliugen",
+      "scope": [
+        "scripts/route_vcs.py",
+        "scripts/vcs_lock.py"
+      ],
+      "reason": "调用 git rev-parse 探测仓库类型，并对项目侧锁文件做原子创建与释放。",
+      "expires_at": "2027-10-22",
+      "evidence": [
+        "reports/security_trust_report.json"
+      ],
+      "target_enforcement": {
+        "openai": "metadata-only：目标平台不强制子进程白名单，由操作者按 scope 复核",
+        "claude": "metadata-only：同上",
+        "generic": "metadata-only：同上",
+        "vscode": "metadata-only：同上"
+      }
+    }
+  }
+}
