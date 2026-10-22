@@ -166,6 +166,29 @@ def is_link(path):
     return os.path.islink(path)
 
 
+def safe_realpath(path):
+    """返回真实路径；无法解析时返回 None 而不抛异常。
+
+    Windows 上 `os.path.realpath()` 对「目录链接指向普通文件」会抛
+    NotADirectoryError（WinError 267）。该状态正是克隆后链接链断裂的中间态：
+    桥接链接仍指向 pack 目录，而 pack 目录被 git 落成了普通文本文件。
+    若不吞掉异常，`verify --repair` 会在判定阶段就崩溃，无法进入修复。
+    """
+    try:
+        return os.path.realpath(path)
+    except (OSError, ValueError):
+        return None
+
+
+def same_real_path(left, right):
+    """两个路径是否指向同一实体；任一无法解析时返回 False。"""
+    left_real = safe_realpath(left)
+    right_real = safe_realpath(right)
+    if left_real is None or right_real is None:
+        return False
+    return os.path.normcase(left_real) == os.path.normcase(right_real)
+
+
 def remove_link_placeholder(path):
     """移除「本该是链接、实际却是普通文件/目录」的占位物。
 
@@ -221,9 +244,9 @@ def ensure_pack_dir(paths, packs, pack, comp_type, repair=False, force=False):
         return "ok", "包内无 %s 目录，跳过" % comp_type
 
     if is_link(link):
-        current = os.path.realpath(link)
-        if os.path.normcase(current) == os.path.normcase(os.path.realpath(source)):
+        if same_real_path(link, source):
             return "ok", link
+        current = safe_realpath(link) or "（无法解析）"
         if not (repair or force):
             return "drift", "链接指向错误：%s → %s" % (link, current)
         os.unlink(link)
@@ -243,9 +266,9 @@ def ensure_bridge(paths, pack, comp_type, repair=False, force=False):
     link = bridge_link(paths, pack, comp_type)
     target_abs = os.path.join(paths["project_root"], ".codebuddy.project", comp_type, pack)
     if is_link(link):
-        current = os.path.realpath(link)
-        if os.path.normcase(current) == os.path.normcase(os.path.realpath(target_abs)):
+        if same_real_path(link, target_abs):
             return "ok", link
+        current = safe_realpath(link) or "（无法解析）"
         if not (repair or force):
             return "drift", "桥接指向错误：%s → %s" % (link, current)
         os.unlink(link)
@@ -303,9 +326,9 @@ def ensure_project_bridge(paths, comp_type, repair=False, force=False):
     if not os.path.isdir(target_abs):
         os.makedirs(target_abs, exist_ok=True)
     if is_link(link):
-        current = os.path.realpath(link)
-        if os.path.normcase(current) == os.path.normcase(os.path.realpath(target_abs)):
+        if same_real_path(link, target_abs):
             return "ok", link
+        current = safe_realpath(link) or "（无法解析）"
         if not (repair or force):
             return "drift", "桥接指向错误：%s → %s" % (link, current)
         os.unlink(link)
@@ -378,7 +401,7 @@ def scan_drift(paths, packs, state):
             pack_link = pack_dir_link(paths, name, comp_type)
             if not is_link(pack_link):
                 issues.append(("packdir", pack_link, "缺少或非链接（应为 pack 目录链接）"))
-            elif os.path.normcase(os.path.realpath(pack_link)) != os.path.normcase(os.path.realpath(source_dir)):
+            elif not same_real_path(pack_link, source_dir):
                 issues.append(("packdir", pack_link, "指向错误"))
             else:
                 # 链接正确时，逐个核对声明的组件在链接内可见
@@ -395,7 +418,7 @@ def scan_drift(paths, packs, state):
                 target = os.path.join(paths["project_root"], ".codebuddy.project", comp_type, "project")
                 if not is_link(bridge):
                     issues.append(("bridge", bridge, "缺少项目专有包桥接"))
-                elif os.path.normcase(os.path.realpath(bridge)) != os.path.normcase(os.path.realpath(target)):
+                elif not same_real_path(bridge, target):
                     issues.append(("bridge", bridge, "指向错误"))
     known = set()
     for name in installed:
