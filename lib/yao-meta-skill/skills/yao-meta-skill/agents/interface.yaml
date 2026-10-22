@@ -24,3 +24,9 @@ compatibility:
     claude: "neutral-source-plus-adapter"
     generic: "neutral-source"
     vscode: "agent-skills-source-with-vscode-notes"
+
+source:
+  origin: "third-party"
+  upstream: "yao-meta-skill 2.1.0"
+  vendor_root: "lib/yao-meta-skill"
+  editable: "minimal-patches-only"

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import contextlib
-import fcntl
 import hashlib
 import json
 import os
@@ -18,6 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
+try:  # POSIX：使用 flock 实现进程间互斥
+    import fcntl
+except ModuleNotFoundError:  # Windows：无 fcntl，改用 msvcrt 字节区锁
+    fcntl = None
+    import msvcrt
+
 
 SCRIPT_INTERFACE = "internal-module"
 SCRIPT_INTERFACE_REASON = "Imported by evidence-build and evidence consumers for transactional local evidence publishing."
@@ -27,6 +32,31 @@ POINTER_PATH = Path("reports/.current-run.json")
 CANONICAL_INDEX_PATH = Path("reports/artifact-index.json")
 TRANSACTION_NAME = "publish-transaction.json"
 ARTIFACT_MUTATION_NAME = ".artifact-mutation.json"
+
+
+def _acquire_lock(descriptor: int, lock_path: Path) -> None:
+    """获取非阻塞独占锁；跨平台差异收敛在此处。
+
+    POSIX 使用 flock 对整个文件加锁；Windows 无 flock，改用 msvcrt 对首字节
+    做非阻塞独占锁。两者语义等价：锁被占用时立即抛 OSError。
+    """
+    if fcntl is not None:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise OSError("lock held") from exc
+        return
+    os.lseek(descriptor, 0, os.SEEK_SET)
+    msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+
+
+def _release_lock(descriptor: int) -> None:
+    """释放 _acquire_lock 取得的锁。"""
+    if fcntl is not None:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        return
+    os.lseek(descriptor, 0, os.SEEK_SET)
+    msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
 
 
 class EvidenceError(RuntimeError):
@@ -364,15 +394,15 @@ class EvidenceStore:
         descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
         try:
             try:
-                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError as exc:
+                _acquire_lock(descriptor, lock_path)
+            except OSError as exc:
                 raise EvidenceError("publish-locked", f"Another evidence publish holds {lock_path}") from exc
             os.ftruncate(descriptor, 0)
             os.write(descriptor, f"pid={os.getpid()}\n".encode())
             yield
         finally:
             with contextlib.suppress(OSError):
-                fcntl.flock(descriptor, fcntl.LOCK_UN)
+                _release_lock(descriptor)
             os.close(descriptor)
 
     def _restore_bundle(self, bundle_dir: Path, *, expected_index_sha256: str | None = None) -> None:
