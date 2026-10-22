@@ -7,6 +7,26 @@
 > **共享方式**：将本仓库作为 **git submodule** 纳入各项目，检出到项目的 `.codebuddy/` 路径。
 > 多项目共享同一引擎、各自维护独立的项目侧内容；引擎升级只需 `git submodule update`。
 
+## 第三方来源组件（vendor）
+
+`lib/` 下部分包并非本项目原创，而是随引擎分发的上游组件。对这类包统一采用 **「保留原文 + 来源标记 + 不可改边界」** 策略，
+**不做中文翻译、不调整目录布局**：
+
+| 组件 | 来源 | 版本 | 可否修改 |
+|------|------|------|---------|
+| `lib/yao-meta-skill/` | 上游 yao-meta-skill（skill 工程化工具链） | 2.1.0 | 仅允许最小可行性补丁，须记录在 `references/cli-changelog.md` |
+| `lib/unity-pipeline/` | `com.unity.pipeline` 0.9.0-exp.1 | 2.0 | 允许本地补丁，须在 SKILL.md 注释块与 `references/cli-changelog.md` 记录 |
+| `lib/grilling/` | 上游 grilling（方案拷问） | 1.0 | 仅允许补元数据（`agents/interface.yaml`），正文不改 |
+
+**为什么不做中文转换**：`yao-meta-skill` 的触发评估与回归测试依赖原文措辞（`evals/semantic_config.json` 的
+中英短语权重、`tests/` 快照），翻译会使工具链失效并导致上游 `git pull` 永久冲突。
+
+**为什么不做目录布局调整**：`lib/<pack>/` 已是正式的 vendor 边界——`lib/packs.json` 据此推导路径，
+`scripts/pack_install.py` 据此建桥接链接；再套一层 `vendor/` 会打断这两个脚本。
+
+**语言规则豁免**：上述组件的正文文档保留上游原语言，不受 `rules/core/language/` 「人类可读文本一律中文」约束；
+但**本仓库新增的元数据**（`agents/interface.yaml`）与外层说明仍须中文。
+
 ## 目录结构
 
 ```

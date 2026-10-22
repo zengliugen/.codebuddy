@@ -29,6 +29,17 @@ provider:
 4. **面向机器的字符串**：作为数据协议字段、URL、路径、格式化占位符、程序集/资源名称的字符串值不得翻译，保持原样。
 5. **外部依赖约束**：当第三方库、工具或平台强制要求特定语言/编码时，可在满足外部约束的前提下尽量遵守本规则，并在注释中说明原因。
 
+## 第三方来源组件豁免（vendor）
+
+`lib/` 下经引擎 README「第三方来源组件（vendor）」登记的包（当前为 `lib/yao-meta-skill/`、`lib/unity-pipeline/`、`lib/grilling/`），其**正文文档保留上游原语言**（多为英文），不视为违反第 1～5 条核心底线。
+
+豁免边界（必须同时满足）：
+
+1. 该包已在引擎根 `README.md` 的 vendor 表中登记来源与版本；
+2. 其 `agents/interface.yaml` 的 `source.origin` 为 `third-party`；
+3. **本仓库新增或修改的元数据**（如 `agents/interface.yaml`、`references/contract.md`）**不豁免**，仍须简体中文；
+4. 除登记过的包外，不得以「第三方」为由豁免其他文件。
+
 ## 编码操作要求
 
 1. **新建文件**：直接以 UTF-8 无 BOM 编码创建。
