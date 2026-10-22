@@ -15,7 +15,7 @@
 ├── update.cmd                  # 仓库更新双击入口（薄入口，调用 scripts/update_repo.py）
 ├── setup.cmd / setup.sh        # 项目侧一键配置入口（薄入口，调用 init_project_config.py --setup）
 ├── README.md                   # 本文件：引擎结构与约定
-├── .gitignore                  # 排除项目侧绑定链接、机器级配置与运行产物
+├── .gitignore                  # 扫描根全忽略+默认包放行；另排除机器级配置与运行产物
 ├── .gitattributes              # 行尾与二进制/文本归属声明
 │
 ├── lib/                        # 可选组件池：按包（pack）分层
@@ -145,7 +145,9 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 
 - **为什么不入本库**：链接目标全在项目侧（`.codebuddy.project/`），是本项目独有的；
   若纳入共享库，其他项目 clone 后链接会**悬空**，并可能与同名路径**冲突污染**。
-  故本库 `.gitignore` 排除了 `/settings.json` 与各可选包、`project` 包的扫描根链接。
+  故本库 `.gitignore` 对扫描根 `rules/`、`skills/`、`agents/` 采取**目录内全忽略 + 逐包放行**：
+  默认包（`location=engine` 的 `core` / `vcs` / `tool`）显式 `!` 放行，其余同名条目（可选包与 `project` 的桥接链接）
+  一律忽略；`agents/` 无默认包故整目录忽略。`/settings.json` 单独另列。
 - **如何创建**：消费项目 clone 本引擎后，运行 `codebuddy-init` 自动创建（幂等；失败时告警并给出手工 `mklink` 命令）。
 - **机制依据**：实测 CodeBuddy **会解引用符号链接**——技能目录的链接下技能被正常扫描，`settings.json`
   链接的目标改变后回复语言随之变化。

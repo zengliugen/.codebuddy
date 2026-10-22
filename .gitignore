@@ -5,19 +5,30 @@
 #  以下是"绝不应进入本库"的内容——它们要么是机器级/项目级绑定，要么是运行产物。
 # ============================================================================
 
-# --- 项目侧绑定软链接（由 setup 创建，不随共享库分发）---
-#   扫描根下每个可选包的 <pack> 目录都是指向项目侧的链接，在本库中会悬空，
-#   且会与消费项目的同名路径冲突。目录清单与 lib/packs.json 的 location=lib 项对应。
+# --- 扫描根：目录内全忽略，仅放行随仓库分发的默认包 ------------------------
+#   安装可选包时，pack_install.py 会在扫描根创建指向项目侧的桥接链接
+#   （rules/<pack>、skills/<pack>、agents/<pack>），这些链接绑定单个项目、
+#   在库内会悬空，绝不应入库。
+#
+#   采用「目录内全忽略 + 逐包放行」而非逐项排除的原因：新增可选包时无需补规则，
+#   **新装包的链接默认即被忽略**，避免遗漏。
+#   放行清单与 lib/packs.json 中 location=engine 的包保持一致（core / vcs / tool）；
+#   新增默认包时须同步在此追加一行 ! 放行。
+/rules/*
+!/rules/core/
+!/rules/tool/
+!/rules/vcs/
+
+/skills/*
+!/skills/core/
+!/skills/tool/
+!/skills/vcs/
+
+# agents 无默认包（引擎自身不带 agent），整目录全忽略
+/agents/*
+
+# --- 项目侧绑定软链接（由 setup / codebuddy-init 创建，不随共享库分发）---
 /settings.json
-/skills/project-skills
-/rules/csharp
-/rules/unity-pipeline
-/rules/project
-/skills/csharp
-/skills/unity-pipeline
-/skills/project
-/agents/csharp
-/agents/project
 
 # --- 机器级配置（含 API Key / 本机路径，绑定单机，不入库）---
 models.json
@@ -28,9 +39,8 @@ plans/
 
 # --- 运行时产物（脚本写入项目侧 .codebuddy.project/；此处兜底防误入库）---
 .vcs-lock/
-skills/*/check_logs/
-skills/*/.cache/
-skills/*/tools/**/check_logs/
+**/check_logs/
+**/.cache/
 **/coverage_config.merged.json
 **/comment_config.merged.json
 
