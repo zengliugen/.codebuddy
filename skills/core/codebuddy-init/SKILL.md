@@ -1,6 +1,6 @@
 ---
 name: codebuddy-init
-description: 项目配置初始化技能。当新项目拉取（或以 submodule 接入）本 .codebuddy 引擎后，需要创建项目侧配置目录 .codebuddy.project 时触发；用户说"初始化配置"、"接入 codebuddy"、"生成项目配置"、"配置骨架"、"新项目接入"时调用。依据引擎侧配置注册表 .codebuddy/project.index.json 生成全部占位骨架（configs/）、运行时产物目录（caches/）与持久化结果骨架（store/）、项目侧 .gitignore/清理入口、项目专有技能目录骨架与根级软链接外置（settings.json），并建立软链接使其生效，最后询问是否立即按项目情况填写。不含任何项目专有值。
+description: 项目配置初始化与可选包管理技能。当新项目拉取（或以 submodule 接入）本 .codebuddy 引擎后需要接入配置，或需要查看/追加安装/移除引擎可选包时触发；用户说"初始化配置"、"接入 codebuddy"、"生成项目配置"、"配置骨架"、"新项目接入"、"装了哪些包"、"装个 XX 包"、"卸载 XX 包"时调用。运行先做只读状态检测（--status：是否已初始化、缺失配置与产物目录、已装/未装可选包、链接是否漂移），再据现状用 AskUserQuestion 询问意图，可选动作包括生成配置骨架（依据 .codebuddy/project.index.json 生成 configs/ 占位骨架、caches/ 产物目录、store/ 骨架、.gitignore、清理入口、项目专有包目录与 settings.json 软链接）、按项目情况填写配置、列出已安装包、追加安装包、移除包、修复链接漂移。不含任何项目专有值。
 license: MIT
 mode: Production
 metadata:
@@ -17,16 +17,16 @@ metadata:
 
 `.codebuddy` 是**可任意迁移的纯工作流引擎**：技能、规则薄壳、Agent 等引擎内容不绑定任何具体项目；与项目绑定的配置全部外置到项目根下的 `.codebuddy.project/`，由引擎侧的配置注册表 `.codebuddy/project.index.json` 索引。
 
-本技能负责**新项目接入的第一步**：依据注册表在项目侧生成配置骨架，使各技能首次运行时能定位到配置文件。
+本技能是引擎接入与包管理的**统一入口**：先只读检测现状（是否已初始化、缺什么、装了哪些包、链接是否漂移），再按现状询问用户意图；可生成配置骨架、填写配置，也可列出已装包、追加安装、移除包、修复链接漂移。
 
 ## 核心契约
 
 | 维度 | 定义 |
 |------|------|
-| 拥有的任务 | 依据 `.codebuddy/project.index.json` 在项目根生成 `.codebuddy.project/` 下的配置骨架（`configs/`）、运行时产物空目录（`caches/`）、持久化结果骨架（`store/`）、`.gitignore`、清理入口，以及 `.codebuddy.project/skills/` 骨架与根级软链接外置文件（`settings.json`），并**建立软链接** |
-| 输出 | 项目侧配置目录（`configs/` 占位骨架 + `caches/` 产物空目录 + `store/` 骨架 + `.gitignore` + `cleanup-caches.cmd`）+ 项目专有技能目录骨架 `.codebuddy.project/skills/` + 根级源文件骨架 `.codebuddy.project/configs/settings.json` + **软链接**（`.codebuddy/settings.json` 与各 pack 桥接）+ 创建清单；随后询问是否立即填写 |
-| 排除 | 填写具体项目值（仅在用户确认"立即填写"后作为后续动作进行）；修改引擎侧文件；覆盖已填写内容 |
-| 安全保证 | **幂等**：已存在文件默认跳过不覆盖；索引缺失/损坏即报错退出，不猜测 |
+| 拥有的任务 | ① **状态检测**（只读，`--status`）；② 依据 `.codebuddy/project.index.json` 在项目根生成 `.codebuddy.project/` 下的配置骨架（`configs/`）、运行时产物空目录（`caches/`）、持久化结果骨架（`store/`）、`.gitignore`、清理入口，以及 `.codebuddy.project/skills/` 骨架与根级软链接外置文件（`settings.json`），并**建立软链接**；③ **可选包管理**：列出已装包、追加安装、移除、修复链接漂移 |
+| 输出 | 状态检测结论与候选动作清单；项目侧配置目录（`configs/` 占位骨架 + `caches/` 产物空目录 + `store/` 骨架 + `.gitignore` + `cleanup-caches.cmd`）+ 项目专有技能目录骨架 `.codebuddy.project/skills/` + 根级源文件骨架 `.codebuddy.project/configs/settings.json` + **软链接**（`.codebuddy/settings.json` 与各 pack 桥接）+ 创建清单；包安装/卸载/修复的执行结果 |
+| 排除 | 修改引擎侧文件；覆盖已填写内容；替用户决定装哪些包；卸载默认包（`core`/`vcs`/`tool`/`project`，安装器本身拒绝） |
+| 安全保证 | **幂等**：已存在文件默认跳过不覆盖；索引缺失/损坏即报错退出，不猜测；**检测只读**；包管理一律经引擎侧安装器 |
 
 ## 与引擎和项目侧的边界
 
@@ -44,9 +44,48 @@ metadata:
 1. 自当前目录向上查找含 `.codebuddy` 子目录的目录，得项目根（`.codebuddy` 的父目录）。
 2. 读取 `.codebuddy/project.index.json`。**索引缺失、JSON 损坏或缺少必需键（`project_config_root`、`files`）时报错退出（退出码 3）**，并提示"索引由引擎随包提供，请确认引擎包完整"。
 
-### 阶段二：生成占位骨架与产物目录
+### 阶段二：状态检测（进入正题前必做）
 
-运行脚本（脚本依据索引遍历 `files`、`rule_shells`、`artifacts.dirs` 与 `root_symlinks.entries` 生成，**技能自身零项目值**）：
+**无论用户说的是"初始化"还是笼统地"配置一下"，都先探测现状，再决定做什么**，禁止凭入口措辞直接跑生成：
+
+```bash
+python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py --status
+```
+
+该命令**只读取磁盘现状、不创建也不修改任何文件**，输出：
+
+| 检测项 | 含义 |
+|--------|------|
+| `initialized` | 项目配置目录（`.codebuddy.project/`）是否已存在 |
+| `missing_configs` | 索引登记的 `files` / `rule_shells` 中缺失的配置项 |
+| `missing_dirs` | 索引 `artifacts.dirs` 中缺失的运行时产物目录 |
+| `packs.installed` | 已登记安装的可选包 |
+| `packs.available` | 注册表存在但未安装的可选包 |
+| `packs.unknown` | 安装状态中存在但注册表未登记的包（异常） |
+| `links.consistent` | 调用 `pack_install.py status` 得到的链接与实际安装状态是否一致（`null` 表无法探测） |
+| `actions` | 依据现状推导的**候选动作**清单，作为询问选项的依据 |
+
+加 `--json` 得结构化结果，便于按 `actions` 精确构造选项。
+
+### 阶段三：报告现状并按 `actions` 询问意图
+
+1. 先用简洁文本向用户报告检测结论（已初始化/未初始化、缺失项数、已装与未装包、链接是否一致）。
+2. 用 `AskUserQuestion` **按 `actions` 生成选项**询问要做什么，一问一答，不预设用户意图：
+
+   | `actions` 取值 | 选项文案 | 后续动作 |
+   |----------------|---------|---------|
+   | `init_skeleton` | 生成配置骨架（首次接入） | 阶段四 A |
+   | `fill_configs` | 按项目情况填写配置 | 阶段四 B |
+   | `list_packs` | 查看已安装的可选包 | 阶段四 C |
+   | `install_packs` | 追加安装可选包 | 阶段四 D |
+   | `remove_packs` | 移除已安装的可选包 | 阶段四 E |
+   | `verify_packs` | 修复安装状态与链接漂移 | 阶段四 F |
+
+3. 选项文案须带上实际对象（如"追加安装：grilling、yao-meta-skill"），**不得罗列当前不可能的动作**；用户范围外的请求按其原话执行，不硬塞本技能职责。
+
+### 阶段四：按选择执行
+
+**A. 生成配置骨架**
 
 ```bash
 python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
@@ -74,14 +113,7 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 > **产物目录清单由索引驱动**：新增技能产物目录时，在索引 `artifacts.dirs` 登记（逻辑名 → 项目侧镜像路径），
 > 初始化脚本与各技能脚本即自动适配，无需改脚本。
 
-### 阶段三：报告与询问
-
-1. 输出创建清单（路径 + 类型 + 是否跳过）。
-2. 经 `AskUserQuestion` 询问：**是否需要现在就按项目情况填写全部外置配置？**
-   - **立即填写** → 进入阶段四。
-   - **稍后填写** → 结束流程，并提示：未填写的配置在首次运行对应技能时会报错（配置缺失即报错，不静默使用默认值）。
-
-### 阶段四：按项目情况填写（仅在用户选择"立即填写"时）
+**B. 按项目情况填写**
 
 逐项读取该配置所属技能的 `references/config-guide.md`，并结合项目实际探测（解决方案/工程文件、`Assets/` 与 `Packages/` 目录结构、程序集清单、`manifest.json`、`.editorconfig` 等）填充占位值：
 
@@ -89,6 +121,45 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 2. 填写后**向用户复述改动**（键 → 值）供确认；确认无误再写入。
 3. 涉及口径一致性的配置（如多处的排除目录清单）必须同步，避免漂移。
 4. 全部填写完成后，建议运行对应技能做一次冒烟验证（如格式检查 `--help`、覆盖率静态分析小目标）。
+
+**C. 查看已安装的可选包**
+
+```bash
+python .codebuddy/scripts/pack_install.py list
+```
+
+**D. 追加安装可选包**
+
+1. 从 `--status` 的 `packs.available` 取值，用 `AskUserQuestion`（`multiSelect`）让用户勾选，不替用户决定。
+2. 执行安装（依赖由安装器自动带出）：
+
+```bash
+python .codebuddy/scripts/pack_install.py install <包名...>
+```
+
+3. 安装后用 `pack_install.py status` 复核一致，并向用户说明**新技能需重启会话才会出现在技能目录**。
+
+**E. 移除已安装的可选包**
+
+1. 从 `--status` 的 `packs.installed` 取值让用户勾选；默认包（`core`/`vcs`/`tool`/`project`）不可卸载。
+2. **移除是不可逆操作，须先向用户确认将删除的链接清单**；安装器报"被依赖"时，明确询问是否连带移除依赖方（`--force`）。
+
+```bash
+python .codebuddy/scripts/pack_install.py remove <包名...>
+```
+
+**F. 修复安装状态与链接漂移**
+
+```bash
+python .codebuddy/scripts/pack_install.py verify --repair
+```
+
+### 阶段五：报告
+
+输出做了什么（创建/跳过的文件、装/卸的包、修复的链接）+ 下一步提示：
+
+- 未填写的配置在首次运行对应技能时会报错（配置缺失即报错，不静默使用默认值）；
+- 项目专有内容放 `.codebuddy.project/<类型>/project/` 下（经 `.codebuddy/<类型>/project` 链接自动加载）。
 
 ## 配置注册表约定（摘要）
 
@@ -101,15 +172,20 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 
 ## 检查清单
 
+- [ ] 是否先跑 `--status` 做只读检测（**未检测就不得生成或改包**）？
+- [ ] 是否先向用户报告现状（已初始化/未初始化、缺失项、已装/未装包、链接一致性）？
+- [ ] 是否按 `actions` 用 `AskUserQuestion` 询问意图，且选项只包含当前可行的动作？
 - [ ] 是否先定位项目根并校验索引（缺失即报错退出 3）？
 - [ ] 生成是否经过脚本（而非手工臆造字段）？
 - [ ] 是否依据索引 `artifacts.dirs` 创建了 `caches/` 运行时产物空目录，并生成了 `.gitignore`、`cleanup-caches.cmd` 与 `store/` 骨架？
 - [ ] 是否生成了 `.codebuddy.project/{rules,skills,agents}/project/` 骨架并**建立了桥接** `.codebuddy/<类型>/project`（失败时是否已告警并给出命令）？
 - [ ] 是否依据索引 `root_symlinks.entries` 生成了根级源文件骨架（如 `.codebuddy.project/configs/settings.json`）并**建立了软链接**（失败时是否已告警并给出命令）？
 - [ ] 已存在文件是否跳过未覆盖（未获确认不使用 `--force`）？
-- [ ] 是否输出了创建清单？
-- [ ] 是否经 `AskUserQuestion` 询问是否立即填写？
-- [ ] 「立即填写」时，是否逐项**实际探测项目**而非套用经验值，并向用户复述确认？
+- [ ] 装/卸包是否经 `pack_install.py`（而非手工增删链接），且操作后用 `status` 复核一致？
+- [ ] 卸载前是否向用户确认将删除的链接清单（不可逆）？
+- [ ] 追加安装后是否提示"新技能需重启会话才会出现在技能目录"？
+- [ ] 是否输出了创建/装/卸/修复清单？
+- [ ] 「填写配置」时，是否逐项**实际探测项目**而非套用经验值，并向用户复述确认？
 - [ ] 是否提示了"未填写配置首次运行会报错"？
 
 ## 参考文献
@@ -118,5 +194,6 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 |------|------|
 | `references/index-spec.md` | 配置注册表 schema、逻辑名与镜像路径约定、骨架生成规则 |
 | `references/fill-guide.md` | 各类配置的填写指导入口（指向各技能 `references/config-guide.md`） |
-| `scripts/init_project_config.py` | 骨架生成脚本（索引驱动、幂等） |
+| `scripts/init_project_config.py` | 骨架生成（索引驱动、幂等）与 `--status` 只读状态检测 |
+| `.codebuddy/scripts/pack_install.py` | 引擎侧包安装器：`list` / `install` / `remove` / `status` / `verify --repair` |
 | `agents/interface.yaml` | 输入/输出/排除契约 |

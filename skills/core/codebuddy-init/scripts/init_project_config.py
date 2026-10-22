@@ -538,6 +538,145 @@ def run_pack_installer(codebuddy_dir, project_root, args):
     return result.returncode, (result.stdout or "") + (result.stderr or "")
 
 
+def load_engine_packs(codebuddy_dir):
+    """读取引擎包注册表 lib/packs.json；缺失或损坏时返回空表与原因，不阻断状态查询。"""
+    path = os.path.join(codebuddy_dir, "lib", "packs.json")
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError) as error:
+        return {}, "包注册表不可读：%s（%s）" % (path, error)
+    packs = data.get("packs")
+    if not isinstance(packs, dict):
+        return {}, "包注册表缺少 packs 对象：%s" % path
+    return packs, None
+
+
+def read_installed_packs(project_root):
+    """读取项目侧已记入安装状态的包名列表；文件缺失或损坏时返回空列表。"""
+    path = os.path.normpath(os.path.join(project_root, ".codebuddy.project", "configs", "packs.json"))
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return []
+    installed = data.get("installed")
+    return [str(name) for name in installed] if isinstance(installed, list) else []
+
+
+def probe_pack_drift(codebuddy_dir, project_root):
+    """调用引擎侧 pack_install.py status 探测链接漂移；返回 (是否一致, 输出文本)。
+
+    一致为 True；存在漂移为 False；无法探测为 None。
+    """
+    installer = os.path.join(codebuddy_dir, "scripts", "pack_install.py")
+    if not os.path.isfile(installer):
+        return None, "未找到包安装器：%s" % installer
+    result = subprocess.run(
+        [sys.executable, installer, "--project-root", project_root, "status"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace")
+    output = ((result.stdout or "") + (result.stderr or "")).strip()
+    return result.returncode == 0, output
+
+
+def collect_status(index, project_root, codebuddy_dir):
+    """汇总初始化与包安装状态，作为技能询问用户「接下来要做什么」的依据。
+
+    只读取磁盘现状，不创建也不修改任何文件，可安全重复调用。
+    """
+    config_root = index["project_config_root"]
+    config_dir = os.path.normpath(os.path.join(project_root, config_root))
+    initialized = os.path.isdir(config_dir)
+
+    missing_configs = []
+    for group_key in ("files", "rule_shells"):
+        for code_name, entry in (index.get(group_key) or {}).items():
+            rel = (entry or {}).get("path")
+            if not rel:
+                continue
+            if not os.path.isfile(os.path.normpath(os.path.join(project_root, rel))):
+                missing_configs.append({"group": group_key, "name": code_name, "path": rel})
+
+    missing_dirs = []
+    for logical_name, rel in ((index.get("artifacts") or {}).get("dirs") or {}).items():
+        if not os.path.isdir(os.path.normpath(os.path.join(project_root, rel))):
+            missing_dirs.append({"name": logical_name, "path": rel})
+
+    packs, packs_error = load_engine_packs(codebuddy_dir)
+    installed = read_installed_packs(project_root)
+    optional = sorted(name for name, meta in packs.items() if not (meta or {}).get("default"))
+    available = [name for name in optional if name not in installed]
+    unknown = [name for name in installed if name not in packs]
+    drift_ok, drift_text = probe_pack_drift(codebuddy_dir, project_root)
+
+    # 依据现状给出候选动作，供技能用 AskUserQuestion 呈现（键名跨项目稳定）
+    actions = []
+    if not initialized:
+        actions.append("init_skeleton")
+    if missing_configs or missing_dirs or not initialized:
+        actions.append("fill_configs")
+    actions.append("list_packs")
+    if available:
+        actions.append("install_packs")
+    if installed:
+        actions.append("remove_packs")
+    if drift_ok is False or unknown:
+        actions.append("verify_packs")
+
+    return {
+        "project_root": project_root,
+        "project_config_root": config_root,
+        "initialized": initialized,
+        "missing_configs": missing_configs,
+        "missing_dirs": missing_dirs,
+        "packs": {
+            "installed": sorted(installed),
+            "available": available,
+            "unknown": sorted(unknown),
+            "registry_error": packs_error,
+        },
+        "links": {"consistent": drift_ok, "detail": drift_text},
+        "actions": actions,
+    }
+
+
+def report_status(status, as_json):
+    """输出状态摘要；as_json 为真时输出结构化 JSON，否则输出人类可读文本。"""
+    if as_json:
+        print(json.dumps(status, ensure_ascii=False, indent=2))
+        return 0
+
+    print("[信息] 项目根：%s" % status["project_root"])
+    print("[状态] 项目配置目录：%s" % ("已初始化" if status["initialized"] else "未初始化"))
+    if status["missing_configs"]:
+        print("[状态] 缺失配置 %d 项（需补生成或填写）：" % len(status["missing_configs"]))
+        for item in status["missing_configs"][:10]:
+            print("  - %s/%s" % (item["group"], item["path"]))
+    else:
+        print("[状态] 配置骨架：齐全")
+    if status["missing_dirs"]:
+        print("[状态] 缺失产物目录 %d 项" % len(status["missing_dirs"]))
+        for item in status["missing_dirs"][:10]:
+            print("  - %s" % item["path"])
+
+    packs = status["packs"]
+    if packs["registry_error"]:
+        print("[警告] %s" % packs["registry_error"])
+    print("[可选包] 已装：%s" % (", ".join(packs["installed"]) or "（无）"))
+    print("[可选包] 未装：%s" % (", ".join(packs["available"]) or "（无）"))
+    if packs["unknown"]:
+        print("[警告] 安装状态含注册表未登记的包：%s" % ", ".join(packs["unknown"]))
+
+    consistent = status["links"]["consistent"]
+    if consistent is True:
+        print("[链接] 一致：安装状态与实际链接匹配")
+    else:
+        print("[链接] %s" % (status["links"]["detail"] or "无法探测"))
+
+    print("[候选动作] %s" % ", ".join(status["actions"]))
+    return 0
+
+
 def main():
     init_stdout()
     parser = argparse.ArgumentParser(
@@ -552,6 +691,8 @@ def main():
                         help="可选包名，逗号分隔（仅 --setup 首次克隆时使用）")
     parser.add_argument("--minimal", action="store_true",
                         help="只保留默认包，不安装任何可选包（仅 --setup）")
+    parser.add_argument("--status", action="store_true",
+                        help="只检测现状（初始化状态、缺失配置、可选包安装与链接漂移），不写盘")
     args = parser.parse_args()
 
     codebuddy_dir = find_codebuddy_dir(os.getcwd())
@@ -567,6 +708,11 @@ def main():
         return 3
 
     project_root = os.path.dirname(codebuddy_dir)
+
+    # 只读状态探测：供技能据现状询问用户意图，不创建也不修改任何文件
+    if args.status:
+        return report_status(collect_status(index, project_root, codebuddy_dir), args.json)
+
     try:
         targets = build_targets(index, project_root)
     except InitError as error:
