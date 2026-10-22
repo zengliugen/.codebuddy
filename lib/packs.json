@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "_comment": "引擎包注册表，随引擎入库共享。comps 只写组件名，实际路径由 location 推导：engine → .codebuddy/<类型>/<pack>/<名>；lib → .codebuddy/lib/<pack>/<类型>/<名>；project → .codebuddy.project/project/<类型>/<名>（agents 均加 .md 后缀）。",
+  "packs": {
+    "core": {
+      "category": "基础",
+      "description": "任何项目必装：语言与编码规范、项目指导薄壳、初始化能力",
+      "default": true,
+      "location": "engine",
+      "requires": [],
+      "comps": {
+        "rules": [
+          "language",
+          "project-guide"
+        ],
+        "skills": [
+          "codebuddy-init"
+        ],
+        "agents": []
+      }
+    },
+    "vcs": {
+      "category": "基础",
+      "description": "版本控制路由与提交、合并执行",
+      "default": true,
+      "location": "engine",
+      "requires": [
+        "core"
+      ],
+      "comps": {
+        "rules": [
+          "vcs-router"
+        ],
+        "skills": [
+          "vcs-router",
+          "git-commit",
+          "git-merge"
+        ],
+        "agents": []
+      }
+    },
+    "tool": {
+      "category": "基础",
+      "description": "引擎自维护规则与通用工具技能",
+      "default": true,
+      "location": "engine",
+      "requires": [
+        "core"
+      ],
+      "comps": {
+        "rules": [
+          "codebuddy-engine-vcs",
+          "codebuddy-project-config"
+        ],
+        "skills": [
+          "cmd-script-writing",
+          "export-zipped-dir",
+          "rule-consolidation",
+          "session-lesson-distill"
+        ],
+        "agents": []
+      }
+    },
+    "project": {
+      "category": "项目专属",
+      "description": "项目自有的规则、技能与代理；内容直接放 .codebuddy.project/project/ 下，随项目入库，默认启用",
+      "default": true,
+      "location": "project",
+      "requires": [],
+      "comps": {
+        "rules": [],
+        "skills": [],
+        "agents": []
+      }
+    },
+    "csharp": {
+      "category": "C#",
+      "description": "C# 全套：代码审查链、注释规范、格式检查、LSP、测试覆盖率",
+      "default": false,
+      "location": "lib",
+      "requires": [
+        "core",
+        "vcs"
+      ],
+      "comps": {
+        "rules": [
+          "csharp-code",
+          "csharp-comment",
+          "csharp-lsp",
+          "csharp-test"
+        ],
+        "skills": [
+          "csharp-code-review",
+          "csharp-comment-checker",
+          "csharp-comment-generator",
+          "csharp-format-checker",
+          "csharp-lsp",
+          "csharp-test-coverage"
+        ],
+        "agents": [
+          "csharp-code-review",
+          "csharp-comment-generator"
+        ]
+      }
+    },
+    "unity-pipeline": {
+      "category": "领域",
+      "description": "Unity 实例打开、编译、测试、热重载",
+      "default": false,
+      "location": "lib",
+      "requires": [
+        "core"
+      ],
+      "comps": {
+        "rules": [
+          "unity-pipeline"
+        ],
+        "skills": [
+          "unity-pipeline"
+        ],
+        "agents": []
+      }
+    },
+    "grilling": {
+      "category": "third-party",
+      "description": "诘问式压测：grilling 主能力 + grill-me 用户入口（grill-me 转发调用 grilling，故须同包）",
+      "default": false,
+      "location": "lib",
+      "requires": [],
+      "comps": {
+        "rules": [],
+        "skills": [
+          "grilling",
+          "grill-me"
+        ],
+        "agents": []
+      }
+    },
+    "yao-meta-skill": {
+      "category": "third-party",
+      "description": "技能创建、改进与评估的元技能",
+      "default": false,
+      "location": "lib",
+      "requires": [],
+      "comps": {
+        "rules": [],
+        "skills": [
+          "yao-meta-skill"
+        ],
+        "agents": []
+      }
+    }
+  }
+}

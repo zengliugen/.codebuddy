@@ -5,11 +5,19 @@
 #  以下是"绝不应进入本库"的内容——它们要么是机器级/项目级绑定，要么是运行产物。
 # ============================================================================
 
-# --- 项目侧绑定软链接（由各消费项目经 codebuddy-init 自建，不随共享库分发）---
-#   这两个链接指向项目根的 .codebuddy.project/ 与 .codebuddy.project/skills/，
-#   在本库中会悬空（目标不存在），且会与消费项目的同名路径冲突。
+# --- 项目侧绑定软链接（由 setup 创建，不随共享库分发）---
+#   扫描根下每个可选包的 <pack> 目录都是指向项目侧的链接，在本库中会悬空，
+#   且会与消费项目的同名路径冲突。目录清单与 lib/packs.json 的 location=lib 项对应。
 /settings.json
 /skills/project-skills
+/rules/csharp
+/rules/unity-pipeline
+/rules/project
+/skills/csharp
+/skills/unity-pipeline
+/skills/project
+/agents/csharp
+/agents/project
 
 # --- 机器级配置（含 API Key / 本机路径，绑定单机，不入库）---
 models.json

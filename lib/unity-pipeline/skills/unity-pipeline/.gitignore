@@ -1,0 +1,18 @@
+# ============================================================
+#  目录: .codebuddy/skills/unity-pipeline/unity-pipeline
+# ============================================================
+
+# Unity CLI 离线安装二进制（约 106MB，不入 git）
+# 该二进制不随 git/引擎包分发；缺失时技能安装脚本自动回退在线下载
+tools/unity-cli-offline/unity-windows-*.exe
+
+# Python 运行缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 环境检查结果缓存（动态生成，不入库）
+
+# 系统/编辑器临时文件
+.DS_Store
+Thumbs.db

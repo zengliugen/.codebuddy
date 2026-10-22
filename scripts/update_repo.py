@@ -298,6 +298,26 @@ def print_report(result):
     print("=" * 64)
 
 
+def rebuild_pack_links(engine_dir):
+    """引擎更新后重建项目侧包链接，消除改名/删除造成的悬空与哈希漂移。
+
+    未初始化（无 .codebuddy.project/configs/packs.json）时跳过，避免给纯引擎仓带来副作用。
+    返回 (退出码, 输出文本)；退出码 0 表示一致或修复成功。
+    """
+    project_root = os.path.dirname(engine_dir)
+    state_path = os.path.join(project_root, ".codebuddy.project", "configs", "packs.json")
+    installer = os.path.join(engine_dir, "scripts", "pack_install.py")
+    if not os.path.isfile(state_path):
+        return None, "未检测到项目侧安装状态，跳过包链接重建"
+    if not os.path.isfile(installer):
+        return 3, "未找到引擎侧包安装器：%s" % installer
+    result = subprocess.run(
+        [sys.executable, installer, "--project-root", project_root, "verify", "--repair"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    return result.returncode, ((result.stdout or "") + (result.stderr or "")).strip()
+
+
 def main():
     init_stdout()
     parser = argparse.ArgumentParser(
@@ -320,10 +340,26 @@ def main():
         sys.stderr.write("[错误] %s\n" % error)
         return 3
 
+    # 更新后重建项目侧包链接：引擎内的组件可能改名/删除，链接需重新对齐
+    pack_rc, pack_output = rebuild_pack_links(target_dir)
+
     if args.json:
+        result["pack_links"] = {"exit_code": pack_rc, "output": pack_output}
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print_report(result)
+        if pack_output:
+            print()
+            print("-" * 64)
+            if pack_rc == 0:
+                print("[包链接] 已对齐：%s" % pack_output)
+            elif pack_rc is None:
+                print("[包链接] %s" % pack_output)
+            else:
+                print("[包链接] 对齐失败（退出码 %s）：" % pack_rc)
+                for line in pack_output.splitlines():
+                    print("  " + line)
+                print("  可手动重试：python .codebuddy/scripts/pack_install.py verify --repair")
     return 0
 
 

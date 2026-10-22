@@ -8,10 +8,12 @@
 「新增技能/规则却漏登记」。
 
 校验项：
-  1. `skills/*`（排除 third-party）与 `rules/*` 目录，均在本文件下方的清单中登记；
-  2. 反向：清单中的条目在实际目录中存在（无残留）；
-  3. `project.index.json` 的 `files` / `rule_shells` 中 `path` 均为相对路径（入库共享前提）；
-  4. `root_symlinks.entries` 的 `link` / `path` 均为相对路径，且引擎内链接存在且为符号链接。
+  1. `lib/packs.json` 引用的组件在对应位置真实存在（location=engine 查扫描根，location=lib 查 lib/）；
+  2. `lib/` 下无任何包都未引用的孤儿目录；
+  3. 每个包的 `requires` 指向同一份注册表中存在的包，且不出现同名组件跨包重复声明；
+  4. 默认包（default=true）的组件在扫描根为真实目录（非链接）；可选包在扫描根为链接；
+  5. `project.index.json` 的 `files` / `rule_shells` 中 `path` 均为相对路径（入库共享前提）；
+  6. `root_symlinks.entries` 的 `link` / `path` 均为相对路径，且引擎内链接存在且为符号链接。
 
 退出码：
   0 —— 一致
@@ -24,40 +26,6 @@
 import json
 import os
 import sys
-
-# 引擎技能清单（新增/删除技能时同步本清单；与 README.md 目录结构节对应）
-KNOWN_SKILLS = [
-    "cmd-script-writing",
-    "codebuddy-init",
-    "csharp-code-review",
-    "csharp-comment-checker",
-    "csharp-comment-generator",
-    "csharp-format-checker",
-    "csharp-lsp",
-    "csharp-test-coverage",
-    "export-zipped-dir",
-    "git-commit",
-    "git-merge",
-    "rule-consolidation",
-    "session-lesson-distill",
-    "unity-pipeline",
-    "vcs-router",
-]
-
-# 引擎规则清单（新增/删除规则时同步本清单）
-KNOWN_RULES = [
-    "codebuddy-engine-vcs",
-    "codebuddy-project-config",
-    "csharp-code",
-    "csharp-comment",
-    "csharp-lsp",
-    "csharp-test",
-    "language",
-    "project-guide",
-    "unity-pipeline",
-    "vcs-router",
-]
-
 
 def find_codebuddy_dir(start):
     """自 start 向上查找含 `.codebuddy` 子目录的目录，返回该 .codebuddy 的绝对路径。"""
@@ -72,11 +40,11 @@ def find_codebuddy_dir(start):
         current = parent
 
 
-def list_dirs(path, skip_symlinks=False):
+def list_dirs(path, skip_symlinks=False, only_symlinks=False):
     """列出目录下的一级子目录名（排序）。
 
-    skip_symlinks：跳过符号链接目录（如 .codebuddy/skills/ 下的项目专有技能链接
-    `project-skills`，它指向项目侧 .codebuddy.project/skills，不属引擎技能清单）。
+    skip_symlinks：跳过符号链接目录（可选包在扫描根以链接形式出现，不属默认包）；
+    only_symlinks：只保留符号链接目录（用于核对可选包的桥接形态）。
     """
     if not os.path.isdir(path):
         return []
@@ -85,10 +53,111 @@ def list_dirs(path, skip_symlinks=False):
         full = os.path.join(path, name)
         if not os.path.isdir(full):
             continue
-        if skip_symlinks and os.path.islink(full):
+        is_link = os.path.islink(full)
+        if skip_symlinks and is_link:
+            continue
+        if only_symlinks and not is_link:
             continue
         result.append(name)
     return sorted(result)
+
+
+def load_packs(codebuddy_dir):
+    """读取 `lib/packs.json`；返回 packs 字典，失败时返回 None 并记录问题。"""
+    path = os.path.join(codebuddy_dir, "lib", "packs.json")
+    if not os.path.isfile(path):
+        return None, ["缺少包注册表：lib/packs.json"]
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError) as error:
+        return None, ["包注册表读取失败：%s" % error]
+    packs = data.get("packs")
+    if not isinstance(packs, dict) or not packs:
+        return None, ["包注册表缺少 packs 对象：lib/packs.json"]
+    return packs, []
+
+
+def component_path(codebuddy_dir, packs, pack, comp_type, name):
+    """按 location 推导组件真实路径（与 pack_install.py 保持同一条推导规则）。"""
+    meta = packs[pack]
+    suffix = ".md" if comp_type == "agents" else ""
+    if meta["location"] == "engine":
+        return os.path.join(codebuddy_dir, comp_type, pack, name + suffix)
+    if meta["location"] == "project":
+        # 项目专有包与其他包同构：内容在 .codebuddy.project/<类型>/<pack>/ 下
+        return os.path.join(os.path.dirname(codebuddy_dir), ".codebuddy.project",
+                            comp_type, pack, name + suffix)
+    return os.path.join(codebuddy_dir, "lib", pack, comp_type, name + suffix)
+
+
+def check_packs(codebuddy_dir, packs):
+    """校验包注册表与磁盘结构的一致性，返回问题清单。"""
+    problems = []
+    seen = {}
+    for pack, meta in packs.items():
+        for key in ("location", "requires", "comps", "default"):
+            if key not in meta:
+                problems.append("包 %s 缺少 %s 字段" % (pack, key))
+        location = meta.get("location")
+        if location not in ("engine", "lib", "project"):
+            problems.append("包 %s 的 location 非法：%s" % (pack, location))
+            continue
+        for dep in meta.get("requires") or []:
+            if dep not in packs:
+                problems.append("包 %s 依赖了不存在的包：%s" % (pack, dep))
+        comps = meta.get("comps") or {}
+        for comp_type in ("rules", "skills", "agents"):
+            for name in comps.get(comp_type) or []:
+                owner = seen.get((comp_type, name))
+                if owner:
+                    problems.append("组件 %s/%s 被两个包同时声明：%s 与 %s"
+                                    % (comp_type, name, owner, pack))
+                else:
+                    seen[(comp_type, name)] = pack
+                target = component_path(codebuddy_dir, packs, pack, comp_type, name)
+                if not os.path.exists(target):
+                    problems.append("组件缺失：bundle=%s %s/%s（期望 %s）"
+                                    % (pack, comp_type, name, target))
+        # 默认包在扫描根必须是真实目录；可选包必须是链接（未安装时允许缺席）
+        for comp_type in ("rules", "skills", "agents"):
+            is_project_pack = location == "project"
+            # 项目专有包固定三个桥接（内容可暂空）；其余包仅在声明了该类型时才校验
+            if not comps.get(comp_type) and not is_project_pack:
+                continue
+            scan_root = os.path.join(codebuddy_dir, comp_type, pack)
+            if meta.get("default") and location == "project":
+                # 项目专有包：内容在项目侧，扫描根必须是指向它的链接
+                if not os.path.islink(scan_root):
+                    problems.append("项目专有包桥接缺失或非链接：%s/%s" % (comp_type, pack))
+            elif meta.get("default"):
+                if not os.path.isdir(scan_root):
+                    problems.append("默认包目录缺失：%s/%s" % (comp_type, pack))
+                elif os.path.islink(scan_root):
+                    problems.append("默认包目录不应为链接：%s/%s" % (comp_type, pack))
+            else:
+                if os.path.lexists(scan_root) and not os.path.islink(scan_root):
+                    problems.append("可选包在扫描根应为链接（实际为真实目录）：%s/%s"
+                                    % (comp_type, pack))
+                # 项目侧 pack 目录同样必须是链接（整目录指向 lib，不逐组件建链）
+                proj_pack = os.path.join(os.path.dirname(codebuddy_dir), ".codebuddy.project",
+                                         comp_type, pack)
+                if os.path.lexists(proj_pack) and not os.path.islink(proj_pack):
+                    problems.append("项目侧 pack 目录应为链接（实际为真实目录）：.codebuddy.project/%s/%s"
+                                    % (comp_type, pack))
+
+    # lib/ 下的孤儿目录检测
+    lib_dir = os.path.join(codebuddy_dir, "lib")
+    if os.path.isdir(lib_dir):
+        for entry in sorted(os.listdir(lib_dir)):
+            full = os.path.join(lib_dir, entry)
+            if not os.path.isdir(full) or entry == "packs.json":
+                continue
+            if entry not in packs:
+                problems.append("lib/%s 未被任何包声明（孤儿目录）" % entry)
+            elif packs[entry].get("location") != "lib":
+                problems.append("lib/%s 存在但该包 location 非 lib" % entry)
+    return problems
 
 
 def main():
@@ -99,23 +168,11 @@ def main():
 
     problems = []
 
-    # 1/2. 技能与规则清单双向核对（跳过 skills/ 下的软链接：项目专有技能链接不在引擎清单内）
-    actual_skills = [d for d in list_dirs(os.path.join(codebuddy_dir, "skills"), skip_symlinks=True)
-                     if d != "third-party"]
-    actual_rules = list_dirs(os.path.join(codebuddy_dir, "rules"))
-
-    for name in actual_skills:
-        if name not in KNOWN_SKILLS:
-            problems.append("技能未登记：skills/%s（请加入 check_manifest.py 的 KNOWN_SKILLS 与 README.md）" % name)
-    for name in KNOWN_SKILLS:
-        if name not in actual_skills:
-            problems.append("清单残留：KNOWN_SKILLS 含 `%s`，但 skills/%s 不存在" % (name, name))
-    for name in actual_rules:
-        if name not in KNOWN_RULES:
-            problems.append("规则未登记：rules/%s（请加入 check_manifest.py 的 KNOWN_RULES 与 pattern-spec 规则全景表）" % name)
-    for name in KNOWN_RULES:
-        if name not in actual_rules:
-            problems.append("清单残留：KNOWN_RULES 含 `%s`，但 rules/%s 不存在" % (name, name))
+    # 1/2. 包注册表与磁盘结构核对（唯一事实源为 lib/packs.json，不再维护硬编码清单）
+    packs, pack_problems = load_packs(codebuddy_dir)
+    problems.extend(pack_problems)
+    if packs:
+        problems.extend(check_packs(codebuddy_dir, packs))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")
@@ -174,8 +231,10 @@ def main():
             print("  - %s" % item)
         return 1
 
-    print("[一致] 技能 %d 个、规则 %d 个、索引路径均合规。"
-          % (len(actual_skills), len(actual_rules)))
+    defaults = sorted(name for name, meta in (packs or {}).items() if meta.get("default"))
+    optionals = sorted(name for name, meta in (packs or {}).items() if not meta.get("default"))
+    print("[一致] 包 %d 个（默认：%s；可选：%s），组件与索引路径均合规。"
+          % (len(packs or {}), "、".join(defaults) or "无", "、".join(optionals) or "无"))
     return 0
 
 

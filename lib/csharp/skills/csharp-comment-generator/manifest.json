@@ -1,0 +1,40 @@
+{
+  "name": "csharp-comment-generator",
+  "version": "1.2",
+  "owner": "zengliugen",
+  "updated_at": "2026-08-01",
+  "review_cadence": "quarterly",
+  "status": "active",
+  "maturity_tier": "production",
+  "lifecycle_stage": "production",
+  "description": "C# 代码注释规范化工具，基于 Agent 为 .cs 文件自动生成和修正 XML 文档注释与行内注释，支持读取 checker JSON 报告实现检查→修复闭环。",
+  "capabilities": [
+    "comment_generation",
+    "comment_correction",
+    "inline_comment_generation",
+    "file_header_generation",
+    "report_based_fix"
+  ],
+  "dependencies": {
+    "rules": ".codebuddy/rules/csharp/csharp-comment/",
+    "agents": ".codebuddy/agents/csharp/csharp-comment-generator/"
+  },
+  "related_skills": [
+    {
+      "name": "csharp-comment-checker",
+      "relation": "complementary",
+      "description": "基于 Roslyn 的注释合规性检查工具，用于验证生成/修正后注释的质量。"
+    }
+  ],
+  "input_files": "file-backed fixture",
+  "output_contract": "直接修改目标 .cs 文件，保留原有代码逻辑不变，仅添加/修正注释。处理完成后输出汇总报告。",
+  "rollback_boundary": "注释修改。本技能不修改代码逻辑，回退场景仅限于注释内容的还原。",
+  "known_limitations": [
+    "基于 LLM 驱动，注释质量取决于模型能力，可能产生与代码逻辑不完全匹配的描述",
+    "行内注释的判断依赖于启发式分析，可能遗漏或过度生成",
+    "parse_error、inline_algorithm、inline_order 三类规则无法自动修复，需人工处理",
+    "报告驱动修复依赖 checker JSON 报告的完整性，若报告缺失 Line/Member 字段则无法精确定位"
+  ],
+  "trust_report": "missing evidence",
+  "reports": "output-risk-profile.md（输出风险画像）+ evals/trigger/trigger-eval-cases.md（触发评估用例集，待运行落盘）"
+}

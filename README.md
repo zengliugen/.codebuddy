@@ -13,16 +13,45 @@
 .codebuddy/                     # 本仓库根 = CodeBuddy 引擎内容
 ├── project.index.json          # 配置注册表：逻辑名 → 项目侧路径 + 骨架，规则薄壳映射
 ├── update.cmd                  # 仓库更新双击入口（薄入口，调用 scripts/update_repo.py）
+├── setup.cmd / setup.sh        # 项目侧一键配置入口（薄入口，调用 init_project_config.py --setup）
 ├── README.md                   # 本文件：引擎结构与约定
 ├── .gitignore                  # 排除项目侧绑定链接、机器级配置与运行产物
 ├── .gitattributes              # 行尾与二进制/文本归属声明
-├── skills/                     # 技能（SKILL.md + scripts/ + tools/ + references/ + agents/ + evals/ + reports/）
-│   ├── codebuddy-init/         # 新项目接入：依据索引生成项目侧配置骨架与软链接
-│   └── third-party/            # 外部引入的三方技能（整体照搬上游）
-├── rules/                      # 规则（入口 RULE.mdc + 子规则；项目事实正文薄壳引用）
-├── agents/                     # 子代理
-└── scripts/                    # 引擎级通用脚本（清单校验、产物清理、仓库更新）
+│
+├── lib/                        # 可选组件池：按包（pack）分层
+│   ├── packs.json              #   包注册表（唯一事实源）：组件清单、依赖、默认标记
+│   ├── csharp/                 #   包 csharp：rules/ skills/ agents/
+│   ├── unity-pipeline/         #   包 unity-pipeline
+│   ├── grilling/               #   包 grilling（含 grilling + grill-me 两个技能）
+│   └── yao-meta-skill/         #   包 yao-meta-skill
+│
+├── rules/                      # 规则扫描根：默认包真实目录 + 可选包链接
+│   ├── core/                   #   默认包：language/ project-guide/
+│   ├── vcs/                    #   默认包：vcs-router/
+│   ├── tool/                   #   默认包：codebuddy-engine-vcs/ codebuddy-project-config/
+│   ├── project ──链接──▶ 项目侧 #   项目专有规则（.codebuddy.project/rules/project/，gitignore）
+│   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
+│
+├── skills/                     # 技能扫描根：默认包真实目录 + 可选包链接
+│   ├── core/ codebuddy-init/
+│   ├── vcs/                    #   vcs-router/ git-commit/ git-merge/
+│   ├── tool/                   #   cmd-script-writing/ export-zipped-dir/ rule-consolidation/ session-lesson-distill/
+│   ├── project ──链接──▶ 项目侧 #   项目专有技能（.codebuddy.project/skills/project/，gitignore）
+│   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
+│
+├── agents/                     # 子代理扫描根：本引擎默认无 agent
+│   ├── project ──链接──▶ 项目侧 #   项目专有代理（.codebuddy.project/agents/project/，gitignore）
+│   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
+│
+└── scripts/                    # 引擎级通用脚本（包安装、清单校验、产物清理、仓库更新）
+    ├── pack_install.py         #   可选包安装/卸载/校验（list/install/remove/status/verify）
+    ├── check_manifest.py       #   包注册表与磁盘结构一致性校验
+    ├── cleanup_artifacts.py    #   运行时产物清理
+    └── update_repo.py          #   仓库更新（含包链接重建）
 ```
+
+> **检出即可用**：默认包 `core`、`vcs`、`tool` 的组件是引擎内的**真实目录**，克隆本仓库即有完整基础能力，
+> 无需先跑 setup。可选包（`csharp`、`unity-pipeline`、`grilling`、`yao-meta-skill`）需显式安装。
 
 > **检出位置约定**：本仓库应检出为消费项目的 **`.codebuddy/`**（如 `Program/Client/.codebuddy/`）。
 > 引擎内所有相对路径推导均以「`.codebuddy` 的父目录 = 项目根」为基准，故检出路径名必须是 `.codebuddy`。
@@ -36,7 +65,8 @@
 | `.codebuddy/skills/**/tools/**/<工具>.json` | 引擎 | **分层配置的通用部分**（规则、算法参数等） |
 | `.codebuddy.project/` | 项目 | 项目侧内容根：`configs/` 配置、`caches/` 运行时产物（不入库）、`store/` 持久化结果、`skills/` 项目专有技能（含 `settings.json` 源文件）；随项目独立维护 |
 | `.codebuddy/settings.json` | 项目（链接） | **软链接** → `.codebuddy.project/configs/settings.json`（由项目侧创建，**不入本库**） |
-| `.codebuddy.project/skills/` | 项目 | 项目专有技能（经 `.codebuddy/skills/project-skills` 软链接被加载，**不入本库**） |
+| `.codebuddy.project/<类型>/project/` | 项目 | **项目专有包**内容（与其他包同构）：`rules/project/`、`skills/project/`、`agents/project/`，经 `.codebuddy/<类型>/project` 链接被加载，**不入本库** |
+| `.codebuddy.project/skills/` | 项目 | 可选包在项目侧的组件链接（由 setup 创建） |
 | `.codebuddy/models.json` / `settings.local.json` | 机器 | 机器级/本机级；不入库 |
 
 ### 项目侧 `settings.json` 不写 `teamMemory.userId`
@@ -63,13 +93,16 @@
    git submodule add https://github.com/zengliugen/.codebuddy.git .codebuddy
    ```
    （或复制本仓库内容到项目根的 `.codebuddy/`。）
-2. **生成项目侧配置**：调用 `codebuddy-init` 技能（或直接运行脚本）：
+2. **生成项目侧配置并装包**：运行一键配置入口
    ```bash
-   python .codebuddy/skills/codebuddy-init/scripts/init_project_config.py
+   .codebuddy/setup.cmd                                   # Windows（双击亦可）
+   ./.codebuddy/setup.sh                                  # macOS / Linux
+   .codebuddy/setup.cmd --pack csharp,unity-pipeline       # 首次指定可选包
    ```
    依据 `project.index.json` 在项目根生成 `.codebuddy.project/` 的占位配置骨架、运行时产物空目录、
-   `.gitignore` 与 `cleanup-caches.cmd` 清理入口；并建立项目侧软链接
-   （`.codebuddy/skills/project-skills` 与 `.codebuddy/settings.json`）。
+   `.gitignore` 与 `cleanup-caches.cmd` 清理入口；建立 `settings.json` 与各可选包的 pack 链接；
+   并按 `.codebuddy.project/configs/packs.json` 物化组件。
+   （等价底层命令：`python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py --setup`）
 3. **按项目填写**：按各技能 `references/config-guide.md` 填写占位值（`codebuddy-init` 会询问是否立即填写）。
 
 > 未填写的配置在首次运行对应技能时会**明确报错**（配置缺失即报错，不静默使用默认值）。
@@ -91,16 +124,27 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 
 ## 项目侧软链接（**由项目侧创建，不入本库**）
 
-两个软链接是**项目侧绑定**，指向消费项目独有的目录：
+软链接均为**项目侧绑定**，指向消费项目独有的目录：
 
 ```
-<项目根>/.codebuddy/settings.json          ──软链接──▶  ../.codebuddy.project/configs/settings.json
-<项目根>/.codebuddy/skills/project-skills  ──软链接──▶  ../../.codebuddy.project/skills
+<项目根>/.codebuddy/settings.json   ──软链接──▶  ../.codebuddy.project/configs/settings.json
+<项目根>/.codebuddy/<类型>/<pack>   ──软链接──▶  ../../.codebuddy.project/<类型>/<pack>
+<项目根>/.codebuddy.project/<类型>/<pack> ──软链接──▶  ../../../.codebuddy/lib/<pack>/<类型>
+<项目根>/.codebuddy/<类型>/project  ──软链接──▶  ../../.codebuddy.project/project/<类型>
 ```
 
-- **为什么不入本库**：链接目标（`.codebuddy.project/`、`.codebuddy.project/skills/`）是本项目独有的；
-  若纳入共享库，其他项目 clone 后链接会**悬空**，并可能与同名路径**冲突污染**。故本库 `.gitignore` 已排除
-  （`/settings.json`、`/skills/project-skills`）。
+可选包的链接为**两级**：引擎扫描根 → 项目侧 pack 目录 → `lib/<pack>/`；
+其中**项目侧 pack 目录本身即为链接**（整目录指向 `lib/<pack>/<类型>`），不逐组件建链。
+`lib/packs.json` 的 `location=lib` 项即需建立链接的包清单。
+
+**项目专有包**（`project`）只需一层：引擎扫描根 → `.codebuddy.project/<类型>/project`，
+内容直接是项目真实文件，随项目入库。它在 `.codebuddy.project/<类型>/` 下与其他包**同级并列**，
+区别仅在于它是真实目录（其他包是指向 `lib/` 的链接）。
+
+
+- **为什么不入本库**：链接目标全在项目侧（`.codebuddy.project/`），是本项目独有的；
+  若纳入共享库，其他项目 clone 后链接会**悬空**，并可能与同名路径**冲突污染**。
+  故本库 `.gitignore` 排除了 `/settings.json` 与各可选包、`project` 包的扫描根链接。
 - **如何创建**：消费项目 clone 本引擎后，运行 `codebuddy-init` 自动创建（幂等；失败时告警并给出手工 `mklink` 命令）。
 - **机制依据**：实测 CodeBuddy **会解引用符号链接**——技能目录的链接下技能被正常扫描，`settings.json`
   链接的目标改变后回复语言随之变化。
@@ -131,6 +175,46 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 
 - 薄壳保留 frontmatter、`description`/触发条件、强制条款与**通用规范**；
 - 项目事实正文移到 `.codebuddy.project/configs/rules/`，薄壳内声明「见索引 `rule_shells` 指向的正文」。
+
+## 包管理（lib/packs.json）
+
+引擎组件按**包**组织。默认包随引擎分发、检出即用；可选包需显式安装，装到项目侧后再经链接进入扫描根。
+
+| 包 | 类别 | 默认 | 组件 |
+|---|---|---|---|
+| `core` | 基础 | ✅ | rules: language、project-guide；skills: codebuddy-init |
+| `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
+| `vcs` | 基础 | ✅ | rules: vcs-router；skills: vcs-router、git-commit、git-merge |
+| `tool` | 基础 | ✅ | rules: codebuddy-engine-vcs、codebuddy-project-config；skills: cmd-script-writing、export-zipped-dir、rule-consolidation、session-lesson-distill |
+| `csharp` | C# | ❌ | rules: csharp-code、csharp-comment、csharp-lsp、csharp-test；skills: 6 个；agents: 2 个 |
+| `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
+| `grilling` | third-party | ❌ | skills: grilling、grill-me |
+| `yao-meta-skill` | third-party | ❌ | skills: yao-meta-skill |
+
+```bash
+python .codebuddy/scripts/pack_install.py list             # 列出全部包与安装状态
+python .codebuddy/scripts/pack_install.py install csharp   # 安装（自动带出 requires）
+python .codebuddy/scripts/pack_install.py remove csharp    # 卸载（被依赖时拒绝）
+python .codebuddy/scripts/pack_install.py status           # 报告漂移
+python .codebuddy/scripts/pack_install.py verify --repair  # 修复漂移
+```
+
+约定：
+
+- **组件路径推导**：`location=engine` → `.codebuddy/<类型>/<pack>/<名>`；`location=lib` → `.codebuddy/lib/<pack>/<类型>/<名>`。
+  `packs.json` 的 `comps` 只写组件名，不写路径。
+- **安装状态**：只记可选包，落在项目侧 `.codebuddy.project/configs/packs.json`；默认包不入清单（避免双份事实）。
+- **agents 特殊**：文件级符号链接会被扫描器的路径白名单拒绝，故项目侧用**硬链接**（跨卷降级复制）。
+- **顺序**：先 `install`（物化链接）再启动新会话，否则扫描不到新组件。
+- **项目专有包 `project`**：默认启用、无需安装。内容与其他包**同构**放在
+  `.codebuddy.project/<类型>/project/` 下，经 `.codebuddy/<类型>/project` 一层链接进入扫描根。
+  它不属于引擎 `lib/`，`packs.json` 中 `comps` 为空数组（内容由项目自由增删，不做声明式校验）。
+```bash
+# 项目专有内容示例（与其他包同级并列）
+.codebuddy.project/rules/project/my-rule/RULE.mdc
+.codebuddy.project/skills/project/my-skill/SKILL.md
+.codebuddy.project/agents/project/my-agent.md
+```
 
 ## 仓库更新（update_repo.py）
 
@@ -163,6 +247,9 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
 > **子模块提醒**：子模块更新后其 HEAD 前移，但**父仓仍锁定旧提交**。若不提交父仓的指针更新，
 > 他人拉取到的仍是旧版本，且父仓 `git submodule update` 会把子模块**重置回**旧提交。
 > 脚本会在子模块模式下打印所需命令（父仓 `git add <子模块> && git commit`）。
+
+> **包链接重建**：引擎更新可能改名或删除 `lib/` 下的组件，导致项目侧链接悬空。
+> 脚本在拉取结束后自动调用 `pack_install.py verify --repair` 对齐；未初始化的纯引擎仓会跳过此步。
 
 ## 仓库维护约定
 
