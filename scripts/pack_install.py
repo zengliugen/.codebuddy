@@ -166,6 +166,29 @@ def is_link(path):
     return os.path.islink(path)
 
 
+def remove_link_placeholder(path):
+    """移除「本该是链接、实际却是普通文件/目录」的占位物。
+
+    触发场景：Windows 默认 `core.symlinks=false`，克隆后 git 把符号链接落成
+    内容为链接目标路径的普通文本文件。此时 `os.path.islink` 为假、
+    `os.path.lexists` 为真，若直接用 `shutil.rmtree` 清理，会因「不是目录」
+    抛 NotADirectoryError，导致 setup --force / verify --repair 无法修复。
+
+    本函数按实际类型分派：目录用 rmtree、其余用 os.remove，返回是否已移除。
+    """
+    if os.path.islink(path):
+        os.unlink(path)
+        return True
+    if os.path.isdir(path):
+        import shutil
+        shutil.rmtree(path)
+        return True
+    if os.path.lexists(path):
+        os.remove(path)
+        return True
+    return False
+
+
 def make_dir_link(link, target):
     """创建目录符号链接，target 为相对链接所在目录的相对路径。"""
     os.makedirs(os.path.dirname(link), exist_ok=True)
@@ -205,11 +228,12 @@ def ensure_pack_dir(paths, packs, pack, comp_type, repair=False, force=False):
             return "drift", "链接指向错误：%s → %s" % (link, current)
         os.unlink(link)
     elif os.path.lexists(link):
-        # 旧版的逐组件目录：force/repair 时才允许迁移（先清空内部链接再替换）
+        # 已存在非链接占位物，两种来源均需 force/repair 才允许替换：
+        #   1) 旧版逐组件真实目录；
+        #   2) core.symlinks=false 克隆后落成的普通文本文件（内容为链接目标）。
         if not (repair or force):
-            return "drift", "已存在真实目录（旧版逐组件布局？）：%s" % link
-        import shutil
-        shutil.rmtree(link)
+            return "drift", "已存在占位物（旧版目录或 symlinks=false 的链接落盘）：%s" % link
+        remove_link_placeholder(link)
     target = os.path.relpath(source, os.path.dirname(link))
     make_dir_link(link, target)
     return "created", "%s → %s" % (link, target)
@@ -226,7 +250,14 @@ def ensure_bridge(paths, pack, comp_type, repair=False, force=False):
             return "drift", "桥接指向错误：%s → %s" % (link, current)
         os.unlink(link)
     elif os.path.lexists(link):
-        return "drift", "扫描根已存在同名真实目录（默认包？）：%s" % link
+        # 占位物有两种来源：默认包的同名真实目录、或 core.symlinks=false 克隆后
+        # 链接落成的普通文本文件。前者不可覆盖（默认包随引擎分发），后者可重建。
+        if os.path.isdir(link):
+            # 默认包为引擎内真实目录，不重建也不覆盖（避免误删引擎内容）
+            return "drift", "扫描根已存在同名真实目录（默认包？）：%s" % link
+        if not (repair or force):
+            return "drift", "已存在占位文件（symlinks=false 的链接落盘）：%s" % link
+        remove_link_placeholder(link)
     target = os.path.relpath(target_abs, os.path.dirname(link))
     make_dir_link(link, target)
     return "created", "%s → %s" % (link, target)
@@ -279,7 +310,12 @@ def ensure_project_bridge(paths, comp_type, repair=False, force=False):
             return "drift", "桥接指向错误：%s → %s" % (link, current)
         os.unlink(link)
     elif os.path.lexists(link):
-        return "drift", "扫描根已存在同名真实目录：%s" % link
+        if os.path.isdir(link):
+            return "drift", "扫描根已存在同名真实目录：%s" % link
+        # core.symlinks=false 克隆后链接落成的普通文本文件，可安全重建
+        if not (repair or force):
+            return "drift", "已存在占位文件（symlinks=false 的链接落盘）：%s" % link
+        remove_link_placeholder(link)
     target = os.path.relpath(target_abs, os.path.dirname(link))
     make_dir_link(link, target)
     return "created", "%s → %s" % (link, target)

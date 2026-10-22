@@ -354,7 +354,8 @@ def build_project_skills_readme_content():
 ## 跨机器注意事项
 
 - **git 配置**：克隆者需 `git config core.symlinks true`（Windows 默认 `false`）。若为 `false`，
-  克隆出来是一个内容为路径字符串的普通文件；此时运行 `.codebuddy/setup.cmd --force` 重建链接。
+  克隆出来是一个内容为路径字符串的普通文件；此时运行 `.codebuddy/setup.cmd --force` 重建链接
+  （安装器会按实际文件类型移除该占位物后重建，不会因「不是目录」而失败）。
 - **创建链接的权限**：Windows 需开启"开发者模式"或以管理员身份运行；`mklink /D` 失败时，
   初始化脚本会告警并给出手工命令。
 - **平台**：macOS / Linux 原生支持符号链接，无额外要求。
