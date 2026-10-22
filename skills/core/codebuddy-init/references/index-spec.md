@@ -134,6 +134,9 @@
 - **路径含包层**：`caches/skills/<pack>/<技能>/`。`codebuddy-init` 只创建**已装包**的产物目录；
   未安装包的缓存目录不会出现。
 - `codebuddy-init` 依据本节点创建产物空目录；项目侧 `.gitignore` 统一忽略、不入库。
+- **入库边界由 `.codebuddy.project/.gitignore` 精确划定**：只忽略 `caches/`，并显式反选 `configs/`
+  （`!configs/` + `!configs/**`）。反选不可省——仓库根常有泛化的 `configs/` 规则（Python 运行时配置等），
+  会连带忽略项目侧的 `configs/`，导致配置静默不入库。
 - 清理：引擎侧 `scripts/cleanup_artifacts.py` 遍历本节点枚举目录，删除文件并重建空目录。
 
 ### 3.6.1 卸载包后的残留（孤儿）处理

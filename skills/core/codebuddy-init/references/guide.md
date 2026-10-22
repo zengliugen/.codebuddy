@@ -75,7 +75,8 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 - **`artifacts.dirs` 项 → 创建运行时产物空目录**（`caches/skills/<pack>/<技能>/` 下的 `check_logs/`、`.cache/` 等），供脚本落盘。
 - 额外生成固定文件/骨架：
   - `.codebuddy.project/README.md`（目录用途与维护约定）；
-  - `.codebuddy.project/.gitignore`（**整体忽略 `caches/` 运行时产物根目录**，不入库）；
+  - `.codebuddy.project/.gitignore`（**整体忽略 `caches/` 运行时产物根目录**，不入库；
+    并**反选 `configs/`** 恢复入库，见下方「configs 反选」提示）；
   - `.codebuddy.project/store/`（持久化项目结果目录骨架：`README.md` + `.gitkeep`，**入库**）；
   - `.codebuddy.project/cleanup-caches.cmd`（清理入口，薄入口调用引擎侧
     `.codebuddy/scripts/cleanup_artifacts.py`）；
@@ -90,6 +91,19 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 
 > **产物目录清单由索引驱动**：新增技能产物目录时，在索引 `artifacts.dirs` 登记（逻辑名 → 项目侧镜像路径，
 > 路径含包层），初始化脚本与各技能脚本即自动适配，无需改脚本。
+
+> **configs 反选（易踩坑，已固化到模板）**：仓库根 `.gitignore` 可能含泛化的 `configs/` 规则
+> （典型如 Python 项目忽略运行时用户配置），它会**一并匹配** `.codebuddy.project/configs/`，
+> 导致项目侧入库配置被静默忽略、不随项目共享。因此模板固定生成两行反选：
+> ```
+> !configs/
+> !configs/**
+> ```
+> **两行缺一不可**：父级规则为目录级 `configs/` 时，仅写 `!configs/` 可能无法恢复嵌套文件，
+> `!configs/**` 才能让 `configs/skills/<pack>/...` 等深层内容正常入库。
+> 反选只作用于 `.codebuddy.project/` 范围，不影响其他目录的同名 `configs/`。
+> **校验方法**：生成后执行 `git status --short`，确认 `.codebuddy.project/configs/` 下文件为
+> `??`/`A` 而非被忽略；`caches/` 应仍被忽略。
 
 > **卸载包后的残留**：从 `packs.json` 移除某包后，其配置与缓存目录会残留。`--status` 会把这些孤儿项
 > 单列（候选动作含 `prune_orphans`）；**须经用户确认**后再执行 `--prune-orphans` 清理
@@ -150,6 +164,7 @@ python .codebuddy/scripts/pack_install.py verify --repair
 - [ ] 是否先定位项目根并校验索引（缺失即报错退出 3）？
 - [ ] 生成是否经过脚本（而非手工臆造字段）？
 - [ ] 是否依据索引 `artifacts.dirs` 创建了 `caches/` 运行时产物空目录，并生成了 `.gitignore`、`cleanup-caches.cmd` 与 `store/` 骨架？
+- [ ] `.codebuddy.project/.gitignore` 是否含 `!configs/` + `!configs/**` 两行反选？生成后用 `git status --short` 确认 `configs/` 下文件**未被忽略**、`caches/` **仍被忽略**？（仓库根若有 `configs/` 规则，缺反选会导致项目侧配置不入库）
 - [ ] 是否生成了 `.codebuddy.project/{rules,skills,agents}/project/` 骨架并**建立了桥接** `.codebuddy/<类型>/project`（失败时是否已告警并给出命令）？
 - [ ] 是否依据索引 `root_symlinks.entries` 生成了根级源文件骨架（如 `.codebuddy.project/configs/settings.json`）并**建立了软链接**（失败时是否已告警并给出命令）？
 - [ ] 已存在文件是否跳过未覆盖（未获确认不使用 `--force`）？

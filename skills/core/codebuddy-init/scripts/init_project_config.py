@@ -216,7 +216,14 @@ def build_artifact_dirs(index, project_root, active_packs=None):
 
 
 def build_gitignore_content():
-    """生成 `.codebuddy.project/.gitignore` 内容（整体忽略 caches/ 运行时产物根目录）。"""
+    """生成 `.codebuddy.project/.gitignore` 内容。
+
+    包含两部分：
+    - 忽略 `caches/` 运行时产物根目录（不入库）；
+    - **反选 `configs/`**：项目根 .gitignore 可能含泛化的 `configs/` 规则
+      （如 Python 项目忽略运行时用户配置），会把项目侧的入库配置一并忽略，
+      故在此显式反选恢复（详见下方注释）。
+    """
     return """# ============================================================
 #  项目侧配置目录（.codebuddy.project）忽略规则
 #
@@ -225,6 +232,13 @@ def build_gitignore_content():
 #  产物目录清单见 .codebuddy/project.index.json 的 artifacts.dirs。
 #  configs/ 与 store/ 为入库内容，不在此忽略。
 # ============================================================
+
+# 仓库根 .gitignore 的 configs/ 会匹配本项目侧 configs/ 目录（Python 运行时用户配置），
+# 此处反选恢复：项目侧 configs 为入库配置，必须随项目共享。
+# 两行缺一不可——目录级忽略（configs/）下，只写 !configs/ 无法恢复深层文件，
+# 须用 !configs/** 才能让 configs/skills/<pack>/... 等嵌套内容正常入库。
+!configs/
+!configs/**
 
 # 运行时产物根目录（整体忽略）
 caches/
