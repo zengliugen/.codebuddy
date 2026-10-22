@@ -13,6 +13,9 @@
   3. 每个包的 `requires` 指向同一份注册表中存在的包，且不出现同名组件跨包重复声明；
   4. 默认包（default=true）的组件在扫描根为真实目录（非链接）；可选包在扫描根为链接；
   5. `project.index.json` 的 `files` / `rule_shells` 中 `path` 均为相对路径（入库共享前提）；
+     且 `rule_shells` 的键能落到真实文件——判定时按包 location 区分：
+     engine 查扫描根；lib 查 `lib/<pack>/rules/`（未安装该可选包时扫描根无链接属正常）；
+     project 视为在项目侧、引擎内不持有。
   6. `root_symlinks.entries` 的 `link` / `path` 均为相对路径，且引擎内链接存在且为符号链接。
 
 退出码：
@@ -194,14 +197,36 @@ def main():
                     problems.append("索引 %s.%s.path 为绝对路径（须为相对路径）：%s"
                                     % (group_key, code_name, path))
 
-        # rule_shells 的键为「薄壳相对 .codebuddy 的路径」，必须真实存在（防路径随目录重构漂移）
+        # rule_shells 的键为「薄壳相对 .codebuddy 的路径」，必须能落到真实文件（防路径随目录重构漂移）。
+        # 候选位置随包 location 不同：
+        #   location=engine（默认包）→ 扫描根 .codebuddy/rules/<pack>/<名>/...（真实目录）
+        #   location=lib（可选包）  → 源在 .codebuddy/lib/<pack>/rules/<名>/...，扫描根仅是指向项目侧的链接；
+        #                             未安装该包时扫描根无链接，此时 lib 源仍在，不应判为悬空。
+        #   location=project         → 项目侧 .codebuddy.project/rules/project/...，引擎内不持有该文件
         for key in (index.get("rule_shells") or {}):
             if os.path.isabs(key):
                 problems.append("索引 rule_shells 的键必须为相对路径：%s" % key)
                 continue
             shell_abs = os.path.normpath(os.path.join(codebuddy_dir, key))
-            if not os.path.isfile(shell_abs):
-                problems.append("索引 rule_shells 的键在磁盘不存在（目录重构后未同步）：%s" % key)
+            if os.path.isfile(shell_abs):
+                continue
+            # 扫描根无文件：按包 location 判断是否为「可选包未安装」的正常情形
+            segments = key.replace("\\", "/").split("/")
+            pack = segments[1] if len(segments) > 1 else ""
+            pack_meta = packs.get(pack) if packs else None
+            if pack_meta and pack_meta.get("location") == "lib" and len(segments) > 3:
+                lib_source = os.path.normpath(os.path.join(
+                    codebuddy_dir, "lib", pack, "rules", segments[2], *segments[3:]))
+                if os.path.isfile(lib_source):
+                    # 可选包未安装属正常：源在 lib/，扫描根链接由 pack_install 在安装时创建
+                    continue
+                problems.append("索引 rule_shells 的键在包 %s 内不存在：%s（期望 %s）"
+                                % (pack, key, lib_source))
+                continue
+            if pack_meta and pack_meta.get("location") == "project":
+                # 项目专有包：文件在项目侧，引擎内本就不存在
+                continue
+            problems.append("索引 rule_shells 的键在磁盘不存在（目录重构后未同步）：%s" % key)
 
         # artifacts.dirs：产物目录路径相对性
         for logical_name, rel in (index.get("artifacts") or {}).get("dirs", {}).items():
