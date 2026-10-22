@@ -60,3 +60,4 @@ provider:
 - 子规则 `engine-vcs-spec.mdc` 为**按需加载**（`alwaysApply: false`），在需要判定提交目标仓库时主动读取。
 - 强制入口规则（本文件内 6 条）始终生效，不依赖子规则加载；子规则仅提供判定命令、顺序细则与正反例。
 - 本规则与 `vcs-router` 规则并行：`vcs-router` 管「用什么流程提交」，本规则管「提交到哪个仓库」。
+- 与 `codebuddy-project-config`（内容怎么写）、`engine-maintenance`（改完还要同步哪些地方）触发面相同但职责互不重叠，**不得合并**。

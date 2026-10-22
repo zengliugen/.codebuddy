@@ -65,8 +65,10 @@ provider:
 
 | 规则目录 | 入口生效方式 | 子规则数 | 说明 |
 |---------|-------------|---------|------|
+| `bash-command-shape` | alwaysApply: true | 2 | Bash 命令形状规范（避免复合命令判定与风险分级造成无谓询问） |
 | `codebuddy-engine-vcs` | paths: `"**/.codebuddy/**"` | 1 | 引擎仓库提交归属（.codebuddy 自身独立仓库，与项目仓库分开提交） |
 | `codebuddy-project-config` | paths: `"**/.codebuddy/**"` | 1 | 项目配置隔离（外置到项目侧、索引登记、示例泛化、事实标注） |
+| `engine-maintenance` | paths: `"**/.codebuddy/**"` | 2 | 引擎维护一致性（登记表与引用同步、重构验收） |
 | `csharp-code` | alwaysApply: true | 5 | 审查规范 |
 | `csharp-comment` | alwaysApply: true | 5 | 注释规范 |
 | `csharp-lsp` | paths: `"**/*.cs"` | 0 | 单文件（内容少，无独立加载场景） |
@@ -76,6 +78,8 @@ provider:
 | `unity-pipeline` | alwaysApply: true | 1 | Unity 操作规范 |
 | `vcs-router` | alwaysApply: true | 4 | 提交规范（仅 Git；审查门禁已并入 `git-commit/references/project-config.md`，不在本规则目录） |
 
+> **注**：`bash-command-shape` 常驻（`alwaysApply: true`，约 2.3 KB），核心底线压进入口、分级细则下沉子规则，是为让规则在构造命令时真正生效的必要代价。
+>
 > **注**：`codebuddy-engine-vcs` 与 `codebuddy-project-config` 触发面相同（均为 `.codebuddy/**`），但职责不同——
 > 前者管「提交到哪个仓库」（引擎仓库 vs 项目仓库），后者管「内容如何写」（外置配置、索引登记、事实标注）。评估规则结构时勿将两者合并。
 > 项目侧文件的生成由 `codebuddy-init` 技能负责。

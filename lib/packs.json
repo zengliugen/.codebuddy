@@ -50,7 +50,9 @@
       "comps": {
         "rules": [
           "codebuddy-engine-vcs",
-          "codebuddy-project-config"
+          "codebuddy-project-config",
+          "bash-command-shape",
+          "engine-maintenance"
         ],
         "skills": [
           "cmd-script-writing",

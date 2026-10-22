@@ -1,0 +1,96 @@
+---
+description: 引擎登记点全景表 —— 按改动类型（新增/删除/改名/搬迁组件、改包归属、改索引、改目录层级）列出必须同步维护的位置、判定依据与漏改后果。执行具体引擎改动前加载，用于逐项核对。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-22T00:00:00.000Z
+provider:
+---
+
+# 登记点全景表
+
+## 一、七个必须维护的位置
+
+| # | 位置 | 维护内容 | 漏改后果 |
+|---|---|---|---|
+| 1 | `lib/packs.json` → `packs.<pack>.comps` | 组件名清单（rules / skills / agents） | 组件不生效或安装时报「组件源缺失」 |
+| 2 | `lib/packs.json` → `packs.<pack>.requires` | 包依赖 | 依赖包未自动带出，技能链断裂 |
+| 3 | `project.index.json` → `rule_shells` | 键 = 薄壳相对 `.codebuddy` 的路径 | 薄壳读不到项目事实正文，规则事实缺失 |
+| 4 | `project.index.json` → `files` | 项目侧配置路径 | 技能报「配置缺失」，脚本退出码 3 |
+| 5 | `project.index.json` → `artifacts.dirs` | 运行时产物目录 | 产物落到错误位置或无法清理 |
+| 6 | `project.index.json` → `root_symlinks.entries` | 根级软链接（如 `settings.json`） | 链接悬空，CodeBuddy 读不到配置 |
+| 7 | 组件正文内的路径引用 | `.codebuddy/<类型>/<pack>/<名>` 形式的字符串 | 提示的路径不存在，LLM 按错误路径查找 |
+
+第 7 项最容易被忽略：路径写在各处的说明文字、命令行示例、脚本用法提示里，**不是代码，不会编译报错**。
+
+## 二、按改动类型的必改清单
+
+### 新增组件（规则 / 技能 / 代理）
+
+| 步骤 | 操作 |
+|---|---|
+| 1 | 在 `lib/<pack>/<类型>/<名>` 建目录（可选包），或 `.codebuddy/<类型>/<pack>/<名>`（默认包） |
+| 2 | 在 `lib/packs.json` 对应 pack 的 `comps.<类型>` **追加组件名** |
+| 3 | 若是规则且带项目事实正文 → 在 `project.index.json` 的 `rule_shells` **加键**（键含 pack 层） |
+| 4 | 若是技能且需项目配置 → 在 `project.index.json` 的 `files` **加条目** |
+| 5 | 跑 `pack_install.py install <pack>` 物化链接，再 `status` 确认一致 |
+| 6 | 更新 `README.md` 目录树与包表；若是规则，同步 `rule-consolidation/references/pattern-spec.md` 的全景表 |
+
+### 删除组件
+
+| 步骤 | 操作 |
+|---|---|
+| 1 | 从 `lib/packs.json` 的 `comps` **移除组件名** |
+| 2 | 从 `project.index.json` 移除对应的 `rule_shells` 键 / `files` 条目 |
+| 3 | 跑 `pack_install.py verify --repair`，清理悬空链接 |
+| 4 | 全库检索该组件名，确认无残留引用（见 `refactor-sync.mdc` 排查命令） |
+| 5 | 更新 README 与 pattern-spec |
+
+### 组件改名 / 搬迁（含 pack 重新划分）
+
+**这是最高危操作**——名字在 3 处映射，任意一处不一致即静默失效：
+
+| 映射处 | 检查点 |
+|---|---|
+| 磁盘路径 | 新位置存在、旧位置已删 |
+| `packs.json` 的 `comps` | 组件名（不含路径，路径由 location 推导） |
+| `project.index.json` 的键 | `rule_shells` 的键是**路径**，必须同步新路径 |
+
+改完必须验证「键能落到磁盘文件」——这正是 `check_manifest.py` 新增校验项要做的事。
+
+### 改动目录层级（如引入 pack 层）
+
+| 步骤 | 操作 |
+|---|---|
+| 1 | 先改物理目录（`git mv`，保留历史） |
+| 2 | 改 `packs.json` 与 `project.index.json` 的路径类键 |
+| 3 | 全库改写组件正文内的路径引用（命令见 `refactor-sync.mdc`） |
+| 4 | 改 `pack_install.py` / `check_manifest.py` 的路径推导函数 |
+| 5 | 改 `.gitignore`（扫描根链接的忽略项） |
+| 6 | 改 README / pattern-spec 的目录树 |
+| 7 | 迁移已有项目的链接（`verify --repair`）并实测加载 |
+
+### 改动 pack 归属或 location
+
+| 步骤 | 操作 |
+|---|---|
+| 1 | 改 `packs.json` 的 `location` / `default` / `requires` |
+| 2 | `location` 变更意味着物理位置变更 → 按「搬迁」流程走 |
+| 3 | `default` 变更会影响所有项目 → 在 README 包表标注，并在 `refactor-sync.mdc` 记录影响面 |
+| 4 | 跑 `check_manifest.py`（校验默认包为真实目录、可选包为链接） |
+
+## 三、判定「是否漏改」的三条通用方法
+
+1. **反向检索**：从登记表出发，逐项验证磁盘存在（`check_manifest.py` 已覆盖 `comps` 与 `rule_shells` 键）。
+2. **正向检索**：从磁盘出发，验证每个组件都被某个 pack 声明（`check_manifest.py` 已覆盖 `lib/` 孤儿检测）。
+3. **引用检索**：全库检索路径字符串，验证指向真实位置（**脚本无法覆盖，必须人工**，命令见 `refactor-sync.mdc`）。
+
+前两条已有工具兜底，第三条是纯人工——**这就是历史上出问题的地方**。
+
+## 四、提交前自检清单
+
+- [ ] `python .codebuddy/scripts/check_manifest.py` 退出码 0
+- [ ] `python .codebuddy/scripts/pack_install.py status` 退出码 0
+- [ ] 全库路径检索无指向不存在位置的引用
+- [ ] 新增/删除的组件在 `packs.json` 与 `project.index.json` 双向一致
+- [ ] README 目录树与包表已同步
+- [ ] 若改动了规则集合，`pattern-spec.md` 全景表已同步

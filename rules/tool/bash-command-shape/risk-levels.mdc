@@ -1,0 +1,46 @@
+---
+description: Bash 命令风险分级细则 —— SAFE / LOW / MEDIUM / HIGH / CRITICAL 的典型触发条件与判定顺序，说明为何 permissions.allow 无法覆盖 HIGH 与重定向复合命令。需要判断一条命令是否会触发权限询问时按需加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-22T00:00:00.000Z
+provider:
+---
+
+# 命令风险分级
+
+## 背景：两处与 allow 规则无关的中断
+
+CodeBuddy 的权限求值链中，有两处会中断 Bash 命令并弹出询问，**与 `permissions.allow` 规则无关**：
+
+| 来源 | 机制 | allow 规则能否解决 |
+|---|---|---|
+| **复合命令判定** | 按 `&&` `||` `;` `|` 拆分子命令，**每个子命令都要命中 allow** 才放行；含 `>` `<` `>>` `<<` `&>` 时通配符规则失效，要求精确匹配 | 部分 |
+| **命令风险分级** | `checkCommandSafety` 把命令判为 SAFE / LOW / MEDIUM / HIGH / CRITICAL，**HIGH 与 CRITICAL 必然询问**，且该判定早于 bypass 模式 | **不能** |
+
+因此 `Bash(*)` 无法覆盖含重定向的复合命令，也无法覆盖 HIGH 级命令。
+
+## 分级表（实测）
+
+| 级别 | 典型触发 | 是否询问 |
+|---|---|---|
+| **SAFE** | 白名单命令：`ls` `cat` `grep` `find` `sed` `awk` `git` `python` `npm` `node` `dotnet` 等 | 否 |
+| **LOW** | 未知命令（如 `svn`） | 否 |
+| **MEDIUM** | `rm -f <显式文件名>` | 否 |
+| **HIGH** | `rm` 含通配符 `*?`、`rm -r`、`rm -rf`、`sudo`、`chmod 777`、`git push -f` | **是** |
+| **CRITICAL** | `rm -rf /`、`mkfs`、`dd of=/dev/`、`DROP DATABASE`、`git reset --hard`、`git clean -fdx` | **是** |
+
+## 判定顺序
+
+CRITICAL → HIGH → MEDIUM → 白名单 SAFE → 其余 LOW。
+
+即：先检查是否命中毁灭性特征，再看是否为需阻截的高危形态，再落到中等风险，最后才按白名单判定为安全或未知。
+
+## 推论
+
+要把命令稳定落在「不询问」区间，需要同时满足：
+
+1. 不含 `rm` 通配符、`rm -r`、`sudo` 等 HIGH 特征；
+2. 复合命令的每个子命令都在白名单内；
+3. 避免不必要的重定向（含重定向时通配符规则失效）。
+
+具体写法约定见同目录 `command-forms.mdc`。

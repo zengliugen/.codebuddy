@@ -1,0 +1,113 @@
+---
+description: 引擎重构同步专项 —— 目录重构、组件搬迁、批量路径改写时的引用点排查命令、规则薄壳键同步方法、验收步骤，以及历史踩坑记录（含 2026-10 包化重构的 9 处索引键失效事故）。执行目录重构或批量改路径时加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-22T00:00:00.000Z
+provider:
+---
+
+# 重构同步专项
+
+## 一、为什么单列
+
+重构（搬迁目录、改层级、批量改路径）是一次性大范围改动，**破坏面远超日常增删组件**：路径引用散布在规则正文、技能说明、脚本用法提示、命令行示例中，既不参与编译也不参与校验，改漏了不会报错。
+
+历史上已发生一次：包化重构把组件搬进 `lib/<pack>/` 后，`project.index.json` 的 9 个 `rule_shells` 键仍是旧路径（缺 pack 层），全部指向不存在的文件；薄壳读不到项目事实，且**无任何校验报警**，直到人工排查才发现（详见第五节）。
+
+## 二、引用点排查命令
+
+### 2.1 全库路径引用检索
+
+按目标类型分别检索，**排除三方技能目录**（其内部路径自成体系）：
+
+```bash
+# 规则路径引用
+grep -rn "\.codebuddy/rules/" --include="*.md" --include="*.mdc" --include="*.py" .codebuddy \
+  | grep -v "lib/yao-meta-skill"
+
+# 技能路径引用
+grep -rn "\.codebuddy/skills/" --include="*.md" --include="*.mdc" --include="*.py" .codebuddy \
+  | grep -v "lib/yao-meta-skill"
+
+# 代理路径引用
+grep -rn "\.codebuddy/agents/" --include="*.md" --include="*.mdc" --include="*.py" .codebuddy \
+  | grep -v "lib/yao-meta-skill"
+```
+
+### 2.2 校验引用是否指向真实位置
+
+不要只看字符串是否「长得对」，要验证目标存在：
+
+```bash
+grep -rhoE "\\.codebuddy/(rules|skills|agents)/[A-Za-z0-9_./-]+" \
+  --include="*.md" --include="*.mdc" .codebuddy \
+  | grep -v yao-meta-skill \
+  | grep -vE "/(X|foo|\\.\\.\\.)/" \
+  | sed 's/[.,;:)]*$//' | sort -u \
+  | while read -r p; do [ -e "./$p" ] || echo "悬空: $p"; done
+```
+
+> **占位符排除是必需的**：规则与技能文档大量使用 `.codebuddy/skills/X/a.json`、
+> `.codebuddy/rules/.../xxx.mdc` 这类示意路径。若不排除，每次排查都会产出固定的假阳性，
+> 久而久之就没人看这份报告了——**假阳性会毁掉检查的价值**。
+> 发现新的占位写法时，把它加进 `grep -vE` 的排除模式，而非**忽略整份报告**。
+
+> **注意 `find` 不跟随符号链接**：`find .codebuddy/agents -name "*.md"` 对可选包
+> （其扫描根是链接）返回空；要验证链接内部内容，用 `find -L` 或直接 `ls <链接>/`。
+### 2.3 索引键专项校验
+
+`rule_shells` 的键是**路径**，最容易在重构中漏改：
+
+```bash
+python -c "
+import json, io, os
+d = json.load(io.open('.codebuddy/project.index.json', encoding='utf-8'))
+bad = [k for k in d['rule_shells']
+       if not os.path.isfile(os.path.join('.codebuddy', k))]
+print('失效键:', len(bad))
+[print(' -', b) for b in bad]
+"
+```
+
+> 该检查已内置到 `check_manifest.py`，正常无需单独执行；此命令用于独立诊断。
+
+## 三、重构标准流程
+
+| 阶段 | 动作 | 验证 |
+|---|---|---|
+| 1. 物理搬迁 | `git mv`（保留历史），不先改内容 | `git status` 全为 `R`（rename） |
+| 2. 改登记表 | `packs.json` 的 `comps`；`project.index.json` 的路径类键 | 键能在磁盘落地 |
+| 3. 改路径引用 | 先跑 2.1 取得清单，再批量改写（脚本化，勿手工逐个改） | 跑 2.2 无悬空 |
+| 4. 改脚本推导 | `pack_install.py` / `check_manifest.py` 的路径推导函数 | 两脚本可运行 |
+| 5. 改文档 | README 目录树、包表、pattern-spec 全景表 | 与实际结构一致 |
+| 6. 迁移链接 | `pack_install.py verify --repair` | `status` 退出 0 |
+| 7. 实测加载 | 新会话验证规则/技能/代理真实可见 | 端到端探测 |
+
+阶段 7 不可省：**登记表与路径全对，也可能因扫描机制（深度限制、符号链接解引用规则）而不生效**，只有实测能证明。
+
+## 四、批量改写脚本的写法要求
+
+- **先列出、后改写**：脚本先 dry-run 打印将改的文件与处数，确认后再落盘。
+- **带边界匹配**：用路径分量边界（`/`、反引号、引号、空白、行尾）避免把 `csharp-code` 误改成 `csharp/csharp-code-review`。
+- **排除三方目录**：`lib/yao-meta-skill/` 等上游整体照搬的目录不参与改写。
+- **保留行尾**：写回时用 `newline=''` 保留原行尾，避免整文件行尾被转换产生大量伪差异。
+- **改完立即抽样核对**：抽查 3~5 处不同模块的引用，而非只看总数。
+
+## 五、历史踩坑记录
+
+### 2026-10 包化重构：9 处索引键失效
+
+| 项 | 内容 |
+|---|---|
+| **改动** | 组件从 `rules/<名>/`、`skills/<名>/` 搬迁到 `lib/<pack>/<类型>/<名>/`，扫描根引入 pack 层 |
+| **漏改** | `project.index.json` 的 `rule_shells` 键仍为 `rules/project-guide/RULE.mdc` 等旧路径 |
+| **表现** | 无任何报错。薄壳按旧键查项目事实正文 → 查不到 → 规则事实缺失。`check_manifest.py` 当时只校验 `path` 是否相对路径，**不校验键能否落地**，因此全绿 |
+| **发现方式** | 人工核查索引与磁盘路径对照表 |
+| **修复** | 9 个键加 pack 层；9 个文件的薄壳正文同步键名；`check_manifest.py` 新增「键必须能落到磁盘文件」校验项并实测有效 |
+| **教训** | ① 重构清单必须包含「以路径为键的登记项」；② 校验脚本的盲区要显式补齐；③ 「脚本全绿」不等于「引用全对」 |
+
+### 通用教训
+
+1. **路径型登记项比路径型引用更隐蔽**：引用写错看得见（读的时候会失败），键写错只是「查找不到」，容易误判为「本来就没有」。
+2. **校验脚本覆盖不到的地方，必须写进规则清单**，否则依赖记忆必然遗漏。
+3. **重构后必须实测**：三级验证（脚本校验 → 路径落地检查 → 端到端加载探测），缺任一级都可能漏网。

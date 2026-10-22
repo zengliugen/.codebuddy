@@ -29,6 +29,7 @@
 │   ├── core/                   #   默认包：language/ project-guide/
 │   ├── vcs/                    #   默认包：vcs-router/
 │   ├── tool/                   #   默认包：codebuddy-engine-vcs/ codebuddy-project-config/
+│   │                           #            bash-command-shape/ engine-maintenance/
 │   ├── project ──链接──▶ 项目侧 #   项目专有规则（.codebuddy.project/rules/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
@@ -185,7 +186,7 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 | `core` | 基础 | ✅ | rules: language、project-guide；skills: codebuddy-init |
 | `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
 | `vcs` | 基础 | ✅ | rules: vcs-router；skills: vcs-router、git-commit、git-merge |
-| `tool` | 基础 | ✅ | rules: codebuddy-engine-vcs、codebuddy-project-config；skills: cmd-script-writing、export-zipped-dir、rule-consolidation、session-lesson-distill |
+| `tool` | 基础 | ✅ | rules: codebuddy-engine-vcs、codebuddy-project-config、bash-command-shape、engine-maintenance；skills: cmd-script-writing、export-zipped-dir、rule-consolidation、session-lesson-distill |
 | `csharp` | C# | ❌ | rules: csharp-code、csharp-comment、csharp-lsp、csharp-test；skills: 6 个；agents: 2 个 |
 | `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
 | `grilling` | third-party | ❌ | skills: grilling、grill-me |
@@ -265,8 +266,9 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
    以 submodule 出现），其内文件的提交发生在**引擎仓库**，与「项目仓库」是两个提交目标——不得混为一笔，
    且更新 submodule 指针须**先推送引擎、再提交项目指针**。约定详见
    `rules/codebuddy-engine-vcs/`。
-6. **两条 `.codebuddy/**` 触发规则职责不同，勿合并**：`codebuddy-engine-vcs` 管「提交到哪个仓库」，
-   `codebuddy-project-config` 管「内容如何写」（项目内容外置）。
+6. **四条触发规则职责不同，勿合并**：`codebuddy-engine-vcs` 管「提交到哪个仓库」，
+   `codebuddy-project-config` 管「内容如何写」（项目内容外置），`engine-maintenance` 管「还要同步维护哪些地方」
+   （登记表与引用一致性），`bash-command-shape` 管「命令如何构造」（避免权限系统的无谓拦截）。
 
 ## 运行环境
 

@@ -108,4 +108,4 @@ python .codebuddy/skills/csharp/csharp-code-review/scripts/collect_review_target
 |------|------|
 | `agents/interface.yaml` | 输入/输出/排除契约 |
 | `.codebuddy/rules/csharp/csharp-code/RULE.mdc` | 审查规则入口（始终生效，负责路由到本技能；子规则由 Agent 读取） |
-| `.codebuddy/agents/csharp/csharp-code-review/csharp-code-review.md` | 审查 Agent 定义 |
+| `.codebuddy/agents/csharp/csharp-code-review.md` | 审查 Agent 定义 |
