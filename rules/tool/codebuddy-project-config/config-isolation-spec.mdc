@@ -365,10 +365,10 @@ ls .codebuddy/skills/*/tools/*/*.cs        # 应列出工具源码（若无输�
 
 ```
 新增技能，需要排除本项目的三方库目录：
-  1. 引擎侧只保留通用部分；项目值外置到 .codebuddy.project/configs/skills/foo/config.json：
+  1. 引擎侧只保留通用部分；项目值外置到 .codebuddy.project/configs/skills/<pack>/foo/config.json：
      { "_comment": "本文件为 foo 的项目配置…", "exclude_dirs": ["<三方库>", "<生成代码目录>"] }
-  2. 在 .codebuddy/project.index.json 的 files 登记：
-     "foo.config": { "path": ".codebuddy.project/configs/skills/foo/config.json", "format": "json",
+  2. 在 .codebuddy/project.index.json 的 files 登记（路径含 pack 层）：
+     "foo.config": { "path": ".codebuddy.project/configs/skills/<pack>/foo/config.json", "format": "json",
                      "template": { "exclude_dirs": ["<三方库>"] } }
   3. 脚本经索引读取（配置为唯一来源，缺失即报错）：
      config = load_config()          # 索引/配置缺失/缺键 → 抛 ConfigError，输出可操作错误消息

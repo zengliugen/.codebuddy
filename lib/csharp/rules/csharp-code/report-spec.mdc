@@ -10,7 +10,7 @@ provider:
 
 ## 1. 报告文件命名与位置
 
-- 目录：`.codebuddy.project/caches/skills/csharp-code-review/check_logs/`
+- 目录：`.codebuddy.project/caches/skills/csharp/csharp-code-review/check_logs/`
 - 命名：`{时间戳}_csharp-code_{目标名称}_{问题统计}_{8位GUID}.md`
   - 时间戳格式：`yyyy年MM月dd日_HH时mm分ss秒`
   - 问题统计：`e{error数}w{warning数}i{info数}`

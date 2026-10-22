@@ -113,10 +113,58 @@ def render_markdown_skeleton(entry):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def build_targets(index, project_root):
-    """由索引构造待生成文件清单：[(绝对路径, 格式, 内容)]。
+def pack_install_set(project_root, codebuddy_dir, pack_arg, minimal):
+    """解析本次运行生效的包集合：已装可选包 + 默认包。
+
+    优先级：
+    - 已有项目侧 packs.json → 以记录为准（幂等：重复运行不改变已选装包）；
+    - 首次运行 → 按 --pack / --minimal 决定，并写回 packs.json。
+
+    返回 (可选包名集合, 全部生效包名集合, 是否首次创建状态)。
+    未装任何可选包时可选集合为空，仅有默认包。
+    """
+    packs, _err = load_engine_packs(codebuddy_dir)
+    defaults = set(name for name, meta in packs.items() if (meta or {}).get("default"))
+    installed, created = setup_pack_state(project_root, pack_arg, minimal)
+    return set(installed), defaults | set(installed), created
+
+
+def pack_of_path(rel):
+    """从索引路径中解析所属包名。
+
+    路径约定为 `.codebuddy.project/<configs|caches>/<类别>/<pack>/<组件>/...`，
+    其中 <类别> 为 skills / rules / agents。非该结构（如根级通用目录
+    `.codebuddy.project/caches/.vcs-lock`）返回空串，表示不按包过滤。
+    """
+    parts = rel.replace("\\", "/").split("/")
+    for index, segment in enumerate(parts):
+        if segment in ("skills", "rules", "agents") and index + 2 < len(parts):
+            return parts[index + 1]
+    return ""
+
+
+def filter_by_packs(entries, active_packs):
+    """按生效包集合过滤 (名称, 相对路径, 其余...) 条目，返回 (保留, 跳过)。
+
+    路径无法归属任何包的条目一律保留（通用配置，如根级锁目录）。
+    """
+    kept, skipped = [], []
+    for item in entries:
+        rel = item[1]
+        pack = pack_of_path(rel)
+        if pack and pack not in active_packs:
+            skipped.append(item)
+        else:
+            kept.append(item)
+    return kept, skipped
+
+
+def build_targets(index, project_root, active_packs=None):
+    """由索引构造待生成文件清单：[(逻辑名, 绝对路径, 格式, 索引项)]。
 
     同时登记 `files`（config / 数据文件）与 `rule_shells`（项目事实正文）。
+    active_packs 非空时，仅保留属于该集合（或无法归属包）的条目——
+    未安装的可选包不再生成项目侧配置骨架。
     """
     targets = []
     for group_key in ("files", "rule_shells"):
@@ -129,8 +177,11 @@ def build_targets(index, project_root):
                 raise InitError("索引 `%s.%s.path` 必须为相对路径：%s" % (group_key, code_name, rel))
             fmt = entry.get("format", "json")
             abs_path = os.path.normpath(os.path.join(project_root, rel))
-            targets.append((code_name, abs_path, fmt, entry))
-    return targets
+            targets.append((code_name, abs_path, fmt, entry, rel))
+    if active_packs is not None:
+        kept, _skipped = filter_by_packs(targets, active_packs)
+        targets = kept
+    return [(name, abs_path, fmt, entry) for name, abs_path, fmt, entry, _rel in targets]
 
 
 def write_payload(fmt, entry):
@@ -144,20 +195,24 @@ def write_payload(fmt, entry):
     raise InitError("不支持的格式 `%s`" % fmt)
 
 
-def build_artifact_dirs(index, project_root):
+def build_artifact_dirs(index, project_root, active_packs=None):
     """由索引 `artifacts.dirs` 构造产物目录清单：[(逻辑名, 绝对路径)]。
 
     产物目录仅创建空目录（供脚本落盘），不入库。
+    active_packs 非空时，未安装包的产物目录不创建。
     """
     dirs = (index.get("artifacts") or {}).get("dirs") or {}
-    result = []
+    entries = []
     for logical_name, rel in dirs.items():
         if not isinstance(rel, str) or not rel:
             raise InitError("索引 `artifacts.dirs.%s` 值非法" % logical_name)
         if os.path.isabs(rel):
             raise InitError("索引 `artifacts.dirs.%s` 必须为相对路径：%s" % (logical_name, rel))
-        result.append((logical_name, os.path.normpath(os.path.join(project_root, rel))))
-    return result
+        entries.append((logical_name, rel))
+    if active_packs is not None:
+        kept, _skipped = filter_by_packs(entries, active_packs)
+        entries = kept
+    return [(name, os.path.normpath(os.path.join(project_root, rel))) for name, rel in entries]
 
 
 def build_gitignore_content():
@@ -419,7 +474,7 @@ def readme_content(project_config_root):
 ## 与引擎的对应关系
 
 `.codebuddy/skills/<技能>/a.json` 的项目侧对应位置为
-`{root}/configs/skills/<技能>/a.json`（相对路径镜像）；规则项目事实正文同理位于
+`{root}/configs/skills/<pack>/<技能>/a.json`（相对路径镜像，含包层）；规则项目事实正文同理位于
 `{root}/configs/rules/...`。定位逻辑由各技能脚本经 `.codebuddy/project.index.json` 解析。
 
 ## 运行时产物目录（caches/）
@@ -579,6 +634,74 @@ def probe_pack_drift(codebuddy_dir, project_root):
     return result.returncode == 0, output
 
 
+def collect_orphans(index, project_root, packs, installed):
+    """检测不属于任何已装包的项目侧配置与产物目录（卸载包后的残留）。
+
+    判定依据：索引路径中的 pack 段（见 pack_of_path）不在生效包集合内，
+    且该路径在磁盘上真实存在。返回 [{kind, name, path, pack}]，按路径排序。
+
+    只读取磁盘现状，不删除任何内容——清理须由用户确认后另行执行。
+    """
+    active = set(name for name, meta in packs.items() if (meta or {}).get("default"))
+    active |= set(installed)
+    found = []
+    for group_key in ("files", "rule_shells"):
+        for code_name, entry in (index.get(group_key) or {}).items():
+            rel = (entry or {}).get("path")
+            if not rel:
+                continue
+            pack = pack_of_path(rel)
+            if not pack or pack in active:
+                continue
+            abs_path = os.path.normpath(os.path.join(project_root, rel))
+            if os.path.exists(abs_path):
+                found.append({"kind": group_key, "name": code_name, "path": rel, "pack": pack})
+    for logical_name, rel in ((index.get("artifacts") or {}).get("dirs") or {}).items():
+        if not isinstance(rel, str) or not rel:
+            continue
+        pack = pack_of_path(rel)
+        if not pack or pack in active:
+            continue
+        abs_path = os.path.normpath(os.path.join(project_root, rel))
+        if os.path.isdir(abs_path):
+            found.append({"kind": "artifacts", "name": logical_name, "path": rel, "pack": pack})
+    found.sort(key=lambda item: item["path"])
+    return found
+
+
+def prune_orphans(project_root, orphans):
+    """删除指定孤儿条目（仅删文件与空目录，不递归删除非空目录）。
+
+    返回 (已删除路径列表, 失败列表)。删除产物目录时仅在其为空时移除，
+    避免误删用户手工放入的内容。
+    """
+    removed, failed = [], []
+    for item in orphans:
+        abs_path = os.path.normpath(os.path.join(project_root, item["path"]))
+        try:
+            if item["kind"] == "artifacts":
+                if os.path.isdir(abs_path) and not os.listdir(abs_path):
+                    os.rmdir(abs_path)
+                    removed.append(item["path"])
+                else:
+                    failed.append((item["path"], "目录非空，未删除"))
+                continue
+            os.remove(abs_path)
+            removed.append(item["path"])
+            # 顺手清理因此变空的上级目录（最多上溯 3 层，止于 configs/caches 根）
+            parent = os.path.dirname(abs_path)
+            for _ in range(3):
+                if not os.path.isdir(parent) or os.listdir(parent):
+                    break
+                if os.path.basename(parent) in ("configs", "caches"):
+                    break
+                os.rmdir(parent)
+                parent = os.path.dirname(parent)
+        except OSError as error:
+            failed.append((item["path"], str(error)))
+    return removed, failed
+
+
 def collect_status(index, project_root, codebuddy_dir):
     """汇总初始化与包安装状态，作为技能询问用户「接下来要做什么」的依据。
 
@@ -588,26 +711,39 @@ def collect_status(index, project_root, codebuddy_dir):
     config_dir = os.path.normpath(os.path.join(project_root, config_root))
     initialized = os.path.isdir(config_dir)
 
+    # 先取安装状态：缺失判定只在「已装包」范围内进行，
+    # 未装包的索引条目既不算缺失（不该生成），也不算孤儿（磁盘上本来就没有）。
+    packs, packs_error = load_engine_packs(codebuddy_dir)
+    installed = read_installed_packs(project_root)
+    active_packs = set(name for name, meta in packs.items() if (meta or {}).get("default")) | set(installed)
+
     missing_configs = []
     for group_key in ("files", "rule_shells"):
         for code_name, entry in (index.get(group_key) or {}).items():
             rel = (entry or {}).get("path")
             if not rel:
                 continue
+            pack = pack_of_path(rel)
+            if pack and pack not in active_packs:
+                continue
             if not os.path.isfile(os.path.normpath(os.path.join(project_root, rel))):
                 missing_configs.append({"group": group_key, "name": code_name, "path": rel})
 
     missing_dirs = []
     for logical_name, rel in ((index.get("artifacts") or {}).get("dirs") or {}).items():
+        if not isinstance(rel, str) or not rel:
+            continue
+        pack = pack_of_path(rel)
+        if pack and pack not in active_packs:
+            continue
         if not os.path.isdir(os.path.normpath(os.path.join(project_root, rel))):
             missing_dirs.append({"name": logical_name, "path": rel})
 
-    packs, packs_error = load_engine_packs(codebuddy_dir)
-    installed = read_installed_packs(project_root)
     optional = sorted(name for name, meta in packs.items() if not (meta or {}).get("default"))
     available = [name for name in optional if name not in installed]
     unknown = [name for name in installed if name not in packs]
     drift_ok, drift_text = probe_pack_drift(codebuddy_dir, project_root)
+    orphans = collect_orphans(index, project_root, packs, installed)
 
     # 依据现状给出候选动作，供技能用 AskUserQuestion 呈现（键名跨项目稳定）
     actions = []
@@ -622,6 +758,8 @@ def collect_status(index, project_root, codebuddy_dir):
         actions.append("remove_packs")
     if drift_ok is False or unknown:
         actions.append("verify_packs")
+    if orphans:
+        actions.append("prune_orphans")
 
     return {
         "project_root": project_root,
@@ -636,6 +774,7 @@ def collect_status(index, project_root, codebuddy_dir):
             "registry_error": packs_error,
         },
         "links": {"consistent": drift_ok, "detail": drift_text},
+        "orphans": orphans,
         "actions": actions,
     }
 
@@ -673,6 +812,20 @@ def report_status(status, as_json):
     else:
         print("[链接] %s" % (status["links"]["detail"] or "无法探测"))
 
+    orphans = status.get("orphans") or []
+    if orphans:
+        by_pack = {}
+        for item in orphans:
+            by_pack.setdefault(item["pack"], []).append(item)
+        print("[孤儿] 存在 %d 项不属于已装包的残留（卸载包后的遗留）：" % len(orphans))
+        for pack in sorted(by_pack):
+            print("  · 包 %s（%d 项）" % (pack, len(by_pack[pack])))
+            for item in by_pack[pack][:10]:
+                print("    - %s" % item["path"])
+            if len(by_pack[pack]) > 10:
+                print("    …另有 %d 项未显示" % (len(by_pack[pack]) - 10))
+        print("  清理方式：确认后运行 setup.cmd --prune-orphans，或手工删除上述路径")
+
     print("[候选动作] %s" % ", ".join(status["actions"]))
     return 0
 
@@ -693,6 +846,8 @@ def main():
                         help="只保留默认包，不安装任何可选包（仅 --setup）")
     parser.add_argument("--status", action="store_true",
                         help="只检测现状（初始化状态、缺失配置、可选包安装与链接漂移），不写盘")
+    parser.add_argument("--prune-orphans", action="store_true",
+                        help="删除不属于已装包的残留配置与空产物目录（卸载包后的清理，仅删空目录）")
     args = parser.parse_args()
 
     codebuddy_dir = find_codebuddy_dir(os.getcwd())
@@ -713,8 +868,34 @@ def main():
     if args.status:
         return report_status(collect_status(index, project_root, codebuddy_dir), args.json)
 
+    # 孤儿清理：仅删除不属于已装包的残留（由 --status 报告后经用户确认触发）
+    if args.prune_orphans:
+        packs, _err = load_engine_packs(codebuddy_dir)
+        orphans = collect_orphans(index, project_root, packs, read_installed_packs(project_root))
+        if not orphans:
+            print("[孤儿] 未发现不属于已装包的残留，无需清理。")
+            return 0
+        removed, failed = prune_orphans(project_root, orphans)
+        print("[孤儿] 已删除 %d 项：" % len(removed))
+        for path in removed:
+            print("  - %s" % path)
+        if failed:
+            print("[警告] %d 项未能删除：" % len(failed))
+            for path, reason in failed:
+                print("  ! %s（%s）" % (path, reason))
+        return 0
+
+    # 先确定生效的包集合（默认包 + 已装可选包），再据此过滤索引条目：
+    # 未安装的包不生成项目侧配置骨架与产物目录。
     try:
-        targets = build_targets(index, project_root)
+        optional_installed, active_packs, state_created = pack_install_set(
+            project_root, codebuddy_dir, args.pack, args.minimal)
+    except InitError as error:
+        sys.stderr.write("[错误] %s\n" % error)
+        return 3
+
+    try:
+        targets = build_targets(index, project_root, active_packs)
     except InitError as error:
         sys.stderr.write("[错误] %s\n" % error)
         return 3
@@ -786,7 +967,7 @@ def main():
 
     # 创建运行时产物空目录（不入库，由项目侧 .gitignore 忽略）
     try:
-        artifact_dirs = build_artifact_dirs(index, project_root)
+        artifact_dirs = build_artifact_dirs(index, project_root, active_packs)
     except InitError as error:
         sys.stderr.write("[错误] %s\n" % error)
         return 3
@@ -806,14 +987,10 @@ def main():
         status, info = ensure_file_symlink(link_abs, src_abs, force=args.force)
         root_link_results.append((code_name, link_abs, src_abs, status, info))
 
-    # --setup 模式：写出可选包安装状态，并调引擎侧 pack_install.py 物化链接
+    # --setup 模式：安装状态已在上文解析，此处只物化链接
     setup_report = None
     if args.setup:
-        try:
-            installed_packs, state_created = setup_pack_state(project_root, args.pack, args.minimal)
-        except InitError as error:
-            sys.stderr.write("[错误] %s\n" % error)
-            return 3
+        installed_packs = sorted(optional_installed)
         rc, output = run_pack_installer(codebuddy_dir, project_root, args)
         setup_report = {
             "state_created": state_created,

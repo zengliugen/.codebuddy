@@ -45,12 +45,12 @@
 
 ### 阶段三：确认输出
 
-- 审查由 Agent 完成，报告写入 `.codebuddy.project/caches/skills/csharp-code-review/check_logs/`。
+- 审查由 Agent 完成，报告写入 `.codebuddy.project/caches/skills/csharp/csharp-code-review/check_logs/`。
 - 对话展示由 Agent 输出的审查摘要。
 - 若 Agent 未正常输出，按 Agent 返回的说明跟进。
 
 ## 报告产物与保留策略
-- 审查报告写入 `.codebuddy.project/caches/skills/csharp-code-review/check_logs/`（`.md`，已 git 忽略）。
+- 审查报告写入 `.codebuddy.project/caches/skills/csharp/csharp-code-review/check_logs/`（`.md`，已 git 忽略）。
 - **保留策略**：提交前门禁每次提交都会生成 1 份报告，`check_logs/` 会持续累积。建议仅保留最近
   **30 次**或关键节点报告（如提交门禁、修复前后对比），其余删除或归档；该目录已被 `.gitignore`
   忽略，清理不影响版本控制与迁移包。批量清理可执行 `.codebuddy.project/cleanup-caches.cmd`。

@@ -13,6 +13,8 @@ rem    setup.cmd                             按 configs/packs.json 重建全部
 rem    setup.cmd --pack csharp,unity-pipeline 首次指定可选包并安装
 rem    setup.cmd --minimal                   只保留默认包（core/vcs/tool）
 rem    setup.cmd --force                     删除后全量重建
+rem    setup.cmd --status                    只检测现状（不写盘）
+rem    setup.cmd --prune-orphans             清理已卸载包的残留配置与空缓存目录
 rem ============================================================
 
 set "BASE=%~dp0"

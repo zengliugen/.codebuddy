@@ -4,7 +4,7 @@
 > 以及 H1 钩子步骤的字段语义与执行规则（§3）。
 > **项目参数（scope 规则、发起权取值、门禁参数取值、启用的钩子步骤）已外置**，见
 > `.codebuddy/project.index.json` 的 `files.git_commit.project_config.path`
-> 指向的项目侧 `.codebuddy.project/configs/skills/git-commit/project-config.md`。
+> 指向的项目侧 `.codebuddy.project/configs/skills/vcs/git-commit/project-config.md`。
 > 本文件不绑定任何具体项目；项目侧文件同样不含引擎机制。
 
 ## 0. 关联配置

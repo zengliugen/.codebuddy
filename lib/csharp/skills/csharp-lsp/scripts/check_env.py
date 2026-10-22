@@ -7,7 +7,7 @@ csharp-lsp 技能环境检查脚本。
 1. 安装检查 —— 确认 csharp-ls 语言服务器二进制是否可用。
 2. 插件开启检查 —— 确认 csharp-lsp@codebuddy-plugins-official 插件已安装且已启用。
 3. 本地缓存 —— 检查全部通过后，将结果连同环境指纹写入本地缓存
-   （默认项目侧 .codebuddy.project/caches/skills/csharp-lsp/.cache/ 下，按项目隔离）。当缓存未超过 24 小时有效期且
+   （默认项目侧 .codebuddy.project/caches/skills/csharp/csharp-lsp/.cache/ 下，按项目隔离）。当缓存未超过 24 小时有效期且
    环境指纹（csharp-ls 路径、插件版本、settings.json 修改时间/大小）未变化时，
    直接复用上次通过结论，跳过重复检查。失败结果不缓存。
 

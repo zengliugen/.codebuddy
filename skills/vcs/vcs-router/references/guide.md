@@ -73,7 +73,7 @@ ls -d .git 2>/dev/null
 
 为减少重复检测开销，检测结果由脚本缓存到**技能目录**下的本地文件，**不纳入版本控制、不进行上传**：
 
-- **缓存文件**：项目侧 `.codebuddy.project/caches/skills/vcs-router/.cache/vcs-route.json`（经索引 `artifacts.dirs.vcs_router.cache` 定位）
+- **缓存文件**：项目侧 `.codebuddy.project/caches/skills/vcs/vcs-router/.cache/vcs-route.json`（经索引 `artifacts.dirs.vcs_router.cache` 定位）
 - **缓存格式**（JSON，仅存 VCS 类型，与操作类型无关）：
   ```json
   {

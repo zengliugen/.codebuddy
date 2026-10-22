@@ -292,7 +292,7 @@ CSV 列：`Category, Severity, Areas, Description, RelativePath, Line, Descripto
 ### CLI 检查缓存
 
 检查通过后脚本将结果与环境指纹写入
-`项目侧 .codebuddy.project/caches/skills/unity-pipeline/.cache/unity_cli_ok.json`（已 git 忽略）。
+`项目侧 .codebuddy.project/caches/skills/unity-pipeline/unity-pipeline/.cache/unity_cli_ok.json`（已 git 忽略）。
 24 小时内且指纹（`unity` 路径、`unity --version` 输出）未变时直接复用；强制重查加 `--no-cache`。
 
 ### 离线安装包内容

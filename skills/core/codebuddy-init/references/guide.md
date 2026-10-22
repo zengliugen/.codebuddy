@@ -67,10 +67,12 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py --st
 python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 ```
 
+- **先确定生效包集合**：默认包 + 项目侧 `configs/packs.json` 记录的已装可选包。**后续所有条目都按此过滤**——
+  未安装的包**不生成**配置骨架与产物目录（路径中的包层见 `index-spec.md` §3.3）。
 - `files` 中 `format: json` 项 → 写入 `template`（占位值原样落盘，UTF-8 无 BOM、2 空格缩进）。
 - `files` 中 `format: markdown` 项 → 按 `template_outline` 生成章节骨架，每节留 `<填写说明>`。
 - `rule_shells` 项 → 生成规则项目事实正文骨架（Markdown 章节占位）。
-- **`artifacts.dirs` 项 → 创建运行时产物空目录**（`caches/` 下的各技能 `check_logs/`、`.cache/`、`.vcs-lock/` 等），供脚本落盘。
+- **`artifacts.dirs` 项 → 创建运行时产物空目录**（`caches/skills/<pack>/<技能>/` 下的 `check_logs/`、`.cache/` 等），供脚本落盘。
 - 额外生成固定文件/骨架：
   - `.codebuddy.project/README.md`（目录用途与维护约定）；
   - `.codebuddy.project/.gitignore`（**整体忽略 `caches/` 运行时产物根目录**，不入库）；
@@ -86,8 +88,12 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
     经软链接读取外置的根级文件（失败则告警并给出手工命令，不阻断）。
 - **幂等保护**：目标文件/目录已存在时**跳过不覆盖**（列出"已存在，跳过"）；确需覆盖文件时用 `--force`（须先确认用户知晓将丢失已有内容）。
 
-> **产物目录清单由索引驱动**：新增技能产物目录时，在索引 `artifacts.dirs` 登记（逻辑名 → 项目侧镜像路径），
-> 初始化脚本与各技能脚本即自动适配，无需改脚本。
+> **产物目录清单由索引驱动**：新增技能产物目录时，在索引 `artifacts.dirs` 登记（逻辑名 → 项目侧镜像路径，
+> 路径含包层），初始化脚本与各技能脚本即自动适配，无需改脚本。
+
+> **卸载包后的残留**：从 `packs.json` 移除某包后，其配置与缓存目录会残留。`--status` 会把这些孤儿项
+> 单列（候选动作含 `prune_orphans`）；**须经用户确认**后再执行 `--prune-orphans` 清理
+> （只删配置文件与空产物目录，非空目录不删）。禁止未经确认自动清理。
 
 **B. 按项目情况填写**
 

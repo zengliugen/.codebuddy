@@ -19,7 +19,7 @@
   "_comment": "…",
   "project_config_root": ".codebuddy.project",
   "artifacts": {
-    "dirs": { "<逻辑名>": ".codebuddy.project/caches/skills/<技能>/check_logs" }
+    "dirs": { "<逻辑名>": ".codebuddy.project/caches/skills/<pack>/<技能>/check_logs" }
   },
   "root_symlinks": {
     "entries": {
@@ -33,14 +33,14 @@
   },
   "files": {
     "<逻辑名>": {
-      "path": ".codebuddy.project/configs/skills/<技能>/<配置文件名>",
+      "path": ".codebuddy.project/configs/skills/<pack>/<技能>/<配置文件名>",
       "format": "json",
       "template": { "<字段>": "<占位值>" }
     }
   },
   "rule_shells": {
-    "rules/<规则名>/RULE.mdc": {
-      "path": ".codebuddy.project/configs/rules/<规则名>/RULE.mdc",
+    "rules/<pack>/<规则名>/RULE.mdc": {
+      "path": ".codebuddy.project/configs/rules/<pack>/<规则名>/RULE.mdc",
       "format": "markdown",
       "template_outline": ["# 标题", "## 章节"]
     }
@@ -91,9 +91,14 @@
 
 ### 3.3 镜像路径（`path` 的取值）
 
-- 项目侧路径与引擎侧对应位置**相对路径镜像**，便于人工对照：
-  - `.codebuddy/skills/X/a.json` → `.codebuddy.project/configs/skills/X/a.json`
-  - `.codebuddy/rules/X/a.mdc` → `.codebuddy.project/configs/rules/X/a.mdc`
+- 项目侧路径与引擎侧对应位置**相对路径镜像**，且**按包分层**，便于人工对照与按包整体增删：
+  - `.codebuddy/lib/<pack>/skills/X/a.json` → `.codebuddy.project/configs/skills/<pack>/X/a.json`
+  - `.codebuddy/lib/<pack>/rules/X/a.mdc` → `.codebuddy.project/configs/rules/<pack>/X/a.mdc`
+  - 产物目录 → `.codebuddy.project/caches/skills/<pack>/<技能>/check_logs`
+- **包名是路径中的固定层级**（紧跟 `skills/`、`rules/`、`agents/` 之后）。初始化脚本据此判断
+  条目归属哪个包，**未安装的包不生成配置与产物目录**。
+- 无包归属的通用路径（如根级锁目录 `.codebuddy.project/caches/.vcs-lock`）**不加包层**，
+  初始化时不做包过滤。
 - 引擎侧通用配置（不随项目变化的部分）**不进入注册表**，留在 `.codebuddy` 内。
 
 ### 3.4 骨架语义（`template` / `template_outline`）
@@ -126,8 +131,22 @@
 由索引 `artifacts.dirs` 声明：逻辑名（如 `format_checker.check_logs`）→ 项目侧镜像路径。
 
 - 各脚本经**逻辑名**解析产物目录（内联 `resolve_artifact_dir()`），不再硬编码到技能目录。
+- **路径含包层**：`caches/skills/<pack>/<技能>/`。`codebuddy-init` 只创建**已装包**的产物目录；
+  未安装包的缓存目录不会出现。
 - `codebuddy-init` 依据本节点创建产物空目录；项目侧 `.gitignore` 统一忽略、不入库。
 - 清理：引擎侧 `scripts/cleanup_artifacts.py` 遍历本节点枚举目录，删除文件并重建空目录。
+
+### 3.6.1 卸载包后的残留（孤儿）处理
+
+包的安装状态记录在项目侧 `configs/packs.json` 的 `installed`。当某包被卸载（从 `installed` 移除）后，
+其项目侧配置与缓存目录会残留，`codebuddy-init` 按以下方式处理：
+
+| 阶段 | 行为 |
+|------|------|
+| `--status` | 检测并列出孤儿项（不属于任何已装包的配置/产物目录），归入候选动作 `prune_orphans`，**不删除** |
+| `--prune-orphans` | 由用户确认后执行：删除孤儿配置**文件**与**空**产物目录；非空目录不删（避免误删用户内容），并上溯清理因此变空的上级目录 |
+
+判定依据是路径中的包层（见 §3.3）：包名不在「默认包 ∪ 已装可选包」内即视为孤儿。
 
 ### 3.7 项目专有包（project，软链接）
 

@@ -133,6 +133,9 @@
 引擎与项目侧之间的**唯一索引**。各技能脚本经它按**逻辑名**定位项目侧配置；`codebuddy-init` 经它生成骨架。
 
 - **路径基准**：项目根（`.codebuddy` 的父目录）；全部**相对路径**，**禁止绝对路径**。
+- **按包分层**：项目侧路径含包层（`configs/skills/<pack>/<技能>/`、`configs/rules/<pack>/<规则>/`、
+  `caches/skills/<pack>/<技能>/`），与 `lib/<pack>/` 一一对应。`codebuddy-init` 据此判定条目归属，
+  **未安装的包不生成配置与产物目录**；包名相同则不加重复层（如 `unity-pipeline` 包下的同名技能）。
 - **`files`**：配置类文件 → 逻辑名 + `path` + `format` + `template`（JSON 骨架 / Markdown 大纲）。
 - **`rule_shells`**：规则薄壳 → 键为薄壳相对 `.codebuddy` 的路径，值为项目事实正文路径。
 - **`artifacts.dirs`**：运行时产物目录（check_logs / .cache / .vcs-lock 等）→ 逻辑名 + 项目侧镜像路径；

@@ -5,15 +5,15 @@
   "artifacts": {
     "_comment": "运行时产物目录（脚本执行过程中生成，不入库、不随引擎共享）。路径基准为项目根，由 codebuddy-init 在项目侧创建空目录；读取方经逻辑名定位（禁止绝对路径）。各产物目录由 .codebuddy.project/.gitignore 统一忽略。",
     "dirs": {
-      "code_review.check_logs": ".codebuddy.project/caches/skills/csharp-code-review/check_logs",
-      "comment_checker.check_logs": ".codebuddy.project/caches/skills/csharp-comment-checker/check_logs",
-      "format_checker.check_logs": ".codebuddy.project/caches/skills/csharp-format-checker/check_logs",
-      "test_coverage.check_logs": ".codebuddy.project/caches/skills/csharp-test-coverage/check_logs",
-      "csharp_lsp.cache": ".codebuddy.project/caches/skills/csharp-lsp/.cache",
-      "unity_pipeline.cache": ".codebuddy.project/caches/skills/unity-pipeline/.cache",
-      "vcs_router.cache": ".codebuddy.project/caches/skills/vcs-router/.cache",
+      "code_review.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-code-review/check_logs",
+      "comment_checker.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-comment-checker/check_logs",
+      "format_checker.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-format-checker/check_logs",
+      "test_coverage.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-test-coverage/check_logs",
+      "csharp_lsp.cache": ".codebuddy.project/caches/skills/csharp/csharp-lsp/.cache",
+      "unity_pipeline.cache": ".codebuddy.project/caches/skills/unity-pipeline/unity-pipeline/.cache",
+      "vcs_router.cache": ".codebuddy.project/caches/skills/vcs/vcs-router/.cache",
       "vcs_router.lock": ".codebuddy.project/caches/.vcs-lock",
-      "session_distill.reports": ".codebuddy.project/caches/skills/session-lesson-distill/reports"
+      "session_distill.reports": ".codebuddy.project/caches/skills/tool/session-lesson-distill/reports"
     }
   },
   "root_symlinks": {
@@ -52,7 +52,7 @@
   },
   "files": {
     "format_checker.config": {
-      "path": ".codebuddy.project/configs/skills/csharp-format-checker/config.json",
+      "path": ".codebuddy.project/configs/skills/csharp/csharp-format-checker/config.json",
       "format": "json",
       "template": {
         "version": 1,
@@ -77,7 +77,7 @@
       }
     },
     "code_review.config": {
-      "path": ".codebuddy.project/configs/skills/csharp-code-review/config.json",
+      "path": ".codebuddy.project/configs/skills/csharp/csharp-code-review/config.json",
       "format": "json",
       "template": {
         "version": 1,
@@ -98,7 +98,7 @@
       }
     },
     "git_commit.config": {
-      "path": ".codebuddy.project/configs/skills/git-commit/config.json",
+      "path": ".codebuddy.project/configs/skills/vcs/git-commit/config.json",
       "format": "json",
       "template": {
         "version": 1,
@@ -123,7 +123,7 @@
       }
     },
     "git_commit.project_config": {
-      "path": ".codebuddy.project/configs/skills/git-commit/project-config.md",
+      "path": ".codebuddy.project/configs/skills/vcs/git-commit/project-config.md",
       "format": "markdown",
       "template_outline": [
         "# 版本控制项目配置（project-config）",
@@ -136,7 +136,7 @@
       ]
     },
     "coverage.project_config": {
-      "path": ".codebuddy.project/configs/skills/csharp-test-coverage/tools/CSharpTestCoverage/coverage_config.project.json",
+      "path": ".codebuddy.project/configs/skills/csharp/csharp-test-coverage/tools/CSharpTestCoverage/coverage_config.project.json",
       "format": "json",
       "template": {
         "version": 1,
@@ -185,7 +185,7 @@
       }
     },
     "comment.project_config": {
-      "path": ".codebuddy.project/configs/skills/csharp-comment-checker/tools/CSharpCommentChecker/comment_config.project.json",
+      "path": ".codebuddy.project/configs/skills/csharp/csharp-comment-checker/tools/CSharpCommentChecker/comment_config.project.json",
       "format": "json",
       "template": {
         "_comment": "本文件为 csharp-comment-checker 的项目相关配置，与引擎侧 tools/CSharpCommentChecker/comment_config.json 的 rules（规则与严重程度）配合使用。exclude.paths 列出目标项目应排除的目录（三方库、生成代码等），knownTerms 声明目标项目可保留英文的技术术语。配置缺失、损坏或缺少字段时工具直接报错退出（退出码 3）。",
@@ -208,7 +208,7 @@
       }
     },
     "coverage.golden_samples": {
-      "path": ".codebuddy.project/configs/skills/csharp-test-coverage/scripts/golden_samples.json",
+      "path": ".codebuddy.project/configs/skills/csharp/csharp-test-coverage/scripts/golden_samples.json",
       "format": "json",
       "template": {
         "_comment": "本文件为 csharp-test-coverage 的黄金样本回归数据（本项目专属，声明本项目已知正确的覆盖率分析结果）。迁移到新项目时按目标项目实际情况重写，或清空 samples 数组。",
@@ -216,7 +216,7 @@
       }
     },
     "coverage.trigger_cases": {
-      "path": ".codebuddy.project/configs/skills/csharp-test-coverage/scripts/trigger_cases.json",
+      "path": ".codebuddy.project/configs/skills/csharp/csharp-test-coverage/scripts/trigger_cases.json",
       "format": "json",
       "template": {
         "_comment": "本文件为 csharp-test-coverage 的触发评估用例数据（含本项目专有路径示例）。结构为分桶用例集：should_trigger 为应触发、should_not_trigger 为不应触发、near_neighbor 为邻近易混淆；recommended_threshold 为判定阈值。迁移到新项目时替换含项目路径的用例即可。",
@@ -233,7 +233,7 @@
       }
     },
     "format_checker.trigger_cases": {
-      "path": ".codebuddy.project/configs/skills/csharp-format-checker/evals/trigger/trigger_cases.json",
+      "path": ".codebuddy.project/configs/skills/csharp/csharp-format-checker/evals/trigger/trigger_cases.json",
       "format": "json",
       "template": {
         "_comment": "本文件为 csharp-format-checker 的触发评估用例数据（含本项目专有路径与工程名示例）。结构为分桶用例集：should_trigger / should_not_trigger / near_neighbor。迁移到新项目时替换含项目路径的用例即可。",
@@ -249,7 +249,7 @@
       }
     },
     "comment_checker.trigger_cases": {
-      "path": ".codebuddy.project/configs/skills/csharp-comment-checker/scripts/trigger_cases.json",
+      "path": ".codebuddy.project/configs/skills/csharp/csharp-comment-checker/scripts/trigger_cases.json",
       "format": "json",
       "template": {
         "_comment": "本文件为 csharp-comment-checker 的触发评估用例数据（含本项目专有路径与术语示例）。结构为分桶用例集：should_trigger / should_not_trigger / near_neighbor。迁移到新项目时替换含项目路径/术语的用例即可。",
@@ -267,7 +267,7 @@
   },
   "rule_shells": {
     "rules/core/project-guide/RULE.mdc": {
-      "path": ".codebuddy.project/configs/rules/project-guide/RULE.mdc",
+      "path": ".codebuddy.project/configs/rules/core/project-guide/RULE.mdc",
       "format": "markdown",
       "template_outline": [
         "# 项目指导",
@@ -279,7 +279,7 @@
       ]
     },
     "rules/core/project-guide/architecture.mdc": {
-      "path": ".codebuddy.project/configs/rules/project-guide/architecture.mdc",
+      "path": ".codebuddy.project/configs/rules/core/project-guide/architecture.mdc",
       "format": "markdown",
       "template_outline": [
         "# 架构细则",
@@ -293,7 +293,7 @@
       ]
     },
     "rules/core/project-guide/commands.mdc": {
-      "path": ".codebuddy.project/configs/rules/project-guide/commands.mdc",
+      "path": ".codebuddy.project/configs/rules/core/project-guide/commands.mdc",
       "format": "markdown",
       "template_outline": [
         "# 常用命令",
@@ -304,7 +304,7 @@
       ]
     },
     "rules/core/project-guide/dependencies.mdc": {
-      "path": ".codebuddy.project/configs/rules/project-guide/dependencies.mdc",
+      "path": ".codebuddy.project/configs/rules/core/project-guide/dependencies.mdc",
       "format": "markdown",
       "template_outline": [
         "# 第三方依赖",
@@ -314,7 +314,7 @@
       ]
     },
     "rules/core/project-guide/git-ignore.mdc": {
-      "path": ".codebuddy.project/configs/rules/project-guide/git-ignore.mdc",
+      "path": ".codebuddy.project/configs/rules/core/project-guide/git-ignore.mdc",
       "format": "markdown",
       "template_outline": [
         "# Git 忽略内容清单",
@@ -324,7 +324,7 @@
       ]
     },
     "rules/core/project-guide/testing.mdc": {
-      "path": ".codebuddy.project/configs/rules/project-guide/testing.mdc",
+      "path": ".codebuddy.project/configs/rules/core/project-guide/testing.mdc",
       "format": "markdown",
       "template_outline": [
         "# 测试约束",
@@ -334,7 +334,7 @@
       ]
     },
     "rules/csharp/csharp-code/architecture-spec.mdc": {
-      "path": ".codebuddy.project/configs/rules/csharp-code/architecture-spec.mdc",
+      "path": ".codebuddy.project/configs/rules/csharp/csharp-code/architecture-spec.mdc",
       "format": "markdown",
       "template_outline": [
         "# 架构与性能审查 —— 项目事实",
@@ -344,7 +344,7 @@
       ]
     },
     "rules/csharp/csharp-lsp/RULE.mdc": {
-      "path": ".codebuddy.project/configs/rules/csharp-lsp/RULE.mdc",
+      "path": ".codebuddy.project/configs/rules/csharp/csharp-lsp/RULE.mdc",
       "format": "markdown",
       "template_outline": [
         "# C# LSP 使用规则 —— 项目事实",
@@ -353,7 +353,7 @@
       ]
     },
     "rules/csharp/csharp-test/naming-layout.mdc": {
-      "path": ".codebuddy.project/configs/rules/csharp-test/naming-layout.mdc",
+      "path": ".codebuddy.project/configs/rules/csharp/csharp-test/naming-layout.mdc",
       "format": "markdown",
       "template_outline": [
         "# 测试文件命名 —— 项目事实",

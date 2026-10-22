@@ -85,7 +85,7 @@ python .codebuddy/skills/vcs/git-commit/scripts/validate_commit_subject.py "<typ
 ### 阶段五：执行项目专有钩子（H1 暂存前）
 
 H1 钩子步骤由**项目侧配置**声明（经索引 `git_commit.project_config` 定位到
-`.codebuddy.project/configs/skills/git-commit/project-config.md`）。读取其 §3「H1 暂存前」步骤列表，
+`.codebuddy.project/configs/skills/vcs/git-commit/project-config.md`）。读取其 §3「H1 暂存前」步骤列表，
 **按表内顺序**执行 `enabled=true` 的步骤；`blocking=false` 失败仅告警，`blocking=true` 失败即中止并询问用户。
 
 本项目 H1 默认含两个步骤，按序为：

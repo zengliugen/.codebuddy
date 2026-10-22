@@ -3,7 +3,7 @@
 
 校验提交摘要是否符合项目规范。**type 枚举、subject/scope 长度上限、subject 语言
 全部读取项目侧配置（经 `.codebuddy/project.index.json` 的 `git_commit.config` 定位
-到 `.codebuddy.project/configs/skills/git-commit/config.json`）的 `commit_subject` 配置**；配置缺失、损坏
+到 `.codebuddy.project/configs/skills/vcs/git-commit/config.json`）的 `commit_subject` 配置**；配置缺失、损坏
 或缺少字段时**直接报错退出**，不静默回退内置默认值（配置是这些约定的唯一来源）：
 - 格式 `<type>(<scope>): <subject>`
 - type 属于配置的合法枚举

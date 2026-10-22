@@ -49,8 +49,8 @@ safety_constraints:
 references:
   - commit-spec: references/commit-spec.md
   - submission-safety: references/submission-safety.md
-  - project-config: references/project-config.md（引擎侧机制）+ 项目侧 .codebuddy.project/configs/skills/git-commit/project-config.md（索引 git_commit.project_config）
-  - vcs-config: 项目侧 .codebuddy.project/configs/skills/git-commit/config.json（索引 git_commit.config）
+  - project-config: references/project-config.md（引擎侧机制）+ 项目侧 .codebuddy.project/configs/skills/vcs/git-commit/project-config.md（索引 git_commit.project_config）
+  - vcs-config: 项目侧 .codebuddy.project/configs/skills/vcs/git-commit/config.json（索引 git_commit.config）
   - vcs-lock: references/vcs-lock.md
   - vcs-entry-rules: ../rules/vcs-router/RULE.mdc
   - vcs-commit-spec: ../rules/vcs-router/common-commit-spec.mdc

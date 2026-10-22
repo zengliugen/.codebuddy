@@ -6,7 +6,7 @@ unity-pipeline 技能环境检查脚本：Unity CLI 安装状态检查。
 功能：
 1. 安装检查 —— 确认 `unity` 命令是否在 PATH 且可执行（`unity --version` 验证）。
 2. 本地缓存 —— 检查通过后，将结果连同环境指纹写入本地缓存
-   （默认项目侧 .codebuddy.project/caches/skills/unity-pipeline/.cache/ 下，Unity CLI 为机器级安装，不按项目隔离）。
+   （默认项目侧 .codebuddy.project/caches/skills/unity-pipeline/unity-pipeline/.cache/ 下，Unity CLI 为机器级安装，不按项目隔离）。
    当缓存未超过 24 小时有效期且环境指纹（unity 命令路径、版本输出）未变化时，
    直接复用上次通过结论，跳过重复检查。失败结果不缓存。
 
