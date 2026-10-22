@@ -73,6 +73,45 @@ def git_ok(args, cwd):
     return out if rc == 0 else None
 
 
+# 进度总步数：1 检测形态、2 前置检查、3 获取远程、4 比较差异、5 拉取、6 重建包链接。
+TOTAL_STEPS = 6
+
+
+def log_step(index, message):
+    """输出分步进度。
+
+    一律写 stderr：stdout 需留给 --json 的结构化结果，混入进度会破坏可解析性。
+    每次写入后立即 flush，保证双击运行时进度逐条出现，而非结束时一次性刷出。
+    """
+    sys.stderr.write("[%d/%d] %s\n" % (index, TOTAL_STEPS, message))
+    sys.stderr.flush()
+
+
+def log_detail(message):
+    """输出步骤内的细节行（缩进对齐，便于扫读）。"""
+    sys.stderr.write("        %s\n" % message)
+    sys.stderr.flush()
+
+
+def log_note(message):
+    """输出提示/告警（带前缀，与普通细节区分）。"""
+    sys.stderr.write("        [提示] %s\n" % message)
+    sys.stderr.flush()
+
+
+def rev_parse_head(repo_dir):
+    """取当前 HEAD 的完整哈希；失败返回空串。"""
+    return git_ok(["rev-parse", "HEAD"], repo_dir) or ""
+
+
+def list_commits(repo_dir, rev_range, limit=20):
+    """列出指定范围（如 HEAD..origin/main）的提交，返回 ["<短哈希> <标题>", ...]。"""
+    rc, out, _err = run_git(["log", "--oneline", "--no-decorate", rev_range], repo_dir)
+    if rc != 0 or not out:
+        return []
+    return [line for line in out.splitlines() if line.strip()][:limit]
+
+
 def detect_repo(target_dir):
     """探测目标目录所在的仓库，返回信息字典。
 
@@ -147,7 +186,12 @@ def divergence(repo_dir, ref_remote):
 
 def do_update(target_dir, branch_override, fetch_only, dry_run):
     """执行更新主流程，返回结果字典。"""
+    log_step(1, "检测仓库形态与分支…")
     info = detect_repo(target_dir)
+    log_detail("仓库根目录：%s" % info["toplevel"])
+    log_detail("仓库形态  ：%s" % ("子模块（submodule）" if info["is_submodule"] else "普通仓库"))
+    if info["superproject"]:
+        log_detail("所属父仓  ：%s" % info["superproject"])
 
     # 分支确定：显式参数 > 当前分支；子模块可能处于 detached（无当前分支）
     branch = branch_override or info["branch"]
@@ -158,12 +202,17 @@ def do_update(target_dir, branch_override, fetch_only, dry_run):
         )
     info["branch"] = branch
 
+    log_detail("目标分支  ：%s%s" % (branch, "" if info["branch"] else "（由 --branch 指定）"))
+    log_detail("上游分支  ：%s" % (info["upstream"] or "（未配置，将回退 origin/%s）" % branch))
+
     if not info["remote_url"]:
         raise UpdateError(
             "仓库未配置远程 origin，无法拉取更新：%s\n"
             "       请先 `git remote add origin <远程地址>`。" % info["toplevel"]
         )
+    log_detail("远程地址  ：%s" % info["remote_url"])
 
+    log_step(2, "检查进行中的合并 / 变基…")
     # 进行中的合并 / 变基：不做任何网络操作
     in_progress = check_in_progress(info["toplevel"])
     if in_progress:
@@ -171,6 +220,7 @@ def do_update(target_dir, branch_override, fetch_only, dry_run):
             "检测到进行中的%s操作，为安全起见中止。\n"
             "       请先完成或中止该操作（如 `git merge --abort` / `git rebase --abort`）。" % in_progress
         )
+    log_detail("未发现进行中的合并 / 变基，可安全更新。")
 
     result = {
         "toplevel": info["toplevel"],
@@ -184,18 +234,23 @@ def do_update(target_dir, branch_override, fetch_only, dry_run):
         "ahead": None,
         "dirty": False,
         "dirty_lines": [],
+        "before_head": "",
+        "after_head": "",
         "notice": "",
     }
 
     # 1. fetch（无论哪种模式都先取远程最新）
+    log_step(3, "从远程获取最新提交（git fetch --prune）…")
     rc, _out, err = run_git(["fetch", "--prune", "origin"], info["toplevel"])
     if rc != 0:
         raise UpdateError("git fetch 失败：%s" % (err or "未知错误"))
+    log_detail("远程获取完成。")
 
     # 远程分支引用（优先用上游；无上游则回退 origin/<branch>）
     remote_ref = "origin/%s" % branch
 
     # 2. 工作区脏：仅报告，不拉取
+    log_step(4, "比较本地与远程差异…")
     dirty, dirty_lines = working_tree_dirty(info["toplevel"])
     if dirty:
         result["dirty"] = True
@@ -204,6 +259,8 @@ def do_update(target_dir, branch_override, fetch_only, dry_run):
         div = divergence(info["toplevel"], remote_ref)
         if div:
             result["ahead"], result["behind"] = div
+        log_note("工作区存在 %d 项未提交改动，已跳过拉取（避免冲突或丢失改动）。" % len(dirty_lines))
+        log_detail("第 5 步「快进拉取」不会执行；仍会校验包链接以修复悬空。")
         result["notice"] = (
             "工作区存在未提交改动，已跳过拉取（避免冲突或丢失改动）。\n"
             "       请先提交或暂存改动后重试；如需查看差异可执行 git log HEAD..%s。" % remote_ref
@@ -215,10 +272,19 @@ def do_update(target_dir, branch_override, fetch_only, dry_run):
     if div:
         result["ahead"], result["behind"] = div
 
+    if result["behind"] is None:
+        log_note("无法与 %s 比较（远程分支可能不存在），将跳过差异统计。" % remote_ref)
+    else:
+        log_detail("本地领先 %d 个提交，落后 %d 个提交（对比 %s）。"
+                   % (result["ahead"], result["behind"], remote_ref))
+
     if fetch_only or dry_run:
         result["action"] = "fetch-only"
         if result["behind"]:
             result["notice"] = "已获取远程最新；本地落后 %d 个提交（未拉取）。" % result["behind"]
+            log_note("报告模式：不拉取。待拉取的提交：")
+            for line in list_commits(info["toplevel"], "HEAD..%s" % remote_ref):
+                log_detail("  " + line)
         else:
             result["notice"] = "已获取远程最新；本地已是最新。"
         return result
@@ -226,9 +292,21 @@ def do_update(target_dir, branch_override, fetch_only, dry_run):
     # 4. 已是最好新 → 无需拉取
     if result["behind"] == 0:
         result["action"] = "up-to-date"
+        log_detail("本地已是最新，无需拉取。")
         return result
 
+    # 待拉取的提交先列出来，让用户看到「更新了什么」
+    pending = list_commits(info["toplevel"], "HEAD..%s" % remote_ref)
+    if pending:
+        log_detail("待拉取 %d 个提交（最多显示 20 条）：" % result["behind"])
+        for line in pending:
+            log_detail("  " + line)
+        if result["behind"] > len(pending):
+            log_detail("  …另有 %d 个提交未显示" % (result["behind"] - len(pending)))
+
     # 5. 快进拉取（--ff-only：无法快进则报错，避免意外合并提交）
+    before_head = rev_parse_head(info["toplevel"])
+    log_step(5, "快进拉取（git pull --ff-only）…")
     if info["upstream"]:
         pull_args = ["pull", "--ff-only"]
     else:
@@ -240,9 +318,17 @@ def do_update(target_dir, branch_override, fetch_only, dry_run):
             "       请手动处理分叉（如 git rebase origin/%s）后重试。" % (err or out, branch)
         )
     result["action"] = "pulled"
+    after_head = rev_parse_head(info["toplevel"])
+    result["before_head"] = before_head[:7]
+    result["after_head"] = after_head[:7]
+    if before_head and after_head:
+        log_detail("HEAD 变化：%s → %s" % (before_head[:7], after_head[:7]))
+    else:
+        log_detail("拉取完成。")
 
     # 6. 子模块额外提醒：父仓需提交指针更新
     if info["is_submodule"]:
+        log_note("子模块已更新，父仓仍需提交指针更新才会对其他协作者生效。")
         result["notice"] = (
             "子模块已更新，但父仓仍锁定旧提交。\n"
             "       如需让更新生效，请在父仓执行：\n"
@@ -275,6 +361,8 @@ def print_report(result):
         print("结果：本地已是最新，无需更新。")
     elif action == "pulled":
         print("结果：已快进拉取到最新（落后 %s 个提交）。" % result["behind"])
+        if result.get("before_head") and result.get("after_head"):
+            print("        HEAD：%s → %s" % (result["before_head"], result["after_head"]))
     elif action == "fetch-only":
         print("结果：已获取远程最新（未拉取）。")
     elif action == "report-only":
@@ -307,10 +395,14 @@ def rebuild_pack_links(engine_dir):
     project_root = os.path.dirname(engine_dir)
     state_path = os.path.join(project_root, ".codebuddy.project", "configs", "packs.json")
     installer = os.path.join(engine_dir, "scripts", "pack_install.py")
+    log_step(TOTAL_STEPS, "重建项目侧包链接…")
     if not os.path.isfile(state_path):
+        log_detail("未检测到项目侧安装状态（纯引擎仓），跳过。")
         return None, "未检测到项目侧安装状态，跳过包链接重建"
     if not os.path.isfile(installer):
+        log_note("未找到引擎侧包安装器：%s" % installer)
         return 3, "未找到引擎侧包安装器：%s" % installer
+    log_detail("调用 pack_install.py verify --repair …")
     result = subprocess.run(
         [sys.executable, installer, "--project-root", project_root, "verify", "--repair"],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -334,10 +426,17 @@ def main():
     # 默认目标：脚本所在目录（.codebuddy/scripts → .codebuddy）
     target_dir = args.dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+    if not args.json:
+        sys.stderr.write("=" * 64 + "\n")
+        sys.stderr.write("CodeBuddy 引擎更新（共 %d 步）\n" % TOTAL_STEPS)
+        sys.stderr.write("=" * 64 + "\n")
+        sys.stderr.flush()
+
     try:
         result = do_update(target_dir, args.branch, args.fetch_only, args.dry_run)
     except UpdateError as error:
-        sys.stderr.write("[错误] %s\n" % error)
+        sys.stderr.write("\n[错误] %s\n" % error)
+        sys.stderr.flush()
         return 3
 
     # 更新后重建项目侧包链接：引擎内的组件可能改名/删除，链接需重新对齐
