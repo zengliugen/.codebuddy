@@ -43,7 +43,7 @@
 │   ├── csharp/                 #   包 csharp：rules/ skills/ agents/
 │   ├── unity-pipeline/         #   包 unity-pipeline
 │   ├── grilling/               #   包 grilling（含 grilling + grill-me 两个技能）
-│   └── yao-meta-skill/         #   包 yao-meta-skill
+│   └── yao-meta-skill/         #   包 yao-meta-skill（rules/ skills/：技能工程强制入口）
 │
 ├── rules/                      # 规则扫描根：默认包真实目录 + 可选包链接
 │   ├── core/                   #   默认包：language/ project-guide/
@@ -212,7 +212,7 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 | `csharp` | C# | ❌ | rules: csharp-code、csharp-comment、csharp-lsp、csharp-test；skills: 6 个；agents: 2 个 |
 | `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
 | `grilling` | third-party | ❌ | skills: grilling、grill-me |
-| `yao-meta-skill` | third-party | ❌ | skills: yao-meta-skill |
+| `yao-meta-skill` | third-party | ❌ | rules: yao-meta-skill；skills: yao-meta-skill |
 
 ```bash
 python .codebuddy/scripts/pack_install.py list             # 列出全部包与安装状态
@@ -291,6 +291,8 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
 6. **四条触发规则职责不同，勿合并**：`codebuddy-engine-vcs` 管「提交到哪个仓库」，
    `codebuddy-project-config` 管「内容如何写」（项目内容外置），`engine-maintenance` 管「还要同步维护哪些地方」
    （登记表与引用一致性），`bash-command-shape` 管「命令如何构造」（避免权限系统的无谓拦截）。
+   另：`yao-meta-skill` 包的 `rules/yao-meta-skill/` 是**技能工程的强制入口**（技能创建/重构/审计必须走该技能），
+   属可选包规则，仅在安装该包时生效。
 
 ## 运行环境
 

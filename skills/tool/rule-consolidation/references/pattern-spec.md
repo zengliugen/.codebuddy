@@ -76,6 +76,7 @@ provider:
 | `language` | alwaysApply: true | 1 | 语言编码规范 |
 | `project-guide` | alwaysApply: true | 5 | 项目指导（**项目事实，迁移时整体重写**） |
 | `unity-pipeline` | alwaysApply: true | 1 | Unity 操作规范 |
+| `yao-meta-skill` | alwaysApply: true | 0 | 技能工程强制入口（创建/重构/审计技能必须走该技能）；可选包规则，未装包时不存在 |
 | `vcs-router` | alwaysApply: true | 4 | 提交规范（仅 Git；审查门禁已并入 `git-commit/references/project-config.md`，不在本规则目录） |
 
 > **注**：`bash-command-shape` 常驻（`alwaysApply: true`，约 2.3 KB），核心底线压进入口、分级细则下沉子规则，是为让规则在构造命令时真正生效的必要代价。
