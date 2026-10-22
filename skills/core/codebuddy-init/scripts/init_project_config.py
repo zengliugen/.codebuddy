@@ -247,59 +247,55 @@ def build_cleanup_cmd_content():
 
 
 def build_project_skills_readme_content():
-    """生成 `.codebuddy.project/skills/README.md` 内容（项目专有技能落点与加载机制说明）。"""
-    return """# 项目专有技能（.codebuddy.project/skills）
+    """生成 `.codebuddy.project/skills/README.md` 内容（组件落点与加载机制说明）。"""
+    return """# 项目侧技能目录（.codebuddy.project/skills）
 
-本目录存放**本项目专有**的技能，随本项目仓库版本控制；`.codebuddy` 引擎（可 submodule 化、
+本目录存放**本项目独有的技能与 pack 链接**，随本项目仓库版本控制；`.codebuddy` 引擎（可 submodule 化、
 多项目共享）不含本项目内容。
 
-## 如何被 CodeBuddy 加载（自动，无需任何参数）
-
-`.codebuddy/skills/` 是 CodeBuddy 的**内置技能扫描目录**。本目录经一个**目录软链接**挂载到该扫描目录下：
-
-```
-.codebuddy/skills/project-skills  ──软链接──▶  ../../.codebuddy.project/skills
-```
-
-即本目录下的技能自动出现在 `.codebuddy/skills/project-skills/`，被 CodeBuddy 扫描并加载
-（**实测：技能目录支持符号链接**）。新增/修改技能后新开会话生效。
-
-> **为什么用软链接而不是插件**：实测 CodeBuddy 的插件机制对项目级自动加载支持不佳
-> （插件目录的软链接不被解析、settings 自动安装的 project 作用域插件不加载技能）；
-> 而 **`.codebuddy/skills/` 明确支持符号链接**，故项目专有技能统一走"软链接 + 技能目录"方案。
-
-## 目录结构
+## 两类内容共存
 
 ```
 .codebuddy.project/skills/
-├── .gitkeep                 # 占位（保证空目录入库）
-└── <技能名>/
-    ├── SKILL.md             # 技能定义（frontmatter 含 name、description）
-    ├── scripts/             # 可选：技能脚本
-    └── references/          # 可选：参考资料
+├── <pack>             # 引擎可选包的组件链接（由 pack_install.py 创建，勿手工增删）
+└── project/           # ★项目专有技能（真实目录，随项目入库）
 ```
+
+**`project` 与其他包同级并列**，区别仅在于它是真实目录（其他包是指向 `lib/` 的链接）。
+规则与代理目录（`.codebuddy.project/rules/`、`.codebuddy.project/agents/`）结构完全一致。
+
+## 如何被 CodeBuddy 加载
+
+`.codebuddy/skills/` 是 CodeBuddy 的**内置技能扫描目录**。每个包经一个**目录软链接**挂载到该扫描目录下：
+
+```
+.codebuddy/skills/<pack>     ──软链接──▶  ../../.codebuddy.project/skills/<pack>
+.codebuddy/skills/project    ──软链接──▶  ../../.codebuddy.project/skills/project
+```
+
+即本目录下的技能自动出现在 `.codebuddy/skills/<pack>/`，被 CodeBuddy 扫描并加载
+（**实测：技能目录支持符号链接**）。新增/修改技能后新开会话生效。
 
 ## 创建项目专有技能
 
-1. 建技能目录：`.codebuddy.project/skills/<技能名>/`
+1. 建技能目录：`.codebuddy.project/skills/project/<技能名>/`
 2. 写 `SKILL.md`（frontmatter 含 `name`、`description`）。
-3. **无需其他操作**——软链接已存在，CodeBuddy 自动扫描；新开会话即可见。
+3. **无需其他操作**——`.codebuddy/skills/project` 链接已存在，CodeBuddy 自动扫描；新开会话即可见。
 
 ## 跨机器注意事项
 
 - **git 配置**：克隆者需 `git config core.symlinks true`（Windows 默认 `false`）。若为 `false`，
-  克隆出来是一个内容为路径字符串的普通文件；此时运行 `codebuddy-init` 可重建链接。
+  克隆出来是一个内容为路径字符串的普通文件；此时运行 `.codebuddy/setup.cmd --force` 重建链接。
 - **创建链接的权限**：Windows 需开启"开发者模式"或以管理员身份运行；`mklink /D` 失败时，
   初始化脚本会告警并给出手工命令。
 - **平台**：macOS / Linux 原生支持符号链接，无额外要求。
-- **链接目标用相对路径**（`../../.codebuddy.project/skills`），保证跨机器有效。
+- **链接目标用相对路径**（`../../.codebuddy.project/skills/<pack>`），保证跨机器有效。
 
 ## 与引擎的关系
 
-本目录**不进入** `.codebuddy` 引擎库；引擎只提供"`.codebuddy/skills/` 会被扫描"这一约定
-（软链接随项目仓库入库，指向本目录）。项目专有技能与引擎解耦，各自独立演进。
+本目录**不进入** `.codebuddy` 引擎库。可选包组件真实内容在引擎 `lib/<pack>/` 下，本目录只存
+**指向它的链接**；`project/` 下是项目真实文件，与引擎完全解耦。
 """
-
 
 def build_project_skills_targets(project_root):
     """构造项目专有技能目录骨架的待生成文件清单：[(绝对路径, 内容)]。
@@ -311,50 +307,13 @@ def build_project_skills_targets(project_root):
     return [
         (os.path.join(base, "README.md"), build_project_skills_readme_content()),
         (os.path.join(base, ".gitkeep"),
-         "# 占位文件：保证空的 .codebuddy.project/skills/ 目录能入库。\n"
-         "# 项目专有技能放在本目录下的 <技能名>/SKILL.md，经 .codebuddy/skills/project-skills 软链接被自动加载。\n"),
+         "# 占位文件：保证空的本目录能入库。\n"
+         "# 本目录下有两类内容：\n"
+         "#   <pack>/     引擎可选包的组件链接（由 pack_install.py 创建，勿手工增删）\n"
+         "#   project/    项目专有技能（真实目录，随项目入库）\n"
+         "# 项目专有技能请放 .codebuddy.project/skills/project/<技能名>/SKILL.md，\n"
+         "# 经 .codebuddy/skills/project 链接被加载。\n"),
     ]
-
-
-def ensure_project_skills_link(project_root, force=False):
-    """建立 `.codebuddy/skills/project-skills` 软链接，指向 `../../.codebuddy.project/skills`。
-
-    返回 (状态, 说明)：状态为 `created` / `exists` / `failed`。
-    Windows 用 `mklink /D`（相对路径，可入库为符号链接）；类 Unix 用 `os.symlink`。
-    失败时不抛错，由调用方告警并提示手工命令。
-    """
-    link_path = os.path.normpath(os.path.join(project_root, ".codebuddy", "skills", "project-skills"))
-    target_rel = os.path.join("..", "..", ".codebuddy.project/skills")
-
-    # 已存在（链接或目录）：默认不处理；force 时先移除再重建
-    if os.path.lexists(link_path):
-        if not force:
-            return "exists", link_path
-        try:
-            if os.path.isdir(link_path) and not os.path.islink(link_path):
-                import shutil as _shutil
-                _shutil.rmtree(link_path)
-            else:
-                os.remove(link_path)
-        except OSError as error:
-            return "failed", "移除已存在链接失败：%s（%s）" % (link_path, error)
-
-    os.makedirs(os.path.dirname(link_path), exist_ok=True)
-    try:
-        if os.name == "nt":
-            import subprocess
-            # mklink 是 cmd 内建命令，需经 cmd /c 调用；cwd 设在目标父目录以便相对路径解析
-            result = subprocess.run(
-                ["cmd", "/c", "mklink", "/D", link_path, target_rel],
-                capture_output=True, text=True, encoding="utf-8", errors="replace",
-            )
-            if result.returncode != 0:
-                return "failed", (result.stderr or result.stdout or "").strip()
-        else:
-            os.symlink(target_rel, link_path, target_is_directory=True)
-    except OSError as error:
-        return "failed", str(error)
-    return "created", link_path
 
 
 def build_root_symlink_targets(index, project_root):
@@ -433,7 +392,7 @@ def readme_content(project_config_root):
 ├── configs/            # 配置（入库）：settings.json、skills/<技能>/、rules/<规则>/ 等
 ├── caches/             # 运行时产物（不入库）：各技能 check_logs/、.cache/、.vcs-lock/ 等
 ├── store/              # 持久化项目结果（入库）：需长期保留的运行结果
-├── skills/             # 项目专有技能（入库）：经 .codebuddy/skills/project-skills 软链接被加载
+├── skills/             # 技能目录（入库）：<pack>/ 可选包链接，project/ 项目专有技能
 ├── README.md
 ├── .gitignore          # 忽略 caches/ 与系统临时文件
 └── cleanup-caches.cmd  # 缓存清理入口（薄入口，调用引擎侧清理工具）
@@ -471,8 +430,8 @@ def readme_content(project_config_root):
 
 ## 项目专有技能
 
-项目专有技能放在本目录的 `skills/<技能名>/SKILL.md`（随项目入库），
-经软链接 `.codebuddy/skills/project-skills` 被 CodeBuddy 自动加载（详见其 `README.md`）。
+项目专有技能放在本目录的 `skills/project/<技能名>/SKILL.md`（随项目入库），
+经软链接 `.codebuddy/skills/project` 被 CodeBuddy 自动加载（详见 `skills/README.md`）。
 这样与 `.codebuddy` 引擎解耦：引擎可 submodule 化、多项目共享，项目专有内容只随本仓库版本控制、不进入引擎。
 
 ## 维护约定
@@ -695,9 +654,6 @@ def main():
             return 1
         created_dirs.append(abs_path)
 
-    # 建立项目专有技能软链接：.codebuddy/skills/project-skills -> ../../.codebuddy.project/skills
-    link_status, link_info = ensure_project_skills_link(project_root, force=args.force)
-
     # 建立根级文件软链接（如 .codebuddy/settings.json -> ../.codebuddy.project/configs/settings.json）
     root_link_results = []
     for code_name, link_abs, src_abs, fmt, entry in root_symlinks:
@@ -727,7 +683,6 @@ def main():
             "created": created,
             "created_dirs": created_dirs,
             "skipped": skipped,
-            "project_skills_link": {"status": link_status, "path": link_info},
             "root_symlinks": [
                 {"name": n, "status": s, "link": os.path.relpath(l, project_root),
                  "source": os.path.relpath(src, project_root), "info": i}
@@ -754,17 +709,6 @@ def main():
             print("  = %s" % os.path.relpath(path, project_root))
     print()
 
-    # 软链接结果
-    if link_status == "created":
-        print("[链接] 已创建：.codebuddy/skills/project-skills -> ../../.codebuddy.project/skills")
-    elif link_status == "exists":
-        print("[链接] 已存在（未改动）：.codebuddy/skills/project-skills")
-    else:
-        print("[警告] 项目专有技能软链接创建失败：%s" % link_info)
-        print("       项目专有技能将无法被自动加载。请手工创建（Windows 需开发者模式/管理员）：")
-        print("         cd .codebuddy\\skills && mklink /D project-skills ..\\..\\.codebuddy.project\\skills")
-        print("       （类 Unix： ln -s ../../.codebuddy.project/skills .codebuddy/skills/project-skills）")
-
     # 根级文件软链接结果
     for code_name, link_abs, src_abs, status, info in root_link_results:
         rel_link = os.path.relpath(link_abs, project_root)
@@ -784,7 +728,7 @@ def main():
     print()
     print("下一步：按项目实际情况填写上述配置中的 `<...>` 占位值。")
     print("        未填写的配置在首次运行对应技能时会报错（配置缺失即报错）。")
-    print("        项目专有技能放 .codebuddy.project/skills/<技能名>/SKILL.md（经软链接自动加载）。")
+    print("        项目专有内容放 .codebuddy.project/<类型>/project/ 下（经 .codebuddy/<类型>/project 链接自动加载）。")
 
     # --setup 结果摘要
     if setup_report is not None:

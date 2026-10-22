@@ -61,9 +61,10 @@ provider:
 ├── project.index.json                       # 配置注册表（入库，路径 + 骨架，无项目专有值）
 ├── settings.json -> ../.codebuddy.project/configs/settings.json   # 项目级设置的软链接（源文件外置，入库）
 ├── models.json / settings.local.json        # 机器级/本机级（绑定本机，git 忽略，不外置）
+├── lib/<pack>/                             # 引擎可选组件池（按包分层）
 └── skills/
-    ├── <技能名>/…                           # 引擎技能
-    └── project-skills -> ../../.codebuddy.project/skills   # 项目专有技能软链接（入库）
+    ├── <pack>/                             # 默认包真实目录 / 可选包链接（按 packs.json）
+    └── project -> ../../.codebuddy.project/skills/project  # 项目专有包软链接（入库）
 <项目根>/.codebuddy.project/                  # 项目侧（具体项目）
 ├── configs/                                  # 配置（入库）
 │   ├── settings.json                         # 项目级设置源文件（被引擎内软链接引用）
@@ -73,8 +74,10 @@ provider:
 │   ├── skills/<技能名>/check_logs/、.cache/  # 各技能产物（脚本落盘，镜像引擎结构）
 │   └── .vcs-lock/                            # VCS 写操作互斥锁（运行时生成）
 ├── store/                                    # 持久化项目结果（入库）
-├── skills/                                   # 项目专有技能（入库）
-│   └── <技能名>/SKILL.md                     # 经 .codebuddy/skills/project-skills 软链接被自动加载
+├── skills/                                   # 技能目录（入库）
+│   ├── <pack>/ -> ../../.codebuddy/lib/<pack>/skills      # 可选包整目录链接
+│   └── project/                              # 项目专有技能（真实目录）
+│       └── <技能名>/SKILL.md                 # 经 .codebuddy/skills/project 软链接被自动加载
 ├── .gitignore                                # 忽略 caches/ 与系统临时文件
 └── cleanup-caches.cmd                        # 缓存清理入口（薄入口，调用引擎侧工具）
 ```
@@ -85,7 +88,8 @@ provider:
 - 项目侧位置由 `.codebuddy/project.index.json` 声明（`files` 配置类、`rule_shells` 规则正文、`artifacts.dirs` 产物目录、`root_symlinks.entries` 根级软链接外置文件）。
 - 项目侧路径与引擎侧**相对路径镜像**（`.codebuddy/skills/X/a.json` → `.codebuddy.project/configs/skills/X/a.json`）。
 - **运行时产物**（`check_logs`/`.cache`/`.vcs-lock`）经索引 `artifacts.dirs` 定位，由项目侧 `.gitignore` 忽略、不入库。
-- **项目专有技能**放 `.codebuddy.project/skills/`（与 `configs/` 平级，随项目入库），经 `.codebuddy/skills/project-skills` **软链接**被 CodeBuddy 扫描加载（实测技能目录支持符号链接；插件机制不适用）。
+- **项目专有包**（`project`）的内容放 `.codebuddy.project/<类型>/project/`（与各 pack 同级并列，真实目录、随项目入库），经 `.codebuddy/<类型>/project` **软链接**被 CodeBuddy 扫描加载（实测技能/规则/代理目录均支持符号链接；插件机制不适用）。
+- **引擎可选包**由 `lib/<pack>/` 承接，项目侧 `<类型>/<pack>` 为整目录链接 → `lib/<pack>/<类型>`，由 `scripts/pack_install.py` 维护。
 - **根级项目级单文件**（如 `settings.json`）经索引 `root_symlinks.entries` 外置：引擎内留**软链接**、源文件在项目侧，CodeBuddy 本体解引用软链接读取（实测支持），源文件与链接均入库。
 - **机器级文件不外置**：`models.json`（含 API Key）、`settings.local.json`（本机）绑定本机，留在引擎根并 git 忽略——外置会跨机器失效且不宜入库。
 - **禁止**：把项目相关配置放在 `.codebuddy/` 内部（含历史遗留的 `.codebuddy/config/` 与各技能目录）。

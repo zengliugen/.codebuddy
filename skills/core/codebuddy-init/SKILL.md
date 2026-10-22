@@ -24,7 +24,7 @@ metadata:
 | 维度 | 定义 |
 |------|------|
 | 拥有的任务 | 依据 `.codebuddy/project.index.json` 在项目根生成 `.codebuddy.project/` 下的配置骨架（`configs/`）、运行时产物空目录（`caches/`）、持久化结果骨架（`store/`）、`.gitignore`、清理入口，以及 `.codebuddy.project/skills/` 骨架与根级软链接外置文件（`settings.json`），并**建立软链接** |
-| 输出 | 项目侧配置目录（`configs/` 占位骨架 + `caches/` 产物空目录 + `store/` 骨架 + `.gitignore` + `cleanup-caches.cmd`）+ 项目专有技能目录骨架 `.codebuddy.project/skills/` + 根级源文件骨架 `.codebuddy.project/configs/settings.json` + **软链接**（`.codebuddy/skills/project-skills`、`.codebuddy/settings.json`）+ 创建清单；随后询问是否立即填写 |
+| 输出 | 项目侧配置目录（`configs/` 占位骨架 + `caches/` 产物空目录 + `store/` 骨架 + `.gitignore` + `cleanup-caches.cmd`）+ 项目专有技能目录骨架 `.codebuddy.project/skills/` + 根级源文件骨架 `.codebuddy.project/configs/settings.json` + **软链接**（`.codebuddy/settings.json` 与各 pack 桥接）+ 创建清单；随后询问是否立即填写 |
 | 排除 | 填写具体项目值（仅在用户确认"立即填写"后作为后续动作进行）；修改引擎侧文件；覆盖已填写内容 |
 | 安全保证 | **幂等**：已存在文件默认跳过不覆盖；索引缺失/损坏即报错退出，不猜测 |
 
@@ -62,9 +62,10 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
   - `.codebuddy.project/store/`（持久化项目结果目录骨架：`README.md` + `.gitkeep`，**入库**）；
   - `.codebuddy.project/cleanup-caches.cmd`（清理入口，薄入口调用引擎侧
     `.codebuddy/scripts/cleanup_artifacts.py`）；
-  - `.codebuddy.project/skills/`（**项目专有技能目录**：`README.md` + `.gitkeep`），
-    并**建立软链接** `.codebuddy/skills/project-skills` → `../../.codebuddy.project/skills`，
-    使项目专有技能被 CodeBuddy 自动加载（失败则告警并给出手工命令，不阻断）。
+  - `.codebuddy.project/skills/`（技能目录：`README.md` + `.gitkeep`）与
+    `.codebuddy.project/{rules,skills,agents}/project/`（**项目专有包**骨架），
+    并**建立桥接** `.codebuddy/<类型>/project` → `../../.codebuddy.project/<类型>/project`，
+    使项目专有内容被 CodeBuddy 自动加载（失败则告警并给出手工命令，不阻断）。
   - **`root_symlinks.entries` 项** → 生成项目侧源文件骨架（如 `.codebuddy.project/configs/settings.json`）并
     **建立软链接**（如 `.codebuddy/settings.json` → `../.codebuddy.project/configs/settings.json`），使 CodeBuddy
     经软链接读取外置的根级文件（失败则告警并给出手工命令，不阻断）。
@@ -103,7 +104,7 @@ python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py
 - [ ] 是否先定位项目根并校验索引（缺失即报错退出 3）？
 - [ ] 生成是否经过脚本（而非手工臆造字段）？
 - [ ] 是否依据索引 `artifacts.dirs` 创建了 `caches/` 运行时产物空目录，并生成了 `.gitignore`、`cleanup-caches.cmd` 与 `store/` 骨架？
-- [ ] 是否生成了 `.codebuddy.project/skills/` 骨架并**建立了软链接** `.codebuddy/skills/project-skills`（失败时是否已告警并给出命令）？
+- [ ] 是否生成了 `.codebuddy.project/{rules,skills,agents}/project/` 骨架并**建立了桥接** `.codebuddy/<类型>/project`（失败时是否已告警并给出命令）？
 - [ ] 是否依据索引 `root_symlinks.entries` 生成了根级源文件骨架（如 `.codebuddy.project/configs/settings.json`）并**建立了软链接**（失败时是否已告警并给出命令）？
 - [ ] 已存在文件是否跳过未覆盖（未获确认不使用 `--force`）？
 - [ ] 是否输出了创建清单？

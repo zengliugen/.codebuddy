@@ -129,15 +129,16 @@
 - `codebuddy-init` 依据本节点创建产物空目录；项目侧 `.gitignore` 统一忽略、不入库。
 - 清理：引擎侧 `scripts/cleanup_artifacts.py` 遍历本节点枚举目录，删除文件并重建空目录。
 
-### 3.7 项目专有技能目录（软链接）
+### 3.7 项目专有包（project，软链接）
 
-项目专有技能放**项目侧**的 `.codebuddy.project/skills/<技能名>/SKILL.md`，经**目录软链接**
-`.codebuddy/skills/project-skills → ../../.codebuddy.project/skills` 被 CodeBuddy 自动加载——
-**不进入索引**（它不是引擎约定，而是项目内容；引擎只需知道"`.codebuddy/skills/` 支持符号链接"这一事实，
+项目专有内容放**项目侧** `.codebuddy.project/<类型>/project/` 下（`rules/`、`skills/`、`agents/` 三类，
+与各可选包同级并列），经**目录软链接** `.codebuddy/<类型>/project → ../../.codebuddy.project/<类型>/project`
+被 CodeBuddy 自动加载——**不进入索引**（它是项目内容而非引擎约定；引擎只需知道"扫描根支持符号链接"这一事实，
 见引擎 README 与 `.codebuddy.project/skills/README.md`）。
 
-`codebuddy-init` 生成其骨架（`README.md` + `.gitkeep`）并**建立软链接**（Windows `mklink /D`，类 Unix
-`os.symlink`；失败则告警并给出手工命令，不阻断）。技能本身由项目维护者按需创建。
+`codebuddy-init --setup` 生成其骨架（三个 `.gitkeep`），并调用 `scripts/pack_install.py verify --repair`
+建立桥接（Windows `mklink /D`，类 Unix `os.symlink`；失败则告警并给出手工命令，不阻断）。
+`project` 包在 `lib/packs.json` 中声明为 `location=project`、`default=true`、`comps` 为空数组。
 
 ### 3.8 根级软链接外置（root_symlinks.entries）
 
