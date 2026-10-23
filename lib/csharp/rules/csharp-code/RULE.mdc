@@ -40,7 +40,7 @@ provider:
 
 | 忽略类别 | 具体范围 |
 |---------|---------|
-| `Assets/`、`Packages/` 之外的目录 | `.codebuddy/`（技能自带工具的 `.cs` 源码）、根目录工具产物等，均不在检查范围内 |
+| `Assets/`、`Packages/` 之外的目录 | `.codebuddy/`（技能自带工具的 `.cs` 源码）、`.codebuddy.project/`（项目侧配置与物化包，含技能工具的 `.cs` 源码）、根目录工具产物等，均不在检查范围内 |
 | 三方库 | `Assets/Plugins`（DOTween、Sirenix/Odin、XLua、Proxima、HybridCLR、TextMeshPro、StompyRobot 等）、`Library/PackageCache`、`Packages/TouchSocket.*`、自研包内的三方代码（如 `framework.core/Runtime/ThreadLib/UnityHook`，命名空间为 `MonoHook`） |
 | 生成代码 | `HybridCLRData`、各 `Gen/`、`Generated/` 目录，以及文件头含 auto-generated 标记的文件 |
 

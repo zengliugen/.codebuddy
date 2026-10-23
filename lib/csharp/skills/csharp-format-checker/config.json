@@ -17,6 +17,7 @@
     "Library/PackageCache",
     "HybridCLRData",
     ".codebuddy",
+    ".codebuddy.project",
     "Assets/Battle/Runtime/Battle.Data/Generated",
     "Assets/Battle/Runtime/Battle.Logic/Generated",
     "Assets/Game/Runtime/Game/Gen",

@@ -76,7 +76,8 @@
           "<三方库目录，如 Assets/Plugins>",
           "<包缓存目录，如 Library/PackageCache>",
           "<生成代码目录，如 Assets/<领域>/Generated>",
-          ".codebuddy"
+          ".codebuddy",
+          ".codebuddy.project"
         ]
       }
     },
@@ -97,6 +98,7 @@
           "**/Assets/Plugins/**",
           "**/Library/PackageCache/**",
           "**/.codebuddy/**",
+          "**/.codebuddy.project/**",
           "<项目自研包内嵌三方代码目录，如 **/ThreadLib/**>"
         ]
       }

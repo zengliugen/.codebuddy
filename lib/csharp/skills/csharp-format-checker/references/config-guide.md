@@ -39,7 +39,10 @@
 - **Package 缓存**：`Library/PackageCache`（Unity 官方与社区包源码，不归项目维护）。
 - **生成代码目录**：如 `HybridCLRData`、各种 `Gen/` 与 `Generated/` 目录等。
 - **自研包内嵌的三方代码**：如 `Packages/com.littlebaby.framework.core/Runtime/ThreadLib/UnityHook`（命名空间为 `MonoHook`，属三方挂钩库，虽位于自研包内仍需排除）。
-- **审查范围外的配置目录**：`.codebuddy`（技能自带工具与测试夹具的 `.cs`，不属于项目源码）。
+- **审查范围外的配置目录**：`.codebuddy`（技能自带工具与测试夹具的 `.cs`，不属于项目源码）、`.codebuddy.project`（项目侧配置与物化包，其中的技能工具 `.cs` 同样不属于项目源码）。
+
+> **两者必须分别声明**：`exclude_dirs` 走前缀匹配（`lowered == base or lowered.startswith(base + "/")`），
+> `.codebuddy.project/x` 不以 `.codebuddy/` 开头，只写 `.codebuddy` 无法覆盖它。
 
 > **语义保证**：忽略目录内的文件不会出现在检查结果中，修复模式也绝不会改写其中任何文件。
 
@@ -53,6 +56,7 @@
   "Library/PackageCache",
   "HybridCLRData",
   ".codebuddy",
+  ".codebuddy.project",
   "Assets/Battle/Runtime/Battle.Data/Generated",
   "Assets/Battle/Runtime/Battle.Logic/Generated",
   "Assets/Game/Runtime/Game/Gen",
