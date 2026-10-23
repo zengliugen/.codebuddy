@@ -37,6 +37,12 @@ settings.local.json
 # --- 计划文件（本机运行期）---
 plans/
 
+# --- 开发设计文档：目录内全忽略，仅放行索引 README --------------------------
+#   引擎包在开发期产生的计划、约束快照等文档，属开发过程产物，不随引擎分发、
+#   不入库（详见 dev-design-docs/README.md）。新增包只需建子目录，无需补规则。
+/dev-design-docs/*
+!/dev-design-docs/README.md
+
 # --- 运行时产物（脚本写入项目侧 .codebuddy.project/；此处兜底防误入库）---
 .vcs-lock/
 **/check_logs/

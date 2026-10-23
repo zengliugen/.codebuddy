@@ -70,6 +70,11 @@
 │
 ├── hooks/                      # git 钩子（入库，经 core.hooksPath 生效，setup 自动配置）
 │   └── pre-commit             #   提交前跑 check_manifest.py，登记表不一致即阻断
+│
+├── dev-design-docs/            # 引擎包开发设计文档（仅 README.md 入库，其余本地保留）
+│   ├── README.md               #   目录索引：用途、入库规则、按包登记文档
+│   └── <pack>/                 #   各包的开发期文档（gitignore，不入库）
+│
 └── scripts/                    # 引擎级通用脚本（包安装、清单校验、产物清理、仓库更新）
     ├── pack_install.py         #   可选包安装/卸载/校验（list/install/remove/status/verify）
     ├── check_manifest.py       #   包注册表与磁盘结构一致性校验
@@ -82,6 +87,33 @@
 
 > **检出位置约定**：本仓库应检出为消费项目的 **`.codebuddy/`**（如 `Program/Client/.codebuddy/`）。
 > 引擎内所有相对路径推导均以「`.codebuddy` 的父目录 = 项目根」为基准，故检出路径名必须是 `.codebuddy`。
+
+## 开发设计文档（dev-design-docs/）
+
+引擎包在**开发期**产生的文档（实施计划、契约快照、调研结论等）放 `dev-design-docs/<包名>/`。
+
+**入库规则：只有 `dev-design-docs/README.md` 入库**，其余全部由 `.gitignore` 忽略：
+
+```gitignore
+/dev-design-docs/*
+!/dev-design-docs/README.md
+```
+
+| 要点 | 说明 |
+|------|------|
+| 为什么入库 README | 说明目录用途与规则，告诉后来者「文档为什么提交不上去」；**不登记具体文档清单**（那些文件不入库，列出来对其他人全是死链） |
+| 为什么文档不入库 | 属开发过程产物；计划在实施后失去价值，契约快照随引擎频繁改写，入库会产生无意义 diff |
+| 为什么不用 `lib/<pack>/docs/` | 该位置在包内，不提交会让**子模块指针长期显示 dirty**，干扰两仓状态判断 |
+| 是否需要分发给项目 | 不需要——`scripts/pack_install.py` 只物化 `rules`/`skills`/`agents`，文档本就不会到消费项目 |
+| 换机器后是否还在 | **不在**。需要长期保留的结论必须落到包内组件文档（`rules/`、`skills/references/`） |
+
+**生命周期一律为「临时」**：本目录文档服务于包开发，**包开发完成后即失去价值**，随整个目录
+一并归档或删除；文档头须标注并写明终止条件。**不设「长期维护」档**——内容都不入库，宣称长期保留
+与实际不符；开发完成后仍需保留的结论，应移入包的组件文档（`rules/`、`skills/references/`）。
+
+本目录文档**不随仓库分发、不随 clone 恢复**，`git clean -fdx` 会静默丢失；
+重要的本地文档请自行备份。需跨机器共享的结论必须落到包内组件文档。详见
+[`dev-design-docs/README.md`](dev-design-docs/README.md)。
 
 ## 引擎与项目侧的边界
 
