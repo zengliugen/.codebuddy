@@ -86,7 +86,7 @@
       "format": "json",
       "template": {
         "version": 1,
-        "_comment": "本文件为 csharp-code-review 的项目配置：exclude_patterns 为必需的黑名单（三方库、生成代码、审查范围外目录）；include_patterns 为可选白名单——配了非空值即启用默认拒绝（只审白名单内的文件），缺失或为空则退回纯黑名单模式，两者都空时脚本报错。本文件是审查范围的唯一来源：配置缺失、损坏或缺少必需键时脚本直接报错退出（退出码 3），不回退内置默认值。模式按仓库相对路径匹配，目录根锚定类模式必须带 **/ 前缀，否则因仓库前缀失配而漏审。口径须与 csharp-format-checker 配置的 exclude_dirs 保持一致。",
+        "_comment": "本文件为 csharp-code-review 的项目配置：exclude_patterns 为必需的黑名单（三方库、生成代码、审查范围外目录）；include_patterns 为可选白名单——配了非空值即启用默认拒绝（只审白名单内的文件），缺失或为空则退回纯黑名单模式，两者都空时脚本报错。本文件是审查范围的唯一来源：配置缺失、损坏或缺少必需键时脚本直接报错退出（退出码 3），不回退内置默认值。模式一律按项目根相对路径书写，脚本会把 git 的仓库相对路径换算后再匹配，无需为仓库前缀补 **/。口径须与 csharp-format-checker 配置的 exclude_dirs 保持一致。",
         "include_patterns": [],
         "exclude_patterns": [
           "**/Generated/**",

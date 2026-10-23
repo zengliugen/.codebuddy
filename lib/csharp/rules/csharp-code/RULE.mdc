@@ -58,16 +58,22 @@ provider:
 
 > **审查范围还有一层可选白名单**：`csharp-code-review/config.json` 的 `include_patterns` 决定走哪种模式——
 > 配了非空值即**默认拒绝**（只审白名单内的文件），缺失或为空则退回**默认放行**（仅按 `exclude_patterns` 排除）。
-> 本项目当前为白名单模式：`**/Assets/Battle/**/*.cs`、`**/Assets/Game/**/*.cs`、
-> `**/Packages/com.littlebaby.framework.*/**/*.cs`。
+> 本项目当前为白名单模式：`Assets/Battle/**/*.cs`、`Assets/Game/**/*.cs`、
+> `Packages/com.littlebaby.framework.*/**/*.cs`。
 > **白名单模式下新增业务目录必须同步补充白名单**，否则该目录下的代码会静默漏审；若不愿承担该维护成本，
 > 把 `include_patterns` 置空即退回黑名单模式（新目录自动纳入审查）。
 
-> **排除模式的写法要求（易错，勿省 `**/` 前缀）**：`collect_review_targets.py` 用 `git status`
-> 返回的**仓库相对路径**做匹配（如 `Program/Client/.codebuddy/...`），因此配置中的目录根锚定模式
-> **必须写作 `**/.codebuddy/**` 而非 `.codebuddy/**`**——后者锚定在路径开头，会因仓库前缀而失配，
-> 导致该目录被误纳入审查目标（**实测踩坑**：一次 `.codebuddy` 目录重构暴露此缺陷，门禁一度误报 166 个
-> 本应排除的 `.cs`）。新增「目录根锚定」类排除项时，一律加 `**/` 前缀。
+> **模式写法：一律按「项目根相对路径」书写**。`collect_review_targets.py` 会把 `git status` 给出的
+> **仓库相对路径**（如 `Program/Client/Assets/...`）换算为项目根相对路径（`Assets/...`）再匹配，因此
+> **不需要为了抵销仓库前缀而补 `**/`**：要锚定在项目根下的目录写 `Assets/Game/**` 即可，与
+> `**/Assets/Game/**` 等价命中。
+>
+> 是否使用 `**/` 开头应按**语义**决定，而不是当成规避错配的变通：
+> - `Assets/Game/**`——锚定项目根下的这个目录（推荐，意图最明确）；
+> - `**/Generated/**`——匹配**任意层级**的同名目录（生成代码可能散落在多处时使用）。
+>
+> 历史提示「必须带 `**/` 前缀」源于脚本早期直接用仓库相对路径匹配、未做换算的缺陷；该缺陷已修复，
+> 现在两种写法均有效，无需再强制加前缀。
 
 ## 2. 规则加载方式
 

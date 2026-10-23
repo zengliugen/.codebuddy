@@ -31,14 +31,15 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
       - **黑名单模式**：`include_patterns` 缺失或为空 → 默认放行，仅按 `exclude_patterns` 排除。
       - 两者均未配置 → 报错退出（范围无法确定，不静默全量或全空）。
 
-    过滤顺序：**扩展名（技能固有范围，始终生效）→ 白名单（可选）→ 黑名单**。
-    扩展名由可选键 `file_extensions` 声明（默认 `.cs`），保证黑名单模式不会把
-    `.json` / `.md` / 子模块指针等非源码变更纳入审查。
+    过滤顺序：**扩展名（技能固有边界，始终生效）→ 白名单（可选）→ 黑名单**。
+    扩展名硬编码为 `.cs`（本技能只审 C# 源码，属技能定义而非项目偏好），
+    因此黑名单模式不会把 `.json` / `.md` / 子模块指针等非源码变更纳入审查。
 
-    `include_patterns` 的语义是**目录/文件白名单**：不匹配的文件一律不进入审查目标。
-    模式按「仓库相对路径」匹配（`git status` 的原始形式，如 `Program/Client/Assets/...`），
-    因此目录根锚定类模式**必须带 `**/` 前缀**（写 `**/Assets/Game/**/*.cs` 而非
-    `Assets/Game/**/*.cs`），否则会因仓库前缀失配而成片漏审。
+    `include_patterns` / `exclude_patterns` 的语义是**目录/文件模式的匹配清单**，一律按
+    **项目根相对路径**书写（如 `Assets/Game/**/*.cs`）。脚本内部会把 `git status` 给出的
+    仓库相对路径换算为项目根相对路径后再匹配，因此**无需为了抵销仓库前缀而补 `**/`**：
+    `Assets/Game/**` 与 `**/Assets/Game/**` 都能命中，按语义选更精确的那种即可——
+    要锚定在项目根下就用不带前缀的写法，要匹配任意层级的同名目录才用 `**/` 开头。
 
     该清单与 `csharp-format-checker/config.json` 的 `exclude_dirs`、`rules/csharp-code/RULE.mdc`
     的范围声明应保持同一口径，新增排除项时一并同步。
@@ -89,10 +90,9 @@ REQUIRED_CONFIG_KEYS = ("exclude_patterns",)
 # 可选键：白名单（目录/文件模式的默认拒绝清单）
 OPTIONAL_INCLUDE_KEY = "include_patterns"
 
-# 可选键：文件扩展名过滤（默认仅审查 C# 文件，语义为「本技能固有范围」而非白名单）。
-# 与 include_patterns 的区别：本项固定生效，属于技能能力边界；白名单是可选的收窄手段。
-OPTIONAL_EXTENSIONS_KEY = "file_extensions"
-DEFAULT_FILE_EXTENSIONS = (".cs",)
+# 本技能只审查 C# 源码，扩展名属技能固有边界而非项目偏好，故硬编码、不设配置项。
+# 与 csharp 包内其他技能（comment-checker / format-checker / test-coverage）保持一致。
+TARGET_EXTENSION = ".cs"
 
 
 class ConfigError(RuntimeError):
@@ -193,6 +193,46 @@ def matches_any(path, regexes):
     """路径命中任一正则即视为匹配（同时尝试全路径与文件名，兼容 *.cs 这类模式）。"""
     name = path.rsplit("/", 1)[-1]
     return any(regex.match(path) or regex.match(name) for regex in regexes)
+
+
+def get_git_toplevel(workdir):
+    """返回 git 仓库顶层目录（绝对路径）；非 git 环境返回 None。
+
+    `git status` 输出的路径以**仓库顶层**为基准，而配置中的模式以**项目根**为基准；
+    二者在有仓库前缀（如 `Program/Client/...`）时并不相同，需显式换算。
+    """
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=workdir,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if result.returncode != 0:
+        return None
+    toplevel = (result.stdout or "").strip()
+    return os.path.abspath(toplevel) if toplevel else None
+
+
+def to_project_rel(repo_rel, git_root, project_root):
+    """把「仓库相对路径」换算为「项目根相对路径」；不在项目根内则返回 None。
+
+    配置模式（include/exclude）一律按项目根相对路径书写，因此匹配前必须先换算——
+    否则 `Assets/Game/**` 这类不带上层前缀的模式会因 `Program/Client/` 前缀失配，
+    迫使用户为所有目录模式补 `**/` 前缀（把路径语义问题转嫁给配置书写者）。
+    """
+    if os.path.isabs(repo_rel):
+        absolute = os.path.normpath(repo_rel)
+    else:
+        absolute = os.path.normpath(os.path.join(git_root, repo_rel))
+    try:
+        rel = os.path.relpath(absolute, project_root)
+    except ValueError:
+        return None
+    if rel.startswith(".." + os.sep) or rel == "..":
+        return None
+    return normalize(rel)
 
 
 def get_git_status(workdir):
@@ -299,19 +339,6 @@ def resolve_exclude_patterns(args_value, config):
     return split_patterns(config["exclude_patterns"])
 
 
-def resolve_extensions(config):
-    """确定文件扩展名过滤（技能固有范围，默认 C#）。
-
-    这是审查的技能边界（本技能只审 C# 代码），与 `include_patterns` 白名单是两回事：
-    白名单是可选的收窄手段，扩展名过滤是固定生效的底线，避免黑名单模式下把
-    `.json` / `.md` / 子模块指针等非源码变更也纳入审查。
-    """
-    value = config.get(OPTIONAL_EXTENSIONS_KEY)
-    if not isinstance(value, list) or not value:
-        return DEFAULT_FILE_EXTENSIONS
-    return tuple(item if str(item).startswith(".") else "." + str(item) for item in value)
-
-
 def resolve_include_patterns(args_value, config):
     """确定白名单模式：命令行 > 项目配置。
 
@@ -360,7 +387,6 @@ def main():
 
     include_patterns = resolve_include_patterns(args.include_patterns, config)
     exclude_patterns = resolve_exclude_patterns(args.exclude_patterns, config)
-    extensions = resolve_extensions(config)
 
     include_regexes = [glob_to_regex(p) for p in include_patterns]
     exclude_regexes = [glob_to_regex(p) for p in exclude_patterns]
@@ -381,6 +407,9 @@ def main():
         print(f"[FAIL] 获取 git 状态失败：{error}", file=sys.stderr)
         return 2
 
+    # git status 给的是仓库相对路径，配置模式是项目根相对路径；统一换算后用项目相对路径匹配
+    git_root = get_git_toplevel(workdir) or root
+
     tracked = []
     untracked = []
     excluded = []
@@ -389,12 +418,17 @@ def main():
         code = xy[0] if xy[0] != " " else xy[1]
         is_untracked = xy == "??"
 
-        # 技能固有范围：仅审查配置扩展名的文件（默认 .cs），与白名单无关、始终生效
-        if not path.lower().endswith(extensions):
+        # 技能固有边界：只审 C# 源码（与白名单无关、始终生效）
+        if not path.lower().endswith(TARGET_EXTENSION):
+            continue
+
+        project_rel = to_project_rel(path, git_root, root)
+        if project_rel is None:
+            # 变更不在项目根内（同一 git 仓库的其他子项目），不属于本次审查范围
             continue
 
         # 白名单模式：不匹配白名单的路径一律不进入审查（默认拒绝）
-        if whitelist_mode and not matches_any(path, include_regexes):
+        if whitelist_mode and not matches_any(project_rel, include_regexes):
             continue
 
         # 已跟踪变更只纳入 M/A/R/C/U，删除项（D）无审查目标
@@ -402,13 +436,13 @@ def main():
             continue
 
         # 路径级排除（生成代码目录/命名）
-        if matches_any(path, exclude_regexes):
+        if matches_any(project_rel, exclude_regexes):
             excluded.append({"path": path, "reason": "exclude_pattern"})
             continue
 
         # 文件头级排除（未跟踪/新增文件无法用 git 判断内容）
         if not args.no_header_check:
-            absolute = path if os.path.isabs(path) else os.path.join(workdir, path)
+            absolute = path if os.path.isabs(path) else os.path.join(git_root, path)
             if is_auto_generated_header(absolute):
                 excluded.append({"path": path, "reason": "auto_generated_header"})
                 continue
