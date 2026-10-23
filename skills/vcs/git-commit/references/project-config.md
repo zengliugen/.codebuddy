@@ -61,7 +61,7 @@
 
 ## 2. 提交前审查门禁
 
-本节的**机制**与项目侧配置的**参数**（`enabled`/`file_patterns`/`exclude_patterns`/`review_skill`/
+本节的**机制**与项目侧配置的**参数**（`enabled`/`include_patterns`/`exclude_patterns`/`review_skill`/
 `rules_dir`/`report_dir`/`blocking_level`）共同定义提交前审查门禁。该门禁作为 §3 H1 的**首个步骤**执行
 （位置：阶段五，阶段六安全检查之前、阶段七获取 VCS 锁之前）。
 
@@ -80,9 +80,10 @@
 
 | 对象 | 说明 |
 |------|------|
-| 包含 | 本次提交计划涉及的文件中匹配项目侧 `file_patterns` 的（默认 `*.cs`，即 C# 文件） |
+| 包含 | 扩展名为 `file_extensions`（默认 `.cs`）的文件——技能固有边界，始终生效 |
+| 包含 | 配置了非空 `include_patterns` 时，仅限匹配白名单的文件（白名单模式） |
 | 包含 | 用户明确要求纳入审查的其他匹配文件 |
-| 排除 | 不匹配 `file_patterns` 的文件 |
+| 排除 | 未配置 `include_patterns`（或为空）时不做白名单判定，仅按黑名单排除（黑名单模式） |
 | 排除 | 匹配项目侧 `exclude_patterns` 的生成代码（默认 `Generated/`、`Gen/` 目录、auto-generated 标记文件） |
 
 筛选命令（默认文件模式为 `.cs` 时）：
@@ -92,7 +93,15 @@ git diff --cached --name-only | grep '\.cs$'    # 已暂存的匹配变更
 git diff --name-only | grep '\.cs$'              # 未暂存但纳入本次提交的匹配变更
 ```
 
-目标项目调整 `file_patterns` 后，按对应模式筛选。
+**过滤顺序**：扩展名 → 白名单（可选）→ 黑名单。两种模式的取舍：
+
+| 配置 | 模式 | 语义 |
+|------|------|------|
+| `include_patterns` 非空 | 白名单 | 默认拒绝：只审白名单内的文件。新增业务目录须同步补充，否则静默漏审 |
+| `include_patterns` 缺失或为空 | 黑名单 | 默认放行：仅按 `exclude_patterns` 排除。新目录自动纳入审查 |
+
+目录白名单须写成带 `**/` 前缀的形式（如 `**/Assets/<领域>/**/*.cs`），因为匹配对象是
+`git status` 返回的仓库相对路径。
 
 ### 2.4 审查执行
 

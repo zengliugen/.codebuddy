@@ -5,15 +5,15 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
 
 背景：
     提交前审查门禁需要「本次未提交变更」的文件清单。`git diff` 看不到**未跟踪的新文件**，
-    需显式读取 `git status`；同时要按 exclude_patterns 排除生成代码与三方库。手工拼清单既繁琐
-    又易漏，且在派发提示词里重复书写。
+    需显式读取 `git status`；同时要按 include_patterns 圈定范围（白名单）、按 exclude_patterns
+    排除生成代码与三方库（黑名单）。手工拼清单既繁琐又易漏，且在派发提示词里重复书写。
 
 配置（**项目相关内容独立配置、经索引定位，便于引擎跨项目共享**）：
     经 `.codebuddy/project.index.json` 的 `code_review.config` 定位到
     `<项目根>/.codebuddy.project/configs/skills/csharp/csharp-code-review/config.json`
 
         {
-          "file_patterns": ["*.cs"],
+          "include_patterns": ["*.cs"],
           "exclude_patterns": [
             "**/Generated/**", "**/Gen/**", "**/HybridCLRData/**", "*auto-generated*",
             "**/Assets/Plugins/**", "**/Library/PackageCache/**",
@@ -21,8 +21,24 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
           ]
         }
 
-    排除清单**完全由项目配置声明**（脚本不内置任何排除项）。迁移到目标项目时
-    只需改写该配置的 `exclude_patterns`，无需改动脚本。
+    纳入与排除清单**均完全由项目配置声明**（脚本不内置任何默认项）。迁移到目标项目时
+    只需改写该配置的两个清单，无需改动脚本。
+
+    两种模式由「是否配了白名单」自动选择（`include_patterns` 为**可选**键）：
+
+      - **白名单模式**：`include_patterns` 非空 → 默认拒绝，只有匹配的文件进入审查目标；
+        `exclude_patterns` 继续生效，用于排除白名单内的生成代码/三方库。
+      - **黑名单模式**：`include_patterns` 缺失或为空 → 默认放行，仅按 `exclude_patterns` 排除。
+      - 两者均未配置 → 报错退出（范围无法确定，不静默全量或全空）。
+
+    过滤顺序：**扩展名（技能固有范围，始终生效）→ 白名单（可选）→ 黑名单**。
+    扩展名由可选键 `file_extensions` 声明（默认 `.cs`），保证黑名单模式不会把
+    `.json` / `.md` / 子模块指针等非源码变更纳入审查。
+
+    `include_patterns` 的语义是**目录/文件白名单**：不匹配的文件一律不进入审查目标。
+    模式按「仓库相对路径」匹配（`git status` 的原始形式，如 `Program/Client/Assets/...`），
+    因此目录根锚定类模式**必须带 `**/` 前缀**（写 `**/Assets/Game/**/*.cs` 而非
+    `Assets/Game/**/*.cs`），否则会因仓库前缀失配而成片漏审。
 
     该清单与 `csharp-format-checker/config.json` 的 `exclude_dirs`、`rules/csharp-code/RULE.mdc`
     的范围声明应保持同一口径，新增排除项时一并同步。
@@ -30,14 +46,15 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
 用法：
     python collect_review_targets.py [--dir <仓库目录>]
                                      [--config <配置路径>]
-                                     [--patterns "*.cs"]
+                                     [--include-patterns "*.cs"]
                                      [--exclude-patterns "<逗号分隔模式>"]
                                      [--no-header-check] [--json]
 
 参数：
     --dir               git 命令执行目录（默认当前目录）
     --config            项目配置路径（默认经索引 code_review.config 定位到项目侧）
-    --patterns          纳入审查的文件模式（逗号分隔；缺省取项目配置，再缺省为 *.cs）
+    --include-patterns  纳入审查的文件模式（白名单，逗号分隔；缺省取项目配置）。
+                        不传且配置未写该键 → 退回黑名单模式（仅按 exclude_patterns 排除）
     --exclude-patterns  排除模式（逗号分隔；缺省取项目配置的 exclude_patterns）
     --no-header-check   关闭「读取文件头识别 auto-generated」检查
     --json              以 JSON 输出（tracked / untracked / targets / excluded）
@@ -52,6 +69,7 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
 """
 
 import argparse
+import fnmatch
 import json
 import os
 import re
@@ -64,8 +82,17 @@ REVIEW_STATUS_CODES = {"M", "A", "R", "C", "U"}
 # 配置文件在索引注册表中的逻辑名（路径基准为项目根，由索引声明）
 CONFIG_CODENAME = "code_review.config"
 
-# 配置文件中必需的键（缺失即报错，避免静默使用内置默认值导致「配置写了但没生效」）
-REQUIRED_CONFIG_KEYS = ("file_patterns", "exclude_patterns")
+# 配置文件中必需的键（缺失即报错，避免静默使用内置默认值导致「配置写了但没生效」）。
+# include_patterns 为**可选**键：配了非空白名单即启用白名单模式，缺失或为空则退回纯黑名单模式。
+REQUIRED_CONFIG_KEYS = ("exclude_patterns",)
+
+# 可选键：白名单（目录/文件模式的默认拒绝清单）
+OPTIONAL_INCLUDE_KEY = "include_patterns"
+
+# 可选键：文件扩展名过滤（默认仅审查 C# 文件，语义为「本技能固有范围」而非白名单）。
+# 与 include_patterns 的区别：本项固定生效，属于技能能力边界；白名单是可选的收窄手段。
+OPTIONAL_EXTENSIONS_KEY = "file_extensions"
+DEFAULT_FILE_EXTENSIONS = (".cs",)
 
 
 class ConfigError(RuntimeError):
@@ -236,7 +263,7 @@ def find_project_root(start):
 def load_config(root):
     """加载项目配置；缺失、损坏或缺少必需键时抛出 ConfigError。
 
-    配置是审查范围的**唯一事实来源**：脚本不内置 `file_patterns` / `exclude_patterns`
+    配置是审查范围的**唯一事实来源**：脚本不内置 `include_patterns` / `exclude_patterns`
     默认值，也不生成模板，避免「配置未生效」被静默掩盖。
     """
     config_abs = resolve_config_path(root)
@@ -272,11 +299,28 @@ def resolve_exclude_patterns(args_value, config):
     return split_patterns(config["exclude_patterns"])
 
 
-def resolve_file_patterns(args_value, config):
-    """确定纳入审查的文件模式：命令行 > 项目配置。"""
+def resolve_extensions(config):
+    """确定文件扩展名过滤（技能固有范围，默认 C#）。
+
+    这是审查的技能边界（本技能只审 C# 代码），与 `include_patterns` 白名单是两回事：
+    白名单是可选的收窄手段，扩展名过滤是固定生效的底线，避免黑名单模式下把
+    `.json` / `.md` / 子模块指针等非源码变更也纳入审查。
+    """
+    value = config.get(OPTIONAL_EXTENSIONS_KEY)
+    if not isinstance(value, list) or not value:
+        return DEFAULT_FILE_EXTENSIONS
+    return tuple(item if str(item).startswith(".") else "." + str(item) for item in value)
+
+
+def resolve_include_patterns(args_value, config):
+    """确定白名单模式：命令行 > 项目配置。
+
+    返回空列表表示**未启用白名单**，调用方据此退回纯黑名单模式；
+    不再因白名单为空而报错（白名单是可选能力）。
+    """
     if args_value:
         return split_patterns(args_value)
-    return split_patterns(config["file_patterns"])
+    return split_patterns(config.get(OPTIONAL_INCLUDE_KEY) or [])
 
 
 def main():
@@ -285,8 +329,8 @@ def main():
     parser = argparse.ArgumentParser(description="csharp-code-review 门禁审查目标收集")
     parser.add_argument("--dir", default=None, help="git 命令执行目录（默认当前目录）")
     parser.add_argument("--config", default=None, help="项目配置路径（默认经索引 code_review.config 定位到项目侧）")
-    parser.add_argument("--patterns", default=None,
-                        help="纳入审查的文件模式（逗号分隔；缺省取项目配置，再缺省为 *.cs）")
+    parser.add_argument("--include-patterns", default=None,
+                        help="纳入审查的文件模式（白名单，逗号分隔；缺省取项目配置的 include_patterns）")
     parser.add_argument("--exclude-patterns", default=None,
                         help="排除模式（逗号分隔；缺省取项目配置的 exclude_patterns）")
     parser.add_argument("--no-header-check", action="store_true", help="关闭文件头 auto-generated 识别")
@@ -314,13 +358,21 @@ def main():
     else:
         config = load_config(root)
 
-    include_patterns = resolve_file_patterns(args.patterns, config)
+    include_patterns = resolve_include_patterns(args.include_patterns, config)
     exclude_patterns = resolve_exclude_patterns(args.exclude_patterns, config)
+    extensions = resolve_extensions(config)
 
     include_regexes = [glob_to_regex(p) for p in include_patterns]
     exclude_regexes = [glob_to_regex(p) for p in exclude_patterns]
-    if not include_regexes:
-        print("[FAIL] --patterns 至少需要一个模式", file=sys.stderr)
+
+    # 白名单模式由「是否配了白名单」决定：
+    #   配了 → 默认拒绝，只收白名单内的文件（白名单模式）；
+    #   没配 → 默认放行，仅按黑名单排除（黑名单模式）。
+    # 两种模式下 exclude_patterns 都继续生效（白名单只管「看哪里」，黑名单管「其中什么不看」）。
+    whitelist_mode = bool(include_regexes)
+    if not whitelist_mode and not exclude_regexes:
+        print("[FAIL] 白名单与黑名单均未配置，审查范围无法确定（配置 include_patterns 或 exclude_patterns）",
+              file=sys.stderr)
         return 2
 
     try:
@@ -337,8 +389,12 @@ def main():
         code = xy[0] if xy[0] != " " else xy[1]
         is_untracked = xy == "??"
 
-        # 仅收集匹配审查模式的路径
-        if not matches_any(path, include_regexes):
+        # 技能固有范围：仅审查配置扩展名的文件（默认 .cs），与白名单无关、始终生效
+        if not path.lower().endswith(extensions):
+            continue
+
+        # 白名单模式：不匹配白名单的路径一律不进入审查（默认拒绝）
+        if whitelist_mode and not matches_any(path, include_regexes):
             continue
 
         # 已跟踪变更只纳入 M/A/R/C/U，删除项（D）无审查目标
@@ -369,6 +425,7 @@ def main():
         print(
             json.dumps(
                 {
+                    "mode": "whitelist" if whitelist_mode else "blacklist",
                     "tracked": tracked,
                     "untracked": untracked,
                     "targets": targets,
@@ -379,10 +436,12 @@ def main():
             )
         )
     else:
+        mode_text = "白名单模式" if whitelist_mode else "黑名单模式（未配置白名单）"
         if not targets:
-            print("[INFO] 本次无匹配的审查目标。")
+            print(f"[INFO] 本次无匹配的审查目标（{mode_text}）。")
         else:
-            print(f"# 本次审查目标（{len(targets)} 个）：已跟踪 {len(tracked)} / 未跟踪 {len(untracked)}")
+            print(f"# 本次审查目标（{len(targets)} 个，{mode_text}）："
+                  f"已跟踪 {len(tracked)} / 未跟踪 {len(untracked)}")
             for path in targets:
                 print(path)
             if excluded:
