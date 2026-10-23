@@ -201,7 +201,7 @@ git status --short    # 全仓核对，逐一确认是否属于本次提交计�
 - [ ] 本次提交是否由 vcs-router 路由（或用户直接指定 Git 上下文）？
 - [ ] 提交发起权是否合规（`commit_initiation`：`user_only` 时需用户主动发起；`llm_allowed` 时 LLM 可自行发起）？
 - [ ] H1 步骤是否已按**项目侧配置**（经索引 `git_commit.project_config`）的表内顺序执行（`enabled`/`blocking` 语义见引擎侧 `references/project-config.md` §3）？
-- [ ] H1「提交前审查」步骤：本次变更是否包含配置的 `file_extensions` 与白名单模式？若是，是否已触发代码审查？
+- [ ] H1「提交前审查」步骤：是否已按 §2.3 取到审查清单（`collect_cmd` 产出，或按扩展名 + 黑白名单自行筛选）？若有清单，是否已触发代码审查？
 - [ ] 用户指示跳过审查时，是否已通过 `AskUserQuestion` 确认跳过理由？
 - [ ] 审查是否存在配置的 `blocking_level` 级别问题？若是，是否已修复或获得用户明确授权忽略？
 - [ ] 审查报告路径是否已记录进提交计划？
