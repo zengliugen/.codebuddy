@@ -128,8 +128,15 @@
    ```
    依据 `project.index.json` 在项目根生成 `.codebuddy.project/` 的占位配置骨架、运行时产物空目录、
    `.gitignore` 与 `cleanup-caches.cmd` 清理入口；建立 `settings.json` 与各可选包的 pack 链接；
-   并按 `.codebuddy.project/configs/packs.json` 物化组件。
+   并按 `.codebuddy.project/configs/packs.json` 物化组件；同时配置引擎的提交前校验钩子
+   （`core.hooksPath` → 入库的 `hooks/` 目录）。
    （等价底层命令：`python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py --setup`）
+
+   > **克隆后必须运行 setup**。除生成配置骨架外，它还负责建立各类软链接与
+   > `core.hooksPath`——这三类产物都存在 `.git/` 或磁盘上、**不随仓库分发**。
+   > 不运行则表现为：`settings.json` 链接缺失（CodeBuddy 读不到配置）、可选包技能不加载、
+   > 引擎提交时没有一致性校验。改动引擎内容后如怀疑钩子失效，
+   > 可执行 `git -C .codebuddy config --get core.hooksPath` 确认（应为 `hooks`）。
 3. **按项目填写**：按各技能 `references/config-guide.md` 填写占位值（`codebuddy-init` 会询问是否立即填写）。
 
 > 未填写的配置在首次运行对应技能时会**明确报错**（配置缺失即报错，不静默使用默认值）。
