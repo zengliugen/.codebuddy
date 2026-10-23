@@ -68,6 +68,8 @@
 │   ├── project ──链接──▶ 项目侧 #   项目专有代理（.codebuddy.project/agents/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
+├── hooks/                      # git 钩子（入库，经 core.hooksPath 生效，setup 自动配置）
+│   └── pre-commit             #   提交前跑 check_manifest.py，登记表不一致即阻断
 └── scripts/                    # 引擎级通用脚本（包安装、清单校验、产物清理、仓库更新）
     ├── pack_install.py         #   可选包安装/卸载/校验（list/install/remove/status/verify）
     ├── check_manifest.py       #   包注册表与磁盘结构一致性校验

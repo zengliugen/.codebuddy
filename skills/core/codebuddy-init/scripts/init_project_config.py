@@ -608,6 +608,47 @@ def run_pack_installer(codebuddy_dir, project_root, args):
     return result.returncode, (result.stdout or "") + (result.stderr or "")
 
 
+def configure_git_hooks(codebuddy_dir):
+    """把引擎的 core.hooksPath 指向入库的 hooks/ 目录，使提交前校验生效。
+
+    钩子文件随引擎仓库入库（hooks/pre-commit），但 git 的钩子目录默认在 .git/ 下、
+    不随仓库分发；用 core.hooksPath 指向版本控制内的目录才能跨机器生效。
+
+    submodule 场景下 .codebuddy/.git 是文件而非目录，git 仍能正常执行 config。
+
+    返回 (状态, 说明)：状态取 created（已配置）/ exists（已是目标值）/ failed（失败）。
+    """
+    hooks_rel = "hooks"
+    hooks_abs = os.path.join(codebuddy_dir, hooks_rel)
+    if not os.path.isdir(hooks_abs):
+        return "failed", "引擎内缺少 hooks 目录：%s" % hooks_abs
+
+    hook_file = os.path.join(hooks_abs, "pre-commit")
+    if not os.path.isfile(hook_file):
+        return "failed", "引擎内缺少 hooks/pre-commit"
+
+    # 类 Unix 需要执行位；Windows 下 git 通过 sh 执行，无执行位也可
+    if os.name != "nt":
+        try:
+            os.chmod(hook_file, 0o755)
+        except OSError:
+            pass
+
+    # 读取现有配置，已在目标值则跳过（幂等）
+    current = subprocess.run(
+        ["git", "-C", codebuddy_dir, "config", "--get", "core.hooksPath"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if current.returncode == 0 and (current.stdout or "").strip() == hooks_rel:
+        return "exists", hooks_rel
+
+    result = subprocess.run(
+        ["git", "-C", codebuddy_dir, "config", "core.hooksPath", hooks_rel],
+        capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if result.returncode != 0:
+        return "failed", (result.stderr or "").strip() or "git config 执行失败"
+    return "created", hooks_rel
+
+
 def load_engine_packs(codebuddy_dir):
     """读取引擎包注册表 lib/packs.json；缺失或损坏时返回空表与原因，不阻断状态查询。"""
     path = os.path.join(codebuddy_dir, "lib", "packs.json")
@@ -1002,6 +1043,14 @@ def main():
         status, info = ensure_file_symlink(link_abs, src_abs, force=args.force)
         root_link_results.append((code_name, link_abs, src_abs, status, info))
 
+    # 配置提交前校验钩子（core.hooksPath → 入库的 hooks/ 目录）。
+    # 非 --setup 模式也执行：钩子是引擎自身的一致性保障，与是否首次安装无关。
+    hook_status, hook_info = configure_git_hooks(codebuddy_dir)
+    if hook_status == "failed":
+        print("[警告] 提交前校验钩子未配置：%s" % hook_info)
+        print("       引擎提交将不做一致性校验。可手工执行：")
+        print("         git -C .codebuddy config core.hooksPath hooks")
+
     # --setup 模式：安装状态已在上文解析，此处只物化链接
     setup_report = None
     if args.setup:
@@ -1064,6 +1113,11 @@ def main():
                   % (os.path.relpath(src_abs, os.path.dirname(link_abs)), rel_link))
 
     print()
+    if hook_status == "created":
+        print("[钩子] 已配置提交前校验：core.hooksPath = %s" % hook_info)
+    elif hook_status == "exists":
+        print("[钩子] 提交前校验已配置：core.hooksPath = %s" % hook_info)
+
     print("下一步：按项目实际情况填写上述配置中的 `<...>` 占位值。")
     print("        未填写的配置在首次运行对应技能时会报错（配置缺失即报错）。")
     print("        项目专有内容放 .codebuddy.project/<类型>/project/ 下（经 .codebuddy/<类型>/project 链接自动加载）。")

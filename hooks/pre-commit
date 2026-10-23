@@ -1,0 +1,51 @@
+#!/bin/sh
+# 引擎提交前一致性校验。
+#
+# 由 setup 配置 core.hooksPath 指向本目录（.codebuddy/hooks/），使钩子随仓库入库、
+# 无需手工复制到 .git/ 下。
+#
+# 校验内容见 scripts/check_manifest.py：包注册表与磁盘结构、索引路径相对性、
+# 项目专有包不得登记索引等。不一致即阻断提交。
+
+# 定位引擎根：本文件在 <引擎根>/hooks/ 下
+HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+ENGINE_ROOT=$(cd "$HOOK_DIR/.." && pwd)
+
+CHECK_SCRIPT="$ENGINE_ROOT/scripts/check_manifest.py"
+if [ ! -f "$CHECK_SCRIPT" ]; then
+    echo "[警告] 未找到校验脚本：$CHECK_SCRIPT" >&2
+    echo "       跳过提交前校验（不阻断提交）。" >&2
+    exit 0
+fi
+
+# 选择 Python 解释器：优先 python，回退 python3
+if command -v python >/dev/null 2>&1; then
+    PYEXE=python
+elif command -v python3 >/dev/null 2>&1; then
+    PYEXE=python3
+else
+    echo "[警告] 未找到 Python，跳过提交前校验（不阻断提交）。" >&2
+    exit 0
+fi
+
+# 仅当本次提交涉及登记表或校验脚本时才跑：改动无关时不做无谓等待
+STAGED=$(git diff --cached --name-only 2>/dev/null)
+if [ -n "$STAGED" ]; then
+    relevant=$(printf '%s\n' "$STAGED" | grep -E '^(project\.index\.json|lib/packs\.json|scripts/check_manifest\.py|rules/|lib/|skills/)' || true)
+    if [ -z "$relevant" ]; then
+        exit 0
+    fi
+fi
+
+if ! "$PYEXE" "$CHECK_SCRIPT" >/dev/null 2>&1; then
+    echo "" >&2
+    echo "==============================================" >&2
+    echo "[拦截] 引擎登记表与磁盘不一致，提交已中止。" >&2
+    echo "==============================================" >&2
+    "$PYEXE" "$CHECK_SCRIPT" >&2
+    echo "" >&2
+    echo "修复上述问题后重新提交；确需跳过可加 --no-verify（不推荐）。" >&2
+    exit 1
+fi
+
+exit 0
