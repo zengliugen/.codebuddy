@@ -23,7 +23,7 @@
 | `coverage.golden_samples` | `skills/csharp-test-coverage/scripts/golden_samples.json` | 该技能 `SKILL.md` | 项目已知正确的覆盖率样本（目标路径 + 期望）；新项目可先留空 `samples: []`，后续按需补充 |
 | `coverage.trigger_cases` | `skills/csharp-test-coverage/scripts/trigger_cases.json` | `skills/csharp-test-coverage/references/` | 触发评估用例（应/不应触发样例）；含项目路径的用例仅为举例，可替换 |
 | `format_checker.trigger_cases` | `skills/csharp-format-checker/evals/trigger/trigger_cases.json` | `skills/csharp-format-checker/references/` | 同上 |
-| `codebuddy.settings`（根级软链接外置） | `settings.json`（项目根 `.codebuddy.project/configs/settings.json`） | 本节下方「根级软链接外置文件」 | `language`（界面/回复语言）；`permissions`/`enabledPlugins` 按团队约定；**`memory.teamMemory.userId` 不写**（由使用者本机自动推导，见下方说明）；**不含凭据**（凭据在引擎根 `models.json`/`settings.local.json`，不外置） |
+| `codebuddy.settings`（根级软链接外置） | `settings.json`（项目根 `.codebuddy.project/configs/settings.json`） | 本节下方「根级软链接外置文件」 | `language`（界面/回复语言）；`env`（会话环境变量，含 `CODEBUDDY_REPL_NESTED_TIMEOUT_MS` 嵌套交互超时）；`permissions`/`enabledPlugins` 按团队约定；**`memory.teamMemory.userId` 不写**（由使用者本机自动推导，见下方说明）；**不含凭据**（凭据在引擎根 `models.json`/`settings.local.json`，不外置） |
 | `rule_shells.*`（规则项目事实正文） | `rules/**` | 各技能 `references/` 与 `rules/` 薄壳内的强制条款 | 项目目录结构、依赖关系、启动流程、第三方依赖、测试目录现状等**项目事实**；须实测核对（依赖方向读构建清单、版本读依赖锁定文件、忽略范围用 `git check-ignore` 验证） |
 
 ## 运行时产物目录（无需填写）
@@ -38,7 +38,20 @@
 项目侧源文件 `.codebuddy.project/configs/settings.json` + 引擎内软链接 `.codebuddy/settings.json`。
 `codebuddy-init` 生成源文件骨架并建链；**CodeBuddy 本体经软链接直接读取**（无需脚本解析），实测其会解引用符号链接。
 
-- **需填**：`language`、`permissions`、`enabledPlugins` 等**项目级**值（不含凭据）。
+- **需填**：`language`、`env`、`permissions`、`enabledPlugins` 等**项目级**值（不含凭据）。
+
+### `env.CODEBUDDY_REPL_NESTED_TIMEOUT_MS`（嵌套交互超时）
+
+| 项 | 值 |
+|----|-----|
+| 作用 | REPL 单元格内发起 `AskUserQuestion` / `ExitPlanMode` 等嵌套交互时，等待用户确认的超时上限 |
+| 默认 | `600000`（10 分钟，引擎内硬编码常量） |
+| 建议 | `14400000`（4 小时）——默认 10 分钟在需要人工仔细阅读的提问场景下过短，超时后报「Timed out waiting for the user to confirm this nested interaction」 |
+| 读取方式 | `process.env.CODEBUDDY_REPL_NESTED_TIMEOUT_MS`，非正整数时回退默认值 |
+| 生效范围 | **仅 REPL 单元格内的嵌套交互**；对话层直接调用 `AskUserQuestion` 不走该超时 |
+| 生效时机 | 会话启动时注入，**修改后需重启会话** |
+
+> 该变量同时可由进程环境变量设置（优先级更高），`settings.json` 的 `env` 为项目级持久化方式。
 - **无需填**：绑定本机的 `models.json`、`settings.local.json` **不外置**（留引擎根、git 忽略）——外置会跨机器失效且不宜入库。
 
 ### `memory.teamMemory.userId` 不写入项目侧共享文件

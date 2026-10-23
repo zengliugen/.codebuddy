@@ -24,9 +24,12 @@
         "link": ".codebuddy/settings.json",
         "path": ".codebuddy.project/configs/settings.json",
         "format": "json",
-        "template": {
-          "language": "<界面与回复语言，如 简体中文>",
-          "enabledPlugins": {
+      "template": {
+        "language": "<界面与回复语言，如 简体中文>",
+        "env": {
+          "CODEBUDDY_REPL_NESTED_TIMEOUT_MS": "14400000"
+        },
+        "enabledPlugins": {
             "<插件名@市场名，如 csharp-lsp@codebuddy-plugins-official>": true
           },
           "enableAllProjectMcpServers": true,
