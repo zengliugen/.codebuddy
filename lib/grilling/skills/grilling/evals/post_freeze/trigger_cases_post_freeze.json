@@ -1,0 +1,22 @@
+{
+  "skill": "grilling-post-freeze",
+  "recommended_threshold": 0.42,
+  "should_trigger": [
+    "这套寻路算法的边界情况我心里发虚，你一条条问出来",
+    "能不能像面试官那样把这个同步机制问穿",
+    "我把想法说一遍，你负责找破绽",
+    "Poke every hole you can find in this migration approach.",
+    "这个存档格式的兼容性设计，我怀疑自己漏了东西"
+  ],
+  "should_not_trigger": [
+    "这段代码为什么死循环",
+    "帮我把这个接口加上超时参数",
+    "把这个目录打成压缩包",
+    "怎么配置代理"
+  ],
+  "near_neighbor": [
+    "这个设计有什么明显问题吗",
+    "你觉得这样做合适吗",
+    "有没有必要上第二层缓存"
+  ]
+}

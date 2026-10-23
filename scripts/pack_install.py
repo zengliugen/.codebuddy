@@ -240,7 +240,7 @@ def ensure_pack_dir(paths, packs, pack, comp_type, repair=False, force=False):
     source = os.path.join(paths["lib"], pack, comp_type)
     link = pack_dir_link(paths, pack, comp_type)
     if not os.path.isdir(source):
-        # 该包没有此类组件（如 grilling 无 rules），跳过
+        # 该包没有此类组件（如纯技能包无 rules），跳过
         return "ok", "包内无 %s 目录，跳过" % comp_type
 
     if is_link(link):

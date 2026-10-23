@@ -16,7 +16,7 @@
 |------|------|------|---------|
 | `lib/yao-meta-skill/` | 上游 yao-meta-skill（skill 工程化工具链） | 2.1.0 | 仅允许最小可行性补丁，须记录在 `references/cli-changelog.md` |
 | `lib/unity-pipeline/` | `com.unity.pipeline` 0.9.0-exp.1 | 2.0 | 允许本地补丁，须在 SKILL.md 注释块与 `references/cli-changelog.md` 记录 |
-| `lib/grilling/` | 上游 grilling（方案拷问） | 1.0 | 仅允许补元数据（`agents/interface.yaml`），正文不改 |
+| `lib/grilling/` | 源出上游 grilling（方案拷问），**已转本地维护** | 2.0 | 允许本地改造：正文、参考文档、评测与治理产物均归本仓库维护 |
 
 **为什么不做中文转换**：`yao-meta-skill` 的触发评估与回归测试依赖原文措辞（`evals/semantic_config.json` 的
 中英短语权重、`tests/` 快照），翻译会使工具链失效并导致上游 `git pull` 永久冲突。
@@ -24,8 +24,12 @@
 **为什么不做目录布局调整**：`lib/<pack>/` 已是正式的 vendor 边界——`lib/packs.json` 据此推导路径，
 `scripts/pack_install.py` 据此建桥接链接；再套一层 `vendor/` 会打断这两个脚本。
 
-**语言规则豁免**：上述组件的正文文档保留上游原语言，不受 `rules/core/language/` 「人类可读文本一律中文」约束；
-但**本仓库新增的元数据**（`agents/interface.yaml`）与外层说明仍须中文。
+**语言规则豁免**：`yao-meta-skill` 与 `unity-pipeline` 的正文文档保留上游原语言，不受 `rules/core/language/`
+「人类可读文本一律中文」约束；但**本仓库新增的元数据**（`agents/interface.yaml`）与外层说明仍须中文。
+
+**`grilling` 为例外**：该包已从「只读 vendor」转为**本地维护分支**，其正文与参考文档均已中文化，受语言规则约束。
+转向本地维护的原因：上游正文为英文与本项目「人类可读文本一律中文」的底线直接冲突，且该技能不产出代码、
+只产出认知结论，语义忠实度可由本地评测（`evals/`）保障，无需依赖上游原文措辞。
 
 ## 目录结构
 
@@ -42,7 +46,7 @@
 │   ├── packs.json              #   包注册表（唯一事实源）：组件清单、依赖、默认标记
 │   ├── csharp/                 #   包 csharp：rules/ skills/ agents/
 │   ├── unity-pipeline/         #   包 unity-pipeline
-│   ├── grilling/               #   包 grilling（含 grilling + grill-me 两个技能）
+│   ├── grilling/               #   包 grilling（本地维护：设计树逐轮诘问）
 │   └── yao-meta-skill/         #   包 yao-meta-skill（rules/ skills/：技能工程强制入口）
 │
 ├── rules/                      # 规则扫描根：默认包真实目录 + 可选包链接
@@ -214,7 +218,7 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 | `tool` | 基础 | ✅ | rules: codebuddy-engine-vcs、codebuddy-project-config、bash-command-shape、engine-maintenance；skills: cmd-script-writing、engine-sync、export-zipped-dir、rule-consolidation、session-lesson-distill |
 | `csharp` | C# | ❌ | rules: csharp-code、csharp-comment、csharp-lsp、csharp-test；skills: 6 个；agents: 2 个 |
 | `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
-| `grilling` | third-party | ❌ | skills: grilling、grill-me |
+| `grilling` | third-party（本地维护） | ❌ | skills: grilling |
 | `yao-meta-skill` | third-party | ❌ | rules: yao-meta-skill；skills: yao-meta-skill |
 
 ```bash

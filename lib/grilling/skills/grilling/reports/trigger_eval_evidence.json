@@ -1,0 +1,106 @@
+{
+  "generated_at": "2026-10-23",
+  "threshold": 0.42,
+  "note": "dev/holdout/blind/acceptance/final 参与过调参；post_freeze 为配置冻结后的一次性盲测，反映真实泛化能力",
+  "runs": [
+    {
+      "set": "dev",
+      "precision": 1.0,
+      "recall": 1.0,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "buckets": {
+        "should_trigger": 1.0,
+        "should_not_trigger": 1.0,
+        "near_neighbor": 1.0
+      },
+      "misfires": []
+    },
+    {
+      "set": "holdout",
+      "precision": 1.0,
+      "recall": 1.0,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "buckets": {
+        "should_trigger": 1.0,
+        "should_not_trigger": 1.0,
+        "near_neighbor": 1.0
+      },
+      "misfires": []
+    },
+    {
+      "set": "blind",
+      "precision": 1.0,
+      "recall": 1.0,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "buckets": {
+        "should_trigger": 1.0,
+        "should_not_trigger": 1.0,
+        "near_neighbor": 1.0
+      },
+      "misfires": []
+    },
+    {
+      "set": "acceptance",
+      "precision": 1.0,
+      "recall": 1.0,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "buckets": {
+        "should_trigger": 1.0,
+        "should_not_trigger": 1.0,
+        "near_neighbor": 1.0
+      },
+      "misfires": []
+    },
+    {
+      "set": "final",
+      "precision": 1.0,
+      "recall": 1.0,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "buckets": {
+        "should_trigger": 1.0,
+        "should_not_trigger": 1.0,
+        "near_neighbor": 1.0
+      },
+      "misfires": []
+    },
+    {
+      "set": "post_freeze",
+      "precision": 0.667,
+      "recall": 0.4,
+      "false_positives": 1,
+      "false_negatives": 3,
+      "buckets": {
+        "should_trigger": 0.4,
+        "should_not_trigger": 1.0,
+        "near_neighbor": 0.667
+      },
+      "misfires": [
+        {
+          "bucket": "should_trigger",
+          "prompt": "我把想法说一遍，你负责找破绽",
+          "score": 0.153
+        },
+        {
+          "bucket": "should_trigger",
+          "prompt": "Poke every hole you can find in this migration approach.",
+          "score": 0.153
+        },
+        {
+          "bucket": "should_trigger",
+          "prompt": "这个存档格式的兼容性设计，我怀疑自己漏了东西",
+          "score": 0.153
+        },
+        {
+          "bucket": "near_neighbor",
+          "prompt": "这个设计有什么明显问题吗",
+          "score": 0.577
+        }
+      ]
+    }
+  ]
+}

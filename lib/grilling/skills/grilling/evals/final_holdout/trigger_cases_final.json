@@ -1,0 +1,22 @@
+{
+  "skill": "grilling-final",
+  "recommended_threshold": 0.42,
+  "should_trigger": [
+    "这个战斗结算的时序我总觉得有隐患，你一层层扒开问",
+    "帮我把这次架构调整里的假设全问出来",
+    "这个方案我给不出把握，麻烦你做个严苛的面试式提问",
+    "Run a brutal cross-examination of this load-balancing idea.",
+    "别让我糊弄过去，逐条问到我答不上来为止"
+  ],
+  "should_not_trigger": [
+    "问一下这个 API 怎么用",
+    "为什么会报空引用",
+    "把这两个类合并成一个",
+    "给我写一段正则匹配手机号"
+  ],
+  "near_neighbor": [
+    "这个方案你评估下风险",
+    "我们聊聊要不要上分布式",
+    "给我一份评审清单"
+  ]
+}

@@ -126,15 +126,14 @@
     },
     "grilling": {
       "category": "third-party",
-      "description": "诘问式压测：grilling 主能力 + grill-me 用户入口（grill-me 转发调用 grilling，故须同包）",
+      "description": "诘问式方案压测：设计树逐轮追问，把方案中的未定项显式化",
       "default": false,
       "location": "lib",
       "requires": [],
       "comps": {
         "rules": [],
         "skills": [
-          "grilling",
-          "grill-me"
+          "grilling"
         ],
         "agents": []
       }

@@ -1,0 +1,22 @@
+{
+  "skill": "grilling-acceptance",
+  "recommended_threshold": 0.42,
+  "should_trigger": [
+    "我这个网络同步方案总感觉哪里不对，你挨个问下去",
+    "上线前想被彻底问一遍，别让我带着盲区发布",
+    "帮我盘一盘这套资源释放流程的隐患",
+    "Give me a hard grilling about the sharding plan.",
+    "这套热更新边界我始终没想明白，你带着我捋一遍问题"
+  ],
+  "should_not_trigger": [
+    "把这份日志按时间排序",
+    "为什么编译这么慢",
+    "帮我补个重载运算符",
+    "重构下这段重复代码"
+  ],
+  "near_neighbor": [
+    "这套方案和上次那套比怎么样",
+    "你更推荐哪种",
+    "先给我几个思路"
+  ]
+}

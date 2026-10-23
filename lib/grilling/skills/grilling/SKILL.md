@@ -1,28 +1,83 @@
 ---
 name: grilling
-description: Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.
+description: 诘问式方案压测技能。当用户对一个方案、决策、设计、策略或想法心里没底、想不透，希望被反复追问、逐层诘问、挑出漏洞与盲点时触发。典型信号：拷问、盘问、诘问、压测、压力测试、挑战我的想法、帮我把方案想透、还有哪些没想到的、把假设摆到台面、一层层问我、grill、grill me、stress-test、interview me。不适用于：单纯解释概念、翻译、写文档、总结、头脑风暴，以及已明确要求直接动手实现的任务。
+license: MIT
+mode: Production
+metadata:
+  author: zengliugen
+  version: "2.0"
 ---
 
-Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
+## 运行模式
 
-Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round: number each question and give your recommended answer. Then wait for the user's answers before the next round.
+`Production` —— 团队复用技能，入口轻量；方法论细则与项目落地约定全部外置到 `references/`。
 
-Format a round like so:
+> **注**：本技能影响的不是代码而是认知结论——输出错了，用户会在错误前提上继续决策，代价高且事后难察觉。因此治理产物的完备度按生产级准备（评测、风险画像、失败案例一应齐备），而非仅入口轻量。
+
+## 核心契约
+
+| 维度 | 定义 |
+|------|------|
+| 拥有的任务 | 通过逐轮诘问，把方案、决策或想法中的未定项全部显式化 |
+| 输出 | 每轮若干条编号问题，每条附推荐答案；收尾时给出共同理解确认 |
+| 排除 | 直接执行方案、写代码、产出交付文档；单纯解释、翻译、总结 |
+| 结束条件 | 设计树所有分支都被访问过，没有静默假设残留 |
+
+## 工作方式：设计树 + 前沿 + 逐轮
+
+把讨论对象展开成一棵**设计树**：每个决策向下分出依赖它的子决策。
+
+**前沿**指所有前置条件已经确定的决策——即此刻无需猜测尚未听到的答案就能提出的问题。每轮把当前前沿**整批**问完，然后停下等用户回答，不得自行推进。
+
+用户的回答会重塑这棵树：已定的决策把前沿向外推，解锁此前被阻塞的问题。每轮结束重算前沿，再问下一轮。**依赖本轮其他未决问题的，属于后续轮次，不属于本轮。**
+
+## 轮次格式
 
 ```
-❓ **Q1** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+❓ **Q1** — **<问题标题>**：<问题正文，可多段，可含多个选项>
 
-➡️ <your recommended answer>
+➡️ <推荐答案与理由>
 
 ---
 
-❓ **Q2** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+❓ **Q2** — **<问题标题>**：<问题正文>
 
-➡️ <your recommended answer>
+➡️ <推荐答案与理由>
 ```
 
-Each round the user answers reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
+## 事实与决策的分工
 
-Finding _facts_ is your job, never the user's. When a frontier question needs a fact from the environment (filesystem, tools, etc.), dispatch a sub-agent to find it; don't ask the user for anything you could look up yourself. Don't block on it: a running exploration is an unsettled prerequisite, so only the questions downstream of it wait for the sub-agent to report; ask the rest of the frontier now. The _decisions_ are the user's: put each to them and wait.
+**找事实是本技能的责任，不是用户的负担。** 前沿问题需要环境事实（文件、代码、配置、依赖、历史提交）时，派子代理去查，不要拿自己查得到的东西去问用户。子代理不阻塞其余问题：它是一条尚未确定的前置条件，只有依赖它的问题留到下一轮，其余前沿照常现在问。
 
-The session is done when the frontier is empty: every branch of the design tree visited, nothing left silently assumed. Do not act on it until the user confirms you have reached a shared understanding.
+**决策权归用户。** 每条决策都要摆到用户面前并等待回答；推荐答案只是你的判断，不能替代用户拍板。
+
+## 结束条件
+
+前沿为空即结束：设计树每条分支都访问过，没有静默假设。**在用户确认已达成共同理解之前，不要动手执行方案。**
+
+## 详细流程
+
+- 设计树与前沿的完整推演规则、轮次节奏、常见反模式：见 [references/design-tree-method.md](references/design-tree-method.md)
+- 在本项目中的落地约定（子代理查事实、提问通道选择、与既有规则体系的衔接）：见 [references/project-integration.md](references/project-integration.md)
+
+## 使用边界
+
+**不适用**以下请求，直接执行即可：
+
+- 解释概念、翻译文本、总结内容（无待定决策可问）
+- 头脑风暴、发散思路（与诘问的收敛方向相反）
+- 已明确要求直接实现某功能（用户要的是产物，不是共识）
+
+**职责外**：本技能只产出共同理解，不产出代码、文档或任何文件。
+
+## 技能包结构
+
+| 目录 | 用途 | 文件数 |
+|------|------|--------|
+| `references/` | 方法论细则与项目落地约定，按需加载 | 2 |
+| `evals/` | 语义配置、六组触发用例、回归历史与评测说明 | 10 |
+| `reports/` | 风险画像、质量记分卡、门禁结果、信任报告、Skill IR | 10 |
+| `failures/` | 已知失败案例，防止历史缺陷被遗忘 | 1 |
+| `agents/` | 接口契约与平台适配元数据 | 2 |
+
+治理与评测的真实结论见 `reports/gate_results.md` 与 `evals/README.md`；两者均记录了未达标项，不作为达成证明。

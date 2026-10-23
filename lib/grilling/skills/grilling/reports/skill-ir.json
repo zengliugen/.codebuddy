@@ -1,0 +1,98 @@
+{
+  "schema_version": "2.0.0",
+  "name": "grilling",
+  "title": "方案诘问",
+  "job_to_be_done": "诘问式方案压测技能。当用户对一个方案、决策、设计、策略或想法心里没底、想不透，希望被反复追问、逐层诘问、挑出漏洞与盲点时触发。典型信号：拷问、盘问、诘问、压测、压力测试、挑战我的想法、帮我把方案想透、还有哪些没想到的、把假设摆到台面、一层层问我、grill、grill me、stress-test、interview me。不适用于：单纯解释概念、翻译、写文档、总结、头脑风暴，以及已明确要求直接动手实现的任务。",
+  "trigger_surface": {
+    "description": "诘问式方案压测技能。当用户对一个方案、决策、设计、策略或想法心里没底、想不透，希望被反复追问、逐层诘问、挑出漏洞与盲点时触发。典型信号：拷问、盘问、诘问、压测、压力测试、挑战我的想法、帮我把方案想透、还有哪些没想到的、把假设摆到台面、一层层问我、grill、grill me、stress-test、interview me。不适用于：单纯解释概念、翻译、写文档、总结、头脑风暴，以及已明确要求直接动手实现的任务。",
+    "should_trigger": [
+      "拷问一下这个方案，别放过任何漏洞",
+      "帮我把这个架构决策想透，逐轮问我",
+      "我这个技术选型靠谱吗，压力测试一下",
+      "盘问我关于这个设计的每一个假设",
+      "Grill me on this migration plan.",
+      "Stress-test this design decision before I commit to it.",
+      "Interview me relentlessly about this proposal.",
+      "挑战一下我的想法，找出我没想到的地方"
+    ],
+    "should_not_trigger": [
+      "帮我把这段逻辑改成异步",
+      "写个单元测试覆盖这个方法",
+      "解释一下什么是单调栈",
+      "把这份 README 翻译成英文",
+      "总结一下这次会议纪要",
+      "Implement the login flow now."
+    ],
+    "edge_cases": [
+      "帮我看看这个方案大致行不行",
+      "先头脑风暴一下有哪些可能的方向",
+      "这个类和那个类的区别是什么",
+      "帮我拆一下这个需求的任务清单"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\design-tree-method.md",
+      "references\\project-integration.md"
+    ],
+    "scripts": [],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/output_quality_scorecard.md",
+      "reports/conformance_matrix.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\acceptance\\trigger_cases_acceptance.json",
+      "evals\\blind_holdout\\trigger_cases_blind.json",
+      "evals\\final_holdout\\trigger_cases_final.json",
+      "evals\\history\\regression-log.md",
+      "evals\\holdout\\trigger_cases_holdout.json",
+      "evals\\post_freeze\\trigger_cases_post_freeze.json",
+      "evals\\README.md",
+      "evals\\semantic_config.json",
+      "evals\\trigger\\trigger-eval-cases.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "low",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-23"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "agent-skills-compatible",
+    "vscode",
+    "codebuddy-code"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

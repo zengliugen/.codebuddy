@@ -1,0 +1,22 @@
+{
+  "skill": "grilling-holdout",
+  "recommended_threshold": 0.42,
+  "should_trigger": [
+    "我这个数据同步机制有没有坑，帮我一个个问清楚",
+    "先别写代码，把我的思路拷问一遍",
+    "Grill me on whether this cache invalidation strategy holds up.",
+    "这套权限模型我拿不准，麻烦你追着我问",
+    "帮我把这个发布流程的假设挑出来质疑一下"
+  ],
+  "should_not_trigger": [
+    "把这个类的命名改成帕斯卡命名",
+    "给我讲讲依赖注入的原理",
+    "把这段中文说明翻成日文",
+    "把上周的构建日志汇总成表"
+  ],
+  "near_neighbor": [
+    "这个方案能落地吗",
+    "我们讨论下要不要引入消息队列",
+    "帮我列几个可能的技术路线"
+  ]
+}

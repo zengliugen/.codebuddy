@@ -1,7 +1,7 @@
 interface:
-  display_name: "方案拷问"
-  short_description: "以设计树逐轮追问的方式，把方案、决策或想法拷问到无遗漏"
-  default_prompt: "使用 $grilling 对当前方案做逐轮拷问。每轮只问当前已解锁的决策，给出推荐答案，等待回答后再展开下一轮。"
+  display_name: "方案诘问"
+  short_description: "以设计树逐轮追问的方式，把方案、决策或想法诘问到无遗漏"
+  default_prompt: "使用 $grilling 对当前方案做逐轮诘问。每轮只问当前已解锁的决策，每条附推荐答案与理由，等待回答后再展开下一轮。"
 compatibility:
   canonical_format: "agent-skills"
   adapter_targets:
@@ -11,13 +11,17 @@ compatibility:
     - "vscode"
     - "codebuddy-code"
   activation:
-    mode: "manual"
+    mode: "auto"
     triggers:
       - keyword: "拷问"
+      - keyword: "盘问"
+      - keyword: "诘问"
       - keyword: "grill"
+      - keyword: "grill me"
       - keyword: "压力测试.*方案"
       - keyword: "追问.*设计"
       - keyword: "挑战.*想法"
+      - keyword: "想透"
   execution:
     context: "inline"
     shell: "powershell"
@@ -26,6 +30,10 @@ compatibility:
     artifacts:
       - "SKILL.md"
       - "agents/interface.yaml"
+      - "references/design-tree-method.md"
+      - "references/project-integration.md"
+      - "evals/semantic_config.json"
+      - "evals/trigger_cases.json"
   trust:
     source_tier: "plugin"
     remote_inline_execution: "forbid"
@@ -37,9 +45,11 @@ compatibility:
     vscode: "agent-skills-source-with-vscode-notes"
     codebuddy-code: "native"
 name: "grilling"
-version: "1.0"
-mode: "Production"
+version: "2.0"
+mode: "Governed"
 source:
-  origin: "third-party"
+  origin: "local"
+  upstream: "third-party-grilling-1.0"
   vendor_root: "lib/grilling"
-  editable: "metadata-only"
+  editable: "full"
+  maintenance_note: "源出上游 grilling 1.0，自 2.0 起转为本项目本地维护分支：正文中文化、方法论拆分为参考文档、补齐评测与治理产物。上游原文仅作语义对照参考。"

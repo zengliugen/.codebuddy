@@ -1,0 +1,22 @@
+{
+  "skill": "grilling-blind",
+  "recommended_threshold": 0.42,
+  "should_trigger": [
+    "我对这个分层设计心里没底，你能不能一层层问我",
+    "上生产前帮我把这个灰度策略再挑一遍刺",
+    "这个状态机还有哪些我没考虑到的，尽管问",
+    "Do a tough interview on my rollout plan, one round of questions at a time.",
+    "把这套存档方案的假设全部摆到台面上来"
+  ],
+  "should_not_trigger": [
+    "帮我把这个函数抽成扩展方法",
+    "这段正则什么意思",
+    "给我生成一份接口变更说明",
+    "把这个配置文件改成 yaml"
+  ],
+  "near_neighbor": [
+    "这个设计你怎么看",
+    "有没有更简单的做法",
+    "帮我对比下两种缓存方案"
+  ]
+}

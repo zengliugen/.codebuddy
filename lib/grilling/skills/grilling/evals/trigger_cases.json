@@ -1,0 +1,82 @@
+{
+  "skill": "grilling",
+  "recommended_threshold": 0.42,
+  "should_trigger": [
+    {
+      "text": "拷问一下这个方案，别放过任何漏洞",
+      "family": "cn_core"
+    },
+    {
+      "text": "帮我把这个架构决策想透，逐轮问我",
+      "family": "cn_core"
+    },
+    {
+      "text": "我这个技术选型靠谱吗，压力测试一下",
+      "family": "cn_core"
+    },
+    {
+      "text": "盘问我关于这个设计的每一个假设",
+      "family": "cn_core"
+    },
+    {
+      "text": "Grill me on this migration plan.",
+      "family": "en_core"
+    },
+    {
+      "text": "Stress-test this design decision before I commit to it.",
+      "family": "en_core"
+    },
+    {
+      "text": "Interview me relentlessly about this proposal.",
+      "family": "en_core"
+    },
+    {
+      "text": "挑战一下我的想法，找出我没想到的地方",
+      "family": "cn_core"
+    }
+  ],
+  "should_not_trigger": [
+    {
+      "text": "帮我把这段逻辑改成异步",
+      "family": "implementation"
+    },
+    {
+      "text": "写个单元测试覆盖这个方法",
+      "family": "implementation"
+    },
+    {
+      "text": "解释一下什么是单调栈",
+      "family": "explain"
+    },
+    {
+      "text": "把这份 README 翻译成英文",
+      "family": "translate"
+    },
+    {
+      "text": "总结一下这次会议纪要",
+      "family": "summary"
+    },
+    {
+      "text": "Implement the login flow now.",
+      "family": "implementation"
+    }
+  ],
+  "near_neighbor": [
+    {
+      "text": "帮我看看这个方案大致行不行",
+      "family": "light_review"
+    },
+    {
+      "text": "先头脑风暴一下有哪些可能的方向",
+      "family": "brainstorm"
+    },
+    {
+      "text": "这个类和那个类的区别是什么",
+      "family": "explain"
+    },
+    {
+      "text": "帮我拆一下这个需求的任务清单",
+      "family": "planning"
+    }
+  ]
+}
