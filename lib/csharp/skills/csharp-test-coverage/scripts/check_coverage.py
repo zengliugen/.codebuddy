@@ -39,10 +39,14 @@ if sys.platform == "win32":
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_DIR = os.path.dirname(SCRIPT_DIR)
 TOOL_DIR = os.path.join(SKILL_DIR, "tools", "CSharpTestCoverage")
-PROJECT_ROOT = os.path.abspath(os.path.join(SKILL_DIR, "..", "..", ".."))
 
 sys.path.insert(0, SCRIPT_DIR)
 import skill_config  # noqa: E402  项目相关内容统一从覆盖率配置读取，脚本不硬编码
+
+# 项目根统一取自 skill_config：它用锚点（含 .codebuddy / .git 的目录）向上查找，
+# 不依赖技能目录的固定层级。引擎改为 lib/<pack>/skills/ 分层后，固定上三级会定位到
+# .codebuddy/lib 而非项目根，导致默认扫描范围全部失配。
+PROJECT_ROOT = skill_config.PROJECT_ROOT
 
 CONFIG_PATH = skill_config.config_path()
 
