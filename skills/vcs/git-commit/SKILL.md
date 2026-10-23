@@ -1,6 +1,6 @@
 ---
 name: git-commit
-description: Git 提交执行技能。当用户要求提交 Git 代码（"git commit"、"提交到 git"，或由 vcs-router 技能路由）时触发，分析 Git 变更并生成标准化提交摘要，提交前按项目配置自动触发代码审查门禁（默认 C# 变更，error 级别问题阻塞提交）。不支持 amend、rebase、cherry-pick、revert、stash、merge、分支操作。
+description: Git 提交执行技能。当用户要求提交 Git 代码（"git commit"、"提交到 git"，或由 vcs-router 技能路由）时触发，分析 Git 变更并生成标准化提交摘要，提交前按项目配置自动触发代码审查门禁（文件模式与阻塞级别均按项目配置）。不支持 amend、rebase、cherry-pick、revert、stash、merge、分支操作。
 license: MIT
 mode: Production
 metadata:
@@ -34,7 +34,7 @@ metadata:
 |------|------|
 | `references/commit-spec.md` | 提交摘要详细规范：近似 type 区分规则、subject 正确/错误示例、提交正文、提交信息的传入方式（`-F` 文件传参、`@` 污染成因）、多模块拆分与编排顺序 |
 | `references/submission-safety.md` | 安全规范：提交/推送发起权（按项目配置）、授权要求、提交推送分离、敏感信息检查、.gitignore 检查流程 |
-| `references/project-config.md` | **引擎侧机制**：§2 审查门禁机制（触发时机/审查对象/派发要素/阻塞规则）、§3 钩子步骤字段语义与执行规则。**项目参数**外置到项目侧（索引 `git_commit.project_config`） |
+| `references/project-config.md` | **引擎侧机制**：§2 审查门禁机制（触发时机/审查对象/派发要素/阻塞规则）、§3 钩子步骤字段语义与执行规则、§3.1 外部校验命令执行机制。**项目参数**外置到项目侧（索引 `git_commit.project_config`）；**引擎不提供任何默认值** |
 | 项目侧 `skills/git-commit/config.json` | 提交摘要确定性配置：type 枚举、subject_max_len、scope_max_len、subject_language（索引 `git_commit.config`） |
 | `references/vcs-lock.md` | 多会话防冲突：VCS 写操作互斥锁机制、命令用法、暂存区校验，集成到阶段七 |
 

@@ -26,7 +26,7 @@ boundary:
   exclusions:
     - "不修改源代码（本技能只查询，不编辑）"
     - "不替代 csharp-code / csharp-comment / unity-pipeline"
-    - "不检查 Unity 编译错误（由 unity-pipeline 的 recompile 负责）"
+    - "不检查 Unity 编译错误（已安装 unity-pipeline 时由其 recompile 负责；未安装时用 dotnet build）"
   constraints:
     - "仅支持 .cs 文件（插件 extensionToLanguage 仅映射 .cs）"
     - "LSP 操作需先经 ToolSearch 加载 LSP 工具"

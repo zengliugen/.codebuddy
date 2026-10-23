@@ -1,5 +1,5 @@
 ---
-description: 测试的编译与运行验证流程——必须经 unity-pipeline 技能执行 script recompile 与异步 test run 并轮询终态、编辑器焦点排查、定向过滤、注释 checker 链路、验收闭环与提交衔接。编译或运行测试、验收测试改动时加载。
+description: 测试的编译与运行验证流程——已安装 unity-pipeline 技能时经其执行 script recompile 与异步 test run 并轮询终态、编辑器焦点排查；未安装时降级为 dotnet build/test。含定向过滤、注释 checker 链路、验收闭环与提交衔接。编译或运行测试、验收测试改动时加载。
 alwaysApply: false
 paths: "**/Tests/**"
 enabled: true
@@ -9,14 +9,27 @@ provider:
 
 # 测试验证与验收
 
+<!-- pack-ref-ok: unity-pipeline —— 本文件对 unity-pipeline 的引用全部按安装状态条件化（§1 分支表），
+未安装时降级 dotnet build/test，不构成硬依赖。改动引用方式时须重新核对并更新本声明。 -->
+
 配合入口规则 `RULE.mdc` 使用。用例内容见 `authoring.mdc`，命名见 `naming-layout.mdc`。
 
-## 1. 强制入口：必须经 `unity-pipeline` 技能
+## 1. 入口：编译与运行经 `unity-pipeline` 技能（**可选包，按安装状态分支**）
 
-- 测试的**编译与运行必须通过 `unity-pipeline` 技能**（`script recompile` / `script recompile_status` / `test run` / `test status`，命令按 `unity command <分组> <名称>` 分组命名）。
-- **禁止**用 Bash/PowerShell 直接调用 `unity` CLI 绕过技能（详见 `unity-pipeline/RULE.mdc`）。
+`unity-pipeline` 是**可选包**（`lib/packs.json` 中 `unity-pipeline.requires = [core]`，
+**不在** `csharp.requires` 内）。因此本节按安装状态分支，两种情形都不得绕过已安装的技能：
 
-## 2. 标准流程
+| 情形 | 做法 |
+|---|---|
+| **已安装** `unity-pipeline`（`.codebuddy/skills/unity-pipeline/` 存在） | 测试的**编译与运行必须通过该技能**（`script recompile` / `script recompile_status` / `test run` / `test status`，命令按 `unity command <分组> <名称>` 分组命名）。**禁止**用 Bash/PowerShell 直接调用 `unity` CLI 绕过（详见 `unity-pipeline/RULE.mdc`） |
+| **未安装**（非 Unity 项目，或项目未启用该包） | 降级为直接调用 .NET SDK：`dotnet build <解决方案或工程>` 做编译校验、`dotnet test` 跑测试；**须在交付说明中标注「未经 unity-pipeline 校验」** |
+
+> **不要**为了让本规则「总能执行」而把 `unity-pipeline` 加进 `csharp.requires`——
+> `csharp` 的语义是「C# 语言能力」，纯 .NET 工具库项目不需要 Unity 运行时。
+
+## 2. 标准流程（**已安装 unity-pipeline 时**）
+
+> 未安装时按 §1 表格的降级分支执行：`dotnet build` 编译校验 + `dotnet test` 跑测试，不再使用下列 `unity command` 系列命令。
 
 ```bash
 # 1. 保持编辑器在失焦时仍持续 tick（无头工作前必需）
@@ -51,7 +64,7 @@ python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_test_summar
 - **已知警告**：当选中的测试存在失败时，`test run` 可能返回不透明结果；改用更窄的 `--filter` 重跑定位。
 - 结果解析统一用 `unity_test_summary.py`（输出总数/通过/失败与失败清单）；失败时逐条看消息与堆栈首几行。
 
-## 4. 编辑器焦点（本仓库实测事实）
+## 4. 编辑器焦点（本仓库实测事实；**仅已安装 unity-pipeline 时适用**）
 
 本机编辑器**需要窗口获得焦点才会推进编译/测试**，否则 `script recompile_status` 会长时间停在 `triggered`：
 

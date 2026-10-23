@@ -3,6 +3,8 @@
 """
 测试骨架生成脚本。
 
+pack-ref-ok: unity-pipeline —— 生成的后续提示按该可选包是否安装分支（未安装提示 dotnet build），不构成硬依赖。
+
 依据 check_coverage.py 产出的 JSON 报告，为未覆盖成员生成测试骨架。
 
 **重要约束**（详见 SKILL.md 与 references/）：
@@ -11,7 +13,7 @@
   - 已有对应测试类时只能追加 `<测试类名>.<主题>.cs` partial 专项，
     禁止另起 fixture 名（依据 rules/csharp-test/naming-layout.mdc）
   - 写前做 partial 分部成员查重
-  - 生成后需经 unity-pipeline 编译验证（由调用方执行）
+  - 生成后须编译验证：已安装可选包 unity-pipeline 时经其 recompile，未安装时用 dotnet build（由调用方执行）
 
 用法：
   python generate_skeletons.py <报告.json>                    # 仅打印计划（不写文件）
@@ -526,10 +528,22 @@ def main():
             print("   %s: %s" % (path, ", ".join(conflict_list)))
 
     print()
-    print(">>> 后续必做：经 unity-pipeline 编译验证")
-    print(">>>   unity command script recompile")
-    print(">>>   python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_wait.py --command \"script recompile_status\"")
-    print(">>> 确认 failed=false、errors=[] 后方可进入补断言阶段。")
+    print(">>> 后续必做：编译验证（按 unity-pipeline 安装状态二选一）")
+    # 项目根统一经 skill_config 定位（不依赖技能目录层级），与 collect_real_coverage.py 保持一致
+    unity_wait_py = os.path.join(
+        PROJECT_ROOT, ".codebuddy", "skills", "unity-pipeline", "unity-pipeline",
+        "scripts", "unity_wait.py",
+    )
+    if os.path.isfile(unity_wait_py):
+        print(">>> [已安装 unity-pipeline]")
+        print(">>>   unity command script recompile")
+        print(">>>   python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_wait.py "
+              "--command \"script recompile_status\"")
+        print(">>> 确认 failed=false、errors=[] 后方可进入补断言阶段。")
+    else:
+        print(">>> [未安装可选包 unity-pipeline] 降级为 dotnet build：")
+        print(">>>   dotnet build <包含 Tests/ 的解决方案或工程>")
+        print(">>> 编译通过后方可进入补断言阶段；报告中标注「未经 unity-pipeline 校验」。")
 
     return 0 if not failed else 1
 

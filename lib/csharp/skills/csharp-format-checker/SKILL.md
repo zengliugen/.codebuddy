@@ -27,6 +27,17 @@ metadata:
 - `root = true` 使配置对项目根下全部 `.cs` 生效；如存在下级 `.editorconfig` 会被 dotnet format 自动按最近者优先合并。
 - 修改 `.editorconfig` 后重新运行即可生效，无需改动技能。
 
+## 参考文献
+| 文件 | 内容 |
+|------|------|
+| `references/guide.md` | 执行细节：快速上手、目标路径传递规则、结果文件强制要求、忽略目录配置、执行流程、边界排除、检查清单 |
+| `references/config-guide.md` | 项目侧配置项定义（`exclude_dirs`、扫描范围、工程定位）与索引登记 |
+| `references/h1-integration.md` | **提交门禁集成**：如何接入 `git-commit` 的 H1 暂存前钩子（命令、退出码、`--changed-from-file` vs `--changed`、报告复用、范围口径、与审查门禁的分工） |
+
+> **H1 集成说明归属本技能**：`vcs` 包只定义「如何执行一个外部校验命令」的通用机制，
+> 不包含任何 C# / dotnet 细节。本技能在提交门禁中的调用方式由 `references/h1-integration.md`
+> 自述，项目侧 `git-commit/project-config.md` §4 的步骤行按该文档编写。
+
 ## 详细流程
 
 完整执行细节见 [references/guide.md](references/guide.md)，小节索引：
@@ -45,7 +56,7 @@ metadata:
 
 | 目录 | 用途 | 文件数 |
 |------|------|--------|
-| `references/` | 按需加载的详细参考文档（含契约、指南与示例） | 3 |
+| `references/` | 按需加载的详细参考文档（含契约、指南、配置说明与 H1 集成） | 4 |
 | `scripts/` | 确定性执行脚本，供本技能直接调用 | 2 |
 | `evals/` | 触发评估用例与语义配置，供 trigger_eval 复跑 | 5 |
 | `reports/` | 质量与风险评估报告（输出风险画像、信任报告等） | 1 |

@@ -47,7 +47,9 @@ safety_constraints:
   - 禁止预扫描文件列表，发现/过滤全部由脚本与 dotnet format 完成
   - 结果文件必须落盘到 check_logs/（除非用户 --no-save）
 references:
+  - guide: references/guide.md
   - config-guide: references/config-guide.md
+  - h1-integration: references/h1-integration.md（提交门禁 H1 集成说明）
   - output-risk: reports/output-risk-profile.md
 evaluation:
   trigger_evals: evals/trigger/

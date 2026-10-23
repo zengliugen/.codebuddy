@@ -1,5 +1,5 @@
 ---
-description: 测试代码规范入口（操作 `Tests/` 目录下文件时注入）。约束测试文件的目录镜像、文件与类命名、命名空间、专项拆分，以及用例编写与验证要求；测试环境约束见 project-guide/testing.mdc，注释细则见 csharp-comment/，编译与运行必须经 unity-pipeline。
+description: 测试代码规范入口（操作 `Tests/` 目录下文件时注入）。约束测试文件的目录镜像、文件与类命名、命名空间、专项拆分，以及用例编写与验证要求；测试环境约束见 project-guide/testing.mdc，注释细则见 csharp-comment/，编译与运行经 unity-pipeline（已安装该可选包时强制，未安装降级 dotnet build/test）。
 alwaysApply: false
 paths: "**/Tests/**"
 enabled: true
@@ -8,6 +8,9 @@ provider:
 ---
 
 # 测试代码规范
+
+<!-- pack-ref-ok: unity-pipeline —— 所有引用均标注了「已安装时强制 / 未安装降级」两分支，
+不构成硬依赖（详见 verification.mdc §1）。 -->
 
 本文件是测试代码规范的**入口规则**，**按路径注入**（`paths: "**/Tests/**"`），仅在操作测试目录下的文件时生效。
 其中「核心底线」是本入口的强制条款，不依赖子规则是否加载。
@@ -35,7 +38,7 @@ provider:
 10. **回归用例必须锁定缺陷**：针对已修复缺陷的用例，必须在 `<remarks>` 写明「修复前会如何失败」，并确认该断言在修复前确实会失败。
 11. **不得为迁就测试改运行时**：测试不得修改运行时源码；缺 API / 构造函数时按正常运行时代码流程处理。
 12. **不得掩盖断言日志**：用例不得依赖 `LogTool.Assert` 作守卫，也不得用 `LogAssert` 掩盖因用例构造错误而产生的断言日志——应修正用例。
-13. **编译与运行必须经 `unity-pipeline` 技能**：禁止直接调用 `unity` CLI。
+13. **编译与运行经 `unity-pipeline` 技能（可选包）**：已安装该包时**必须**经技能执行、禁止直接调用 `unity` CLI；未安装时降级为 `dotnet build` / `dotnet test` 并在交付说明中标注（判定与流程见 `verification.mdc` §1）。
 
 ## 子规则路由表
 
@@ -43,7 +46,7 @@ provider:
 |------|--------|------|
 | 新建 / 重命名 / 移动 / 拆分测试文件 | `naming-layout.mdc` | 目录镜像映射、文件与类命名、命名空间隔离、专项拆分与主题命名、禁止项、成员查重、自检清单 |
 | 编写 / 修改测试用例 | `authoring.mdc` | 回归用例写法、覆盖建议、断言与注释要求、测试数据设计、辅助类与复用、环境约束引用 |
-| 编译 / 运行 / 验收 | `verification.mdc` | `unity-pipeline` 编译与异步测试流程、定向过滤、注释链路、验收闭环、提交衔接 |
+| 编译 / 运行 / 验收 | `verification.mdc` | 编译与异步测试流程（`unity-pipeline` 装/未装两条分支）、定向过滤、注释链路、验收闭环、提交衔接 |
 
 ## 与其他规则的关系（不重复维护）
 
@@ -51,7 +54,7 @@ provider:
 |------|---------|
 | 测试环境硬约束（`allowUnsafeCode: false` 反射限制、`LogTool.Assert` 在 Test Runner 中的表现、池化内存不清零、`MemoryArray.Resize` 只增不减） | `project-guide/testing.mdc` |
 | 注释规范与 checker→generator→checker 链路 | `csharp-comment/RULE.mdc` |
-| 编译、运行测试、异步轮询、编辑器焦点 | `unity-pipeline/RULE.mdc` |
+| 编译、运行测试、异步轮询、编辑器焦点（**仅在已安装 `unity-pipeline` 时**） | `unity-pipeline/RULE.mdc` |
 | 中文与 UTF-8 无 BOM 编码 | `language/RULE.mdc` |
 | 提交前 C# 审查门禁 | `csharp-code/RULE.mdc`、`vcs-router/RULE.mdc` |
 

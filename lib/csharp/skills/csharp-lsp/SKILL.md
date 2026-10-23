@@ -36,7 +36,7 @@ python .codebuddy/skills/csharp/csharp-lsp/scripts/check_env.py --project .
 - **搜索范围**：`Grep` 与 LSP 查询必须同时覆盖 `Assets/` 与 `Packages/` 两个目录（如 `grep -rn "符号" Assets Packages --include="*.cs"`），禁止只搜其一；非 `.cs` 文件中的引用（场景、配置）需显式扩展 `--include`。
 - **不重复调用**：若上下文已掌握目标符号信息（已读过定义文件），无需额外调用 LSP。
 - **失败降级**：LSP 调用失败（工具报错/超时）时，回退 `Grep`/`Read` 继续任务，不阻塞流程。
-- **与既有规则的关系**：本技能只负责代码智能查询，不替代 `csharp-code`（审查）、`csharp-comment`（注释）、`unity-pipeline`（编译/测试）。
+- **与既有规则的关系**：本技能只负责代码智能查询，不替代 `csharp-code`（审查）、`csharp-comment`（注释）、`unity-pipeline`（编译/测试，**可选包，未安装时降级 `dotnet build/test`**）。
 
 ## 技能包结构
 

@@ -46,7 +46,7 @@ safety_constraints:
   - 检测结果为 none 时不写入缓存
   - 缓存文件仅本机使用，不纳入版本控制（技能目录 .gitignore 忽略 .cache/）
 references:
-  - git-commit: ../git-commit/SKILL.md
-  - git-merge: ../git-merge/SKILL.md
+  - git-commit: ../../git-commit/SKILL.md
+  - git-merge: ../../git-merge/SKILL.md
 evaluation:
   trigger_evals: evals/trigger/

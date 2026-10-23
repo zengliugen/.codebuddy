@@ -1,5 +1,11 @@
 # 配置注册表约定（project.index.json）
 
+<!-- pack-ref-ok: csharp, csharp-format-checker, csharp-code-review, csharp-test-coverage, csharp-comment-checker, git-commit —— 索引条目按「已安装包集合」过滤消费，未安装包的条目既不生成也不判缺失。 -->
+
+<!-- pack-ref-ok: csharp, csharp-format-checker, csharp-code-review, csharp-test-coverage, csharp-comment-checker, git-commit
+ 本文件列举的索引条目来自各可选包；消费者（codebuddy-init、各脚本）按「已安装包集合」过滤：
+ 未安装的包对应条目既不生成也不判定缺失，故不构成硬依赖。 -->
+
 本文件说明 `.codebuddy/project.index.json`（引擎侧配置注册表）的结构与约定，供 `codebuddy-init` 技能与引擎维护者参照。
 
 ## 1. 作用

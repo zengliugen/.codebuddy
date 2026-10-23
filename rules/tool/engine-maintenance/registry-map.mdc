@@ -8,7 +8,7 @@ provider:
 
 # 登记点全景表
 
-## 一、七个必须维护的位置
+## 一、八个必须维护的位置
 
 | # | 位置 | 维护内容 | 漏改后果 |
 |---|---|---|---|
@@ -19,8 +19,19 @@ provider:
 | 5 | `project.index.json` → `artifacts.dirs` | 运行时产物目录 | 产物落到错误位置或无法清理 |
 | 6 | `project.index.json` → `root_symlinks.entries` | 根级软链接（如 `settings.json`） | 链接悬空，CodeBuddy 读不到配置 |
 | 7 | 组件正文内的路径引用 | `.codebuddy/<类型>/<pack>/<名>` 形式的字符串 | 提示的路径不存在，LLM 按错误路径查找 |
+| 8 | 包间的引用边界 | 包 A 的正文只能引用 **`requires` 闭包内**包的组件 | 默认包硬编码可选包组件 → 未安装该包的项目上提示与命令全部失效（**静默**） |
 
-第 7 项最容易被忽略：路径写在各处的说明文字、命令行示例、脚本用法提示里，**不是代码，不会编译报错**。
+第 7、8 项最容易被忽略：两者都写在各处的说明文字、命令行示例、脚本用法提示里，**不是代码，不会编译报错**。
+
+### 第 8 项的判定与豁免
+
+- **合规**：引用本包自身组件，或引用 `requires` 闭包内包的组件（如 `csharp` 引用 `vcs`，因为 `csharp.requires` 含 `vcs`）。
+- **违规**：默认包（`core`/`vcs`/`tool`）引用可选包（`csharp`/`unity-pipeline`/`grilling`/`yao-meta-skill`）组件。
+- **不要**用「给 `requires` 加依赖」来消解违规——那会把可选包变成默认包的硬依赖，形成循环依赖或让无关项目被拖入。
+  正确做法是**泛化**（只留参数名与机制，取值由项目侧配置给出），或**条件化**（写明「已安装 X 时…；未安装降级为…」）。
+- **豁免**：叙述性引用（「走 X」「不替代 X」「交给 X」等分流/关系说明）自动放行；其余需在文件中加
+  `pack-ref-ok: <包名或组件名>` 声明并注明理由，供评审复核。
+- 校验由 `check_manifest.py` 的校验项 7 执行；`evals/`、`reports/` 不参与判定（不参与运行时）。
 
 ## 二、按改动类型的必改清单
 
@@ -33,7 +44,8 @@ provider:
 | 3 | 若是规则且带项目事实正文 → 在 `project.index.json` 的 `rule_shells` **加键**（键含 pack 层） |
 | 4 | 若是技能且需项目配置 → 在 `project.index.json` 的 `files` **加条目**（**仅限引擎侧技能**；项目专有包下的规则/技能/智能体一律不登记，见 `codebuddy-project-config` 第 7 条） |
 | 5 | 跑 `pack_install.py install <pack>` 物化链接，再 `status` 确认一致 |
-| 6 | 更新 `README.md` 目录树与包表；若是规则，同步 `rule-consolidation/references/pattern-spec.md` 的全景表 |
+| 6 | **核对引用边界**：新组件是否引用了 `requires` 闭包外的包组件？若是，改为泛化或条件化（见「第 8 项」） |
+| 7 | 更新 `README.md` 目录树与包表；若是规则，同步 `rule-consolidation/references/pattern-spec.md` 的全景表 |
 
 ### 删除组件
 
@@ -76,15 +88,17 @@ provider:
 | 1 | 改 `packs.json` 的 `location` / `default` / `requires` |
 | 2 | `location` 变更意味着物理位置变更 → 按「搬迁」流程走 |
 | 3 | `default` 变更会影响所有项目 → 在 README 包表标注，并在 `refactor-sync.mdc` 记录影响面 |
-| 4 | 跑 `check_manifest.py`（校验默认包为真实目录、可选包为链接） |
+| 4 | 检查**引用边界**：新增 `requires` 后，原本「跨包引用违规」的正文是否已合规；删除 `requires` 后，是否有正文变成违规 |
+| 5 | 跑 `check_manifest.py`（校验默认包为真实目录、可选包为链接、跨包引用边界） |
 
 ## 三、判定「是否漏改」的三条通用方法
 
 1. **反向检索**：从登记表出发，逐项验证磁盘存在（`check_manifest.py` 已覆盖 `comps` 与 `rule_shells` 键）。
 2. **正向检索**：从磁盘出发，验证每个组件都被某个 pack 声明（`check_manifest.py` 已覆盖 `lib/` 孤儿检测）。
-3. **引用检索**：全库检索路径字符串，验证指向真实位置（**脚本无法覆盖，必须人工**，命令见 `refactor-sync.mdc`）。
+3. **引用检索**：全库检索路径字符串，验证指向真实位置（**文本路径无法自动判定有效性，须人工**，命令见 `refactor-sync.mdc`）。
+4. **跨包边界检索**：验证包正文未引用 `requires` 闭包外的组件（**已由 `check_manifest.py` 校验项 7 覆盖**）。
 
-前两条已有工具兜底，第三条是纯人工——**这就是历史上出问题的地方**。
+前两条与第四条已有工具兜底，第三条（文本路径是否真实存在）仍须人工——**这是历史上出问题的地方**。
 
 ## 四、提交前自检清单
 

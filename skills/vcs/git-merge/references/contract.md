@@ -24,4 +24,4 @@ safety_constraints:
   - 禁止触发审查或安全检查流程
   - 仅返回固定提示，不得越权
 references:
-  - merge-spec: ../../rules/vcs-router/git-merge-spec.mdc
+  - merge-spec: ../../../../rules/vcs/vcs-router/git-merge-spec.mdc

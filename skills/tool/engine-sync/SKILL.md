@@ -10,6 +10,8 @@ metadata:
 ---
 
 ## 运行模式
+
+<!-- pack-ref-ok: vcs-router, git-commit, yao-meta-skill, csharp-code-review, rule-consolidation —— 「排除项 / 交给谁」职责分流表，纯说明性，不调用这些组件。 -->
 `Production` —— 团队复用技能，需通过触发评估和结构检查。
 
 ## 核心契约

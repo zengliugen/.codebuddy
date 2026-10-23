@@ -3,6 +3,8 @@
 """
 Unity 真实代码覆盖率采集编排脚本。
 
+pack-ref-ok: unity-pipeline —— 轮询脚本按该可选包是否安装分支（未安装跳过轮询并提示降级），不构成硬依赖。
+
 凭据来源（全部经 P0 活体实测确认，详见 references/real-coverage-guide.md）：
   1. 状态读取必须走 `unity command script eval` 读内存真实值；
      实测同一时刻 Settings.json 为 true 而内存 Coverage.enabled 为 false，
@@ -55,12 +57,23 @@ import skill_config  # noqa: E402  项目相关程序集前缀/框架包标识�
 # .codebuddy/lib 而非项目根，导致默认扫描范围与产物路径全部失配。
 PROJECT_ROOT = skill_config.PROJECT_ROOT
 
-# unity-pipeline 为可选包，技能目录经链接暴露在 .codebuddy/skills/ 下；包内再嵌套一层
-# 同名目录（lib/<pack>/skills/<pack>/），故路径为 skills/unity-pipeline/unity-pipeline/scripts。
-# 该约定与 unity-pipeline 技能自身文档（references/commands.md）中的调用路径一致。
+# unity-pipeline 为**可选包**（不在 csharp.requires 内）：
+#   - 已安装时技能目录经链接暴露在 .codebuddy/skills/ 下，包内再嵌套一层同名目录
+#     （lib/<pack>/skills/<pack>/），故路径为 skills/unity-pipeline/unity-pipeline/scripts；
+#   - 未安装时该路径不存在，本脚本**不报错**，只是无法自动轮询 Unity 测试终态，
+#     由调用方改用 dotnet test 或手动确认（见 references/guide.md 规则四的分支说明）。
 UNITY_WAIT = os.path.join(
     PROJECT_ROOT, ".codebuddy", "skills", "unity-pipeline", "unity-pipeline", "scripts", "unity_wait.py"
 )
+
+
+def unity_pipeline_available():
+    """判断可选包 unity-pipeline 是否已安装（以轮询脚本存在为准）。
+
+    用于替代硬性依赖：未安装时调用方须降级到 dotnet build / dotnet test，
+    并在报告中标注「未经 unity-pipeline 校验」。
+    """
+    return os.path.isfile(UNITY_WAIT)
 
 COVERAGE_SETTINGS = os.path.join(
     PROJECT_ROOT, "ProjectSettings", "Packages",
@@ -406,8 +419,10 @@ def run_tests(mode):
     log("测试已启动（异步），开始轮询……")
 
     wait_script = UNITY_WAIT
-    if not os.path.isfile(wait_script):
-        log("未找到 unity_wait.py，跳过自动轮询：%s" % wait_script)
+    if not unity_pipeline_available():
+        # 可选包未安装：不视为错误，降级为「无法自动轮询」，由调用方确认结果
+        log("未安装可选包 unity-pipeline，跳过自动轮询与结果归一化：%s" % wait_script)
+        log("请改用 dotnet test 并在报告中标注「未经 unity-pipeline 校验」")
         return None
     try:
         # 轮询脚本会把完整测试结果 JSON 打到 stdout，此处只需其退出码，

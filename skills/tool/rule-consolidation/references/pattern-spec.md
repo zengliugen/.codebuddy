@@ -1,5 +1,7 @@
 # 项目规则统一模式规范
 
+<!-- pack-ref-ok: csharp-code, csharp-comment, csharp-lsp, csharp-test, unity-pipeline, yao-meta-skill, vcs-router, git-commit —— 本文件是「引擎规则全景表」，如实登记各包规则的结构与规模；引用的是规则清单而非运行时调用。 -->
+
 本项目 `.codebuddy/rules/<name>/` 下所有规则遵循统一结构，评估重组时必须对照本规范。
 
 ## 目录结构

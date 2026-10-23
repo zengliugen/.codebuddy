@@ -1,5 +1,7 @@
 # 引擎同步（engine-sync）
 
+<!-- pack-ref-ok: vcs-router, git-commit, yao-meta-skill —— 「不做什么 / 交给谁」职责分流表，纯说明性，不调用这些组件。 -->
+
 把引擎仓库（`.codebuddy/`）的更新**落实到项目侧**（`.codebuddy.project/`）。
 
 ## 解决什么问题

@@ -44,11 +44,17 @@
 unity command "script eval" --code "return UnityEngine.TestTools.Coverage.enabled;"
 ```
 
-### 规则四：骨架落盘后必须经 unity-pipeline 编译
+### 规则四：骨架落盘后必须做编译验证
 
-骨架写入 `Tests/` 后，必须通过 `unity-pipeline` 执行 `script recompile` 并轮询至终态，确认 `failed=false`、`errors=[]`；失败则在报告中列出编译错误。
+骨架写入 `Tests/` 后**必须编译验证**，按 `unity-pipeline` 的安装状态分支：
+
+| 情形 | 做法 |
+|---|---|
+| **已安装** `unity-pipeline`（可选包） | 通过该技能执行 `script recompile` 并轮询至终态，确认 `failed=false`、`errors=[]`；失败则在报告中列出编译错误 |
+| **未安装** | 对包含 `Tests/` 的工程执行 `dotnet build <解决方案或工程>`，以退出码与错误输出判定；报告中标注「未经 unity-pipeline 校验」 |
 
 > **注意 `script recompile_status` 的 `completed` 不一定是真信号**（可能复用上一轮状态）。若需确认改动已生效，用域哈希探针验证（见 `unity-pipeline/references/commands.md` 的「是否真的重编译」探针）。
+> 该探针仅在已安装 `unity-pipeline` 时可用；未安装时以 `dotnet build` 的实际输出为准。
 
 ### 规则五：`--json` 模式下日志一律走 stderr
 
@@ -125,7 +131,7 @@ unity command "script eval" --code "return UnityEngine.TestTools.Coverage.enable
 - [ ] 扫描完成后是否**确实发起了骨架生成询问**（而非默认生成或直接跳过）？
 - [ ] 若生成骨架，是否已按 naming-layout 判定落地方式（`partial` 专项 vs 新建文件）？
 - [ ] 骨架是否已做 `partial` 成员查重？
-- [ ] 骨架落盘后是否经 `unity-pipeline` 编译验证（`failed=false`、`errors=[]`）？
+- [ ] 骨架落盘后是否已编译验证（`unity-pipeline` 已安装 → `failed=false`、`errors=[]`；未安装 → `dotnet build` 通过）？
 - [ ] 真实采集是否**全程未关闭编辑器**？
 - [ ] 覆盖率开关状态是否经 `unity command "script eval"` 读取（而非读文件）？
 - [ ] 报告是否含未覆盖成员清单、零测试文件清单、弱引用清单？

@@ -1,8 +1,8 @@
 ---
 name: csharp-test-coverage
-description: C# 测试覆盖率检查技能。对指定目录/文件/包做测试覆盖率分析：静态分析（Roslyn 解析运行时成员与 Tests/ 引用的映射，识别零引用成员）为主，Unity Code Coverage 真实采集为辅，双路可合并并标出分歧项。当用户要求"检查测试覆盖率"、"看看哪些代码没有测试"、"找出未覆盖的成员/文件"、"零测试代码"、"跑一次覆盖率"、"未覆盖清单"，或要求为缺失测试生成骨架时，应主动调用此技能。扫描完成后必须询问是否生成 Test 骨架（默认不生成）；骨架需经 unity-pipeline 编译验证。真实采集全程不关闭编辑器，状态读取一律走 unity command "script eval" 读内存值，禁止读 Settings.json 判断开关。
+description: C# 测试覆盖率检查技能。对指定目录/文件/包做测试覆盖率分析：静态分析（Roslyn 解析运行时成员与 Tests/ 引用的映射，识别零引用成员）为主，Unity Code Coverage 真实采集为辅，双路可合并并标出分歧项。当用户要求"检查测试覆盖率"、"看看哪些代码没有测试"、"找出未覆盖的成员/文件"、"零测试代码"、"跑一次覆盖率"、"未覆盖清单"，或要求为缺失测试生成骨架时，应主动调用此技能。扫描完成后必须询问是否生成 Test 骨架（默认不生成）；骨架需编译验证（已安装可选包 unity-pipeline 时经其 recompile，未安装时用 dotnet build）。真实采集全程不关闭编辑器，状态读取一律走 unity command "script eval" 读内存值，禁止读 Settings.json 判断开关。
 license: MIT
-compatibility: 需要 .NET 10.0+ SDK 与 Python 3.8+（静态分析工具首次运行自动 dotnet publish）。真实采集需 unity CLI 可用（经 unity-pipeline 技能）。无需额外 Agent，由 CodeBuddy Code 直接执行。
+compatibility: 需要 .NET 10.0+ SDK 与 Python 3.8+（静态分析工具首次运行自动 dotnet publish）。真实采集需 unity CLI 可用且已安装可选包 unity-pipeline（未安装时该路不可用，退化为静态分析单路）。无需额外 Agent，由 CodeBuddy Code 直接执行。
 metadata:
   author: zengliugen
   version: "0.1"

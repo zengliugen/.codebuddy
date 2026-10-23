@@ -1,5 +1,9 @@
 # 项目配置填写指导（fill-guide）
 
+<!-- pack-ref-ok: csharp, csharp-format-checker, csharp-code-review, csharp-test-coverage, csharp-comment-checker, git-commit, vcs
+ 本文件列的配置项来自各可选包技能，codebuddy-init 按「已安装包集合」（active_packs）过滤后使用：
+ 未安装的包，其条目既不生成骨架也不判缺失，因此不构成硬依赖。新增/改动条目须复核该过滤仍生效。 -->
+
 本文件是 `codebuddy-init` 阶段四「按项目情况填写」的**填写指导入口**：当用户选择「立即填写」时，逐项按本文件指向的技能配置指南进行探测与填写。
 
 ## 通用原则

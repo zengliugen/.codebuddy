@@ -9,6 +9,8 @@ provider:
 
 # C# LSP 代码智能使用规则（触发入口）
 
+<!-- pack-ref-ok: unity-pipeline —— 编译校验引用按安装状态条件化（未安装降级 dotnet build）。 -->
+
 ## 强制入口规则
 
 - **C# 代码语义智能查询（符号定义、引用关系、接口实现、类型信息、符号结构）必须通过 `csharp-lsp` 技能执行**（位置：`.codebuddy/skills/csharp/csharp-lsp/`），禁止绕过技能直接凭经验猜测符号定义或引用关系；简单字符串检索不受此约束（见「查询方式分流原则」）。
@@ -52,5 +54,5 @@ provider:
 ## 兜底条款
 
 - 本规则为**使用引导**，非强制门禁：LSP 调用失败（工具报错、超时）时，直接回退常规代码阅读方式（`Grep`/`Read`）继续任务，不得阻塞；LSP 返回空结果时按分流原则用 `Grep` 交叉验证后再下结论。
-- 本规则不替代 `csharp-code`（代码审查）、`csharp-comment`（注释规范）、`unity-pipeline`（Unity 编译/测试校验）等既有规则。
-- 修改 C# 代码后的编译校验仍须遵循 `unity-pipeline` 规则执行 `recompile`。
+- 本规则不替代 `csharp-code`（代码审查）、`csharp-comment`（注释规范）、`unity-pipeline`（Unity 编译/测试校验，**可选包**）等既有规则。
+- 修改 C# 代码后的编译校验：**已安装 `unity-pipeline`** 时须遵循其规则执行 `recompile`；**未安装**时降级为 `dotnet build`（判定见 `csharp-test/verification.mdc` §1）。

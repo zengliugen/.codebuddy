@@ -1,5 +1,7 @@
 # 技能详细契约
 
+<!-- pack-ref-ok: csharp, csharp-format-checker, csharp-test-coverage, csharp-comment-checker, git-commit —— references 指向可选包文档，仅在该包已安装且需要查阅时使用；未安装时该条目跳过。 -->
+
 本文件由 `agents/interface.yaml` 拆分而来：接口文件只保留机器可读最小集（界面元信息与兼容性声明），详细输入/输出/排除/安全/引用契约在此按需读取。
 
 description: 项目配置初始化与可选包管理技能。当新项目需要接入本 .codebuddy 引擎，或需要查看/追加安装/移除引擎可选包时触发；运行先做只读状态检测，再据现状询问意图，可选动作为生成配置骨架、填写配置、列出已装包、追加安装、移除、修复链接漂移。不含任何项目专有值。
@@ -43,13 +45,15 @@ safety_constraints:
   - 填写后向用户复述「键 → 值」供确认再写入
   - 包管理一律经 .codebuddy/scripts/pack_install.py，禁止手工增删链接；操作后以 status 复核
   - 卸载不可逆：执行前须向用户确认将删除的链接清单
+<!-- pack-ref-ok: csharp-format-checker, csharp-test-coverage, csharp-comment-checker, git-commit
+ 下列 references 指向可选包技能文档，仅供「该包已安装时」查阅；未安装时对应条目跳过，不构成硬依赖。 -->
 references:
   - index-spec: references/index-spec.md
   - fill-guide: references/fill-guide.md
-  - format-config-guide: ../csharp-format-checker/references/config-guide.md
-  - coverage-config-guide: ../csharp-test-coverage/references/config-guide.md
-  - comment-config-guide: ../csharp-comment-checker/references/config-guide.md
-  - git-commit-project-config: ../git-commit/references/project-config.md
+  - format-config-guide: ../../../csharp/csharp-format-checker/references/config-guide.md
+  - coverage-config-guide: ../../../csharp/csharp-test-coverage/references/config-guide.md
+  - comment-config-guide: ../../../csharp/csharp-comment-checker/references/config-guide.md
+  - git-commit-project-config: ../../../vcs/git-commit/references/project-config.md
 evaluation:
   trigger_evals: evals/trigger/
   output_risk_profile: reports/output-risk-profile.md

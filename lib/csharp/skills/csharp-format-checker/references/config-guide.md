@@ -1,7 +1,7 @@
 # 项目配置指南（csharp-format-checker）
 
 本技能为**通用技能 + 项目可配置**模式：技能脚本与 `SKILL.md` 通用，每个项目只通过**项目侧配置**
-（索引逻辑名 `format_checker.config`，位于 `.codebuddy.project/configs/skills/csharp-format-checker/config.json`）
+（索引逻辑名 `format_checker.config`，位于 `.codebuddy.project/configs/skills/csharp/csharp-format-checker/config.json`）
 表达自己的格式范围与忽略目录。目标项目只改项目侧配置，无需改动技能代码。
 
 ## 配置项说明

@@ -3,6 +3,8 @@
 """
 项目配置初始化脚本（codebuddy-init 技能）。
 
+pack-ref-ok: cmd-script-writing —— 注释中说明生成内容遵循的 cmd 脚本书写规范，属编码约定引用，不调用该技能。
+
 目标：新项目拉取 `.codebuddy` 引擎（submodule 或复制）后，本脚本读取引擎侧的
 配置注册表 `.codebuddy/project.index.json`，据此在项目根下创建项目侧配置目录
 `.codebuddy.project/` 的**全部占位骨架**（结构完整、值留占位），使各技能首次运行

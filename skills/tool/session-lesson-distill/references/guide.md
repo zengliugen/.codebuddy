@@ -1,5 +1,7 @@
 # 详细流程与规则
 
+<!-- pack-ref-ok: yao-meta-skill, csharp-code-review, git-commit, vcs-router —— 「遇到 X 走谁」分流表，纯路由说明，本技能自身不调用这些组件。 -->
+
 
 
 本文件由 `SKILL.md` 拆分而来，承载完整执行细节；主文件只保留触发、契约与流程骨架。

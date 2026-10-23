@@ -16,7 +16,12 @@
      且 `rule_shells` 的键能落到真实文件——判定时按包 location 区分：
      engine 查扫描根；lib 查 `lib/<pack>/rules/`（未安装该可选包时扫描根无链接属正常）；
      project 视为在项目侧、引擎内不持有。
-  6. `root_symlinks.entries` 的 `link` / `path` 均为相对路径，且引擎内链接存在且为符号链接。
+  6. `root_symlinks.entries` 的 `link` / `path` 均为相对路径，且引擎内链接存在且为符号链接；
+  7. **跨包引用合规**：各包正文（`.md`/`.mdc`/`.py` 等）不得引用 `requires` 依赖闭包**之外**的包组件。
+     默认包引用可选包组件属违规（该可选包未安装时提示与命令全部失效）；
+     允许项：本包自身组件、依赖闭包内包组件、同行命中 `BENIGN_CONTEXT` 的叙述性引用
+     （「走 X」「不替代 X」等分流/关系说明）、`evals/` 与 `reports/` 目录（不参与运行时）、
+     显式标注 `pack-ref-ok` 的行。
 
 退出码：
   0 —— 一致
@@ -28,6 +33,7 @@
 
 import json
 import os
+import re
 import sys
 
 def find_codebuddy_dir(start):
@@ -163,6 +169,139 @@ def check_packs(codebuddy_dir, packs):
     return problems
 
 
+# 跨包引用校验：同行出现以下语境的引用属「叙述性」（分流 / 排除 / 关系说明），不构成功能耦合。
+BENIGN_CONTEXT = (
+    "走 ", "走\u0060", "排除", "路由", "不替代", "不检查", "不负责", "转本", "各自", "须让路",
+    "详见", "交给", "由 ", "禁止", "改由", "参考", "登记", "vendor", "第三方", "上游",
+    "同一布局", "同一份", "口径", "例：", "实例", "合计", "见 ", "按 ", "如 ", "当前为",
+    "未安装", "已安装", "可选包", "安装状态", "降级",
+)
+# 参与跨包引用的正文文件类型（可执行脚本也纳入：脚本内硬编码他包路径危害最大）
+PACK_REF_SCAN_EXT = (".md", ".mdc", ".yaml", ".yml", ".json", ".py", ".cmd", ".ps1", ".sh")
+# 不参与运行时、可自由提及他包组件的目录（触发用例的反例语义需要点名其他技能）
+PACK_REF_SKIP_DIRS = ("evals", "reports", "caches", "__pycache__", ".previews")
+# 显式豁免标记（行级）：该行属有意引用，须同行注明理由
+PACK_REF_OK_MARK = "pack-ref-ok"
+# 显式豁免声明（文件级）：`pack-ref-ok: <包名>[,<包名>...]`，声明本文件有意引用这些包，
+# 且已按安装状态做了条件化处理（如「已安装 X 时…；未安装降级为…」）。
+# 声明可跨多行书写，逐行声明会累积生效；须随文件入库，供评审时复核是否仍成立。
+PACK_REF_OK_DECL = re.compile(r"pack-ref-ok\s*[:：]\s*([A-Za-z0-9_.\-]+(?:\s*,\s*[A-Za-z0-9_.\-]+)*)")
+# 组件名最小长度：低于此长度（如 language）易在自然语言中误命中
+PACK_REF_MIN_NAME_LEN = 8
+# 不参与跨包引用判定的组件名（通用词，在自然语言与其他语境中大量出现，无辨识度）
+PACK_REF_IGNORED_NAMES = ("language",)
+
+
+def component_owner_map(packs):
+    """构建 组件名 -> 声明它的包集合 的映射。"""
+    owners = {}
+    for pack, meta in packs.items():
+        for comp_type in ("rules", "skills", "agents"):
+            for name in (meta.get("comps") or {}).get(comp_type) or []:
+                owners.setdefault(name, set()).add(pack)
+    return owners
+
+
+def requires_closure(packs, pack):
+    """计算包的依赖闭包（含自身）；遇到不存在的依赖时跳过（由 check_packs 另行报错）。"""
+    seen = set()
+    stack = [pack]
+    while stack:
+        current = stack.pop()
+        if current in seen or current not in packs:
+            continue
+        seen.add(current)
+        stack.extend(packs[current].get("requires") or [])
+    return seen
+
+
+def pack_of_file(codebuddy_dir, path):
+    """按路径反推文件所属包；无法判定（不在任一包目录内）时返回 None。
+
+    推导规则与 component_path 一致：
+      lib/<pack>/<类型>/...     → 可选包
+      <类型>/<pack>/...         → 默认包（引擎扫描根）
+    """
+    rel = os.path.relpath(path, codebuddy_dir).replace("\\", "/")
+    segments = rel.split("/")
+    if not segments:
+        return None
+    if segments[0] == "lib" and len(segments) > 2:
+        return segments[1]
+    if len(segments) > 2 and segments[0] in ("rules", "skills", "agents"):
+        return segments[1]
+    return None
+
+
+def check_cross_pack_refs(codebuddy_dir, packs):
+    """校验各包正文是否引用了依赖闭包之外的包组件（校验项 7）。
+
+    背景：目录引入 pack 层后，默认包（vcs/tool/core）曾大量硬编码可选包（csharp）的
+    技能名、脚本路径与 CLI 参数。这类引用不是代码，不会编译报错，只会在「未安装该可选包
+    的项目」上表现为提示路径不存在、命令跑不通，因此必须靠本校验兜住。
+    """
+    problems = []
+    owners = component_owner_map(packs)
+    names = [name for name in owners
+             if len(name) >= PACK_REF_MIN_NAME_LEN and name not in PACK_REF_IGNORED_NAMES]
+    if not names:
+        return problems
+    # 词边界匹配：避免 csharp-code 命中 csharp-code-review
+    patterns = {}
+    for name in names:
+        patterns[name] = re.compile(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])")
+    closures = {pack: requires_closure(packs, pack) for pack in packs}
+
+    for dirpath, dirnames, filenames in os.walk(codebuddy_dir):
+        dirnames[:] = [d for d in dirnames
+                       if d not in PACK_REF_SKIP_DIRS and d != ".git"]
+        for filename in filenames:
+            if not filename.endswith(PACK_REF_SCAN_EXT):
+                continue
+            full = os.path.join(dirpath, filename)
+            owner = pack_of_file(codebuddy_dir, full)
+            if owner not in packs:
+                continue
+            rel = os.path.relpath(full, codebuddy_dir).replace("\\", "/")
+            try:
+                with open(full, "r", encoding="utf-8", errors="replace") as handle:
+                    lines = handle.read().splitlines()
+            except OSError as error:
+                problems.append("跨包引用校验读取失败：%s（%s）" % (rel, error))
+                continue
+            # 解析文件级豁免声明：仅豁免被点名的包，其余引用照常校验。
+            # 声明内可写包名，也可写组件名（组件名自动折算为其所属包），便于按实际写法标注。
+            declared = set()
+            for line in lines:
+                match = PACK_REF_OK_DECL.search(line)
+                if match:
+                    declared.update(
+                        item.strip() for item in match.group(1).split(",") if item.strip())
+            allowed_packs = set()
+            for item in declared:
+                if item in packs:
+                    allowed_packs.add(item)
+                elif item in owners:
+                    allowed_packs.update(owners[item])
+            for lineno, line in enumerate(lines, 1):
+                if PACK_REF_OK_MARK in line:
+                    continue
+                if any(token in line for token in BENIGN_CONTEXT):
+                    continue
+                for name, pattern in patterns.items():
+                    if not pattern.search(line):
+                        continue
+                    targets = owners[name]
+                    if owner in targets or targets & closures[owner]:
+                        continue
+                    if targets <= allowed_packs:
+                        continue
+                    problems.append(
+                        "跨包引用违规：%s:%d 包 %s 引用了 %s（属包 %s，不在其 requires 闭包内）"
+                        % (rel, lineno, owner, name, "、".join(sorted(targets))))
+    return sorted(set(problems))
+
+
 def main():
     codebuddy_dir = find_codebuddy_dir(os.getcwd())
     if not codebuddy_dir:
@@ -176,6 +315,8 @@ def main():
     problems.extend(pack_problems)
     if packs:
         problems.extend(check_packs(codebuddy_dir, packs))
+        # 7. 跨包引用合规（防默认包硬编码可选包组件）
+        problems.extend(check_cross_pack_refs(codebuddy_dir, packs))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")

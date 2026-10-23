@@ -88,13 +88,17 @@ H1 钩子步骤由**项目侧配置**声明（经索引 `git_commit.project_conf
 `.codebuddy.project/configs/skills/vcs/git-commit/project-config.md`）。读取其 §3「H1 暂存前」步骤列表，
 **按表内顺序**执行 `enabled=true` 的步骤；`blocking=false` 失败仅告警，`blocking=true` 失败即中止并询问用户。
 
-本项目 H1 默认含两个步骤，按序为：
+**引擎不预设任何步骤**——步骤清单、顺序、启用状态与 `blocking` 取值全部由项目侧配置声明
+（当前项目取值见项目侧 `project-config.md` §4）。引擎只定义执行规则（见引擎侧
+`references/project-config.md` §3 与 §3.1）：
 
-1. **提交前审查**——匹配审查文件模式时触发代码审查，`error` 级别问题阻塞提交（参数见项目侧 §2，机制见引擎侧 `references/project-config.md` §2）。
-2. **提交前格式检查**——含 `.cs` 时跑 `csharp-format-checker` **变更工程**格式校验（机制见引擎侧 §3.1）。
+1. 按项目侧表内顺序逐行处理，`enabled=false` 跳过；
+2. 步骤声明了可执行命令时，逐条执行并以**退出码**判定成败（0 通过，非 0 按 `blocking` 处理）；
+3. 增删步骤只改项目侧配置，引擎侧文件不动。
 
-步骤的具体配置、参数与启用状态以**项目侧配置**为准；机制（触发时机、阻塞边界、字段语义）以
-引擎侧 `references/project-config.md` 为准。本文件不重复维护；增删步骤只改项目侧配置。
+> 典型步骤形态（**仅为说明机制、非引擎默认值**）：审查门禁（§2，语义维度，Agent 参与）、
+> 格式/约定校验（确定性命令，退出码判定）。具体调用哪个技能、跑什么命令，均由项目侧
+> `description` 完整给出。
 
 ### 阶段六：安全检查
 
@@ -197,11 +201,11 @@ git status --short    # 全仓核对，逐一确认是否属于本次提交计�
 - [ ] 本次提交是否由 vcs-router 路由（或用户直接指定 Git 上下文）？
 - [ ] 提交发起权是否合规（`commit_initiation`：`user_only` 时需用户主动发起；`llm_allowed` 时 LLM 可自行发起）？
 - [ ] H1 步骤是否已按**项目侧配置**（经索引 `git_commit.project_config`）的表内顺序执行（`enabled`/`blocking` 语义见引擎侧 `references/project-config.md` §3）？
-- [ ] H1 首个步骤「提交前审查」：本次变更是否包含配置的审查文件模式（默认 `.cs`）？若是，是否已触发代码审查？
+- [ ] H1「提交前审查」步骤：本次变更是否包含配置的 `file_extensions` 与白名单模式？若是，是否已触发代码审查？
 - [ ] 用户指示跳过审查时，是否已通过 `AskUserQuestion` 确认跳过理由？
-- [ ] 审查是否存在配置 `blocking_level`（默认 `error`）级别问题？若是，是否已修复或获得用户明确授权忽略？
+- [ ] 审查是否存在配置的 `blocking_level` 级别问题？若是，是否已修复或获得用户明确授权忽略？
 - [ ] 审查报告路径是否已记录进提交计划？
-- [ ] H1「提交前格式检查」：含 `.cs` 的提交是否在**暂存前**跑过 `csharp-format-checker`，失败时是否已 fix 或获得用户授权忽略？
+- [ ] H1 其余 `blocking=true` 步骤（项目侧配置）是否均已执行且通过？失败时是否已修复或获得用户授权忽略？
 - [ ] 提交/推送前是否通过 `AskUserQuestion` 获得明确授权？
 - [ ] 提交摘要格式是否正确（type + scope + subject）？
 - [ ] subject 是否符合项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）配置（语言/长度）、无句号结尾？

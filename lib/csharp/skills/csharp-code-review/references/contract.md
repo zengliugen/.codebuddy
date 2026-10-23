@@ -39,4 +39,4 @@ references:
   - bug-boundary-spec: .codebuddy/rules/csharp/csharp-code/bug-boundary-spec.mdc
   - architecture-spec: .codebuddy/rules/csharp/csharp-code/architecture-spec.mdc
   - report-spec: .codebuddy/rules/csharp/csharp-code/report-spec.mdc
-  - agent: .codebuddy/agents/csharp/csharp-code-review/csharp-code-review.md
+  - agent: .codebuddy/agents/csharp/csharp-code-review.md
