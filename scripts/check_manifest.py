@@ -228,6 +228,30 @@ def main():
                 continue
             problems.append("索引 rule_shells 的键在磁盘不存在（目录重构后未同步）：%s" % key)
 
+        # 项目专有包的内容不得登记索引（规则 codebuddy-project-config 第 7 条）：
+        # 索引随引擎共享且对所有消费项目一致，登入项目专有内容会让其他项目在
+        # codebuddy-init 时生成用不上的骨架。
+        project_root_for_index = os.path.dirname(codebuddy_dir)
+        project_scan_roots = [
+            os.path.join(project_root_for_index, ".codebuddy.project", kind, "project")
+            for kind in ("rules", "skills", "agents")
+        ]
+        for group_key in ("files", "rule_shells"):
+            for code_name, entry in (index.get(group_key) or {}).items():
+                rel_path = (entry or {}).get("path")
+                if not isinstance(rel_path, str) or not rel_path:
+                    continue
+                target = os.path.normpath(os.path.join(project_root_for_index, rel_path))
+                for scan_root in project_scan_roots:
+                    normalized_root = os.path.normpath(scan_root)
+                    if target == normalized_root or target.startswith(normalized_root + os.sep):
+                        problems.append(
+                            "索引 %s.%s 指向项目专有包（%s）：%s。"
+                            "项目专有包的配置/规则由项目侧脚本按相对路径定位，不得登记索引"
+                            % (group_key, code_name,
+                               os.path.relpath(normalized_root, project_root_for_index), rel_path))
+                        break
+
         # artifacts.dirs：产物目录路径相对性
         for logical_name, rel in (index.get("artifacts") or {}).get("dirs", {}).items():
             if not isinstance(rel, str) or not rel:
