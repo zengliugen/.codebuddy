@@ -56,7 +56,7 @@
 ├── skills/                     # 技能扫描根：默认包真实目录 + 可选包链接
 │   ├── core/ codebuddy-init/
 │   ├── vcs/                    #   vcs-router/ git-commit/ git-merge/
-│   ├── tool/                   #   cmd-script-writing/ export-zipped-dir/ rule-consolidation/ session-lesson-distill/
+│   ├── tool/                   #   cmd-script-writing/ engine-sync/ export-zipped-dir/ rule-consolidation/ session-lesson-distill/
 │   ├── project ──链接──▶ 项目侧 #   项目专有技能（.codebuddy.project/skills/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
@@ -211,7 +211,7 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 | `core` | 基础 | ✅ | rules: language、project-guide；skills: codebuddy-init |
 | `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
 | `vcs` | 基础 | ✅ | rules: vcs-router；skills: vcs-router、git-commit、git-merge |
-| `tool` | 基础 | ✅ | rules: codebuddy-engine-vcs、codebuddy-project-config、bash-command-shape、engine-maintenance；skills: cmd-script-writing、export-zipped-dir、rule-consolidation、session-lesson-distill |
+| `tool` | 基础 | ✅ | rules: codebuddy-engine-vcs、codebuddy-project-config、bash-command-shape、engine-maintenance；skills: cmd-script-writing、engine-sync、export-zipped-dir、rule-consolidation、session-lesson-distill |
 | `csharp` | C# | ❌ | rules: csharp-code、csharp-comment、csharp-lsp、csharp-test；skills: 6 个；agents: 2 个 |
 | `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
 | `grilling` | third-party | ❌ | skills: grilling、grill-me |

@@ -1,0 +1,139 @@
+{
+  "ok": true,
+  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\engine-sync",
+  "summary": {
+    "scanned_files": 13,
+    "script_count": 1,
+    "internal_module_count": 0,
+    "secret_findings": 0,
+    "dependency_files": [],
+    "network_script_count": 0,
+    "network_policy_covered_count": 0,
+    "network_policy_missing_count": 0,
+    "file_write_script_count": 0,
+    "permission_required_count": 1,
+    "permission_approved_count": 1,
+    "permission_missing_count": 0,
+    "permission_invalid_count": 0,
+    "permission_expired_count": 0,
+    "help_smoke_checked_count": 1,
+    "help_smoke_failed_count": 0,
+    "interactive_script_count": 0,
+    "package_hash_scope": "source-contract-without-generated-reports",
+    "package_hash_file_count": 13,
+    "package_sha256": "e28f2dce8715fbf15a39f38f36aa8f60263d06a964935ff80744996abac55b2c"
+  },
+  "failures": [],
+  "warnings": [
+    "No dependency or lock file detected"
+  ],
+  "secrets": [],
+  "scripts": [
+    {
+      "path": "scripts\\analyze_impact.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": false,
+      "uses_subprocess": true,
+      "network_urls": [],
+      "network_hosts": []
+    }
+  ],
+  "dependencies": {
+    "present": [],
+    "pinned": [],
+    "unpinned": []
+  },
+  "network_policy": {
+    "present": false,
+    "path": "security/network_policy.json",
+    "schema_version": "",
+    "network_script_count": 0,
+    "covered_scripts": [],
+    "missing_scripts": [],
+    "mismatches": [],
+    "default_policy": {}
+  },
+  "help_smoke": {
+    "enabled": true,
+    "timeout_seconds": 5.0,
+    "candidate_count": 1,
+    "checked_count": 1,
+    "passed_count": 1,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "failed_scripts": [],
+    "results": [
+      {
+        "path": "scripts\\analyze_impact.py",
+        "command": "python3 scripts\\analyze_impact.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: analyze_impact.py [-h] --from FROM_REF [--to TO_REF] [--dir DIR]\n                         [--project-root PROJECT_ROOT] [--json]\n\n对比引擎两版本的项目侧契约变化，输出需同步到项目侧的清单\n\noptions:\n  -h, --help            show this help message and exit\n  --from",
+        "stderr_excerpt": ""
+      }
+    ],
+    "skipped": []
+  },
+  "permission_governance": {
+    "present": true,
+    "path": "security/permission_policy.json",
+    "schema_version": "1.0",
+    "reviewed_at": "2026-10-23",
+    "required_capabilities": [
+      "subprocess"
+    ],
+    "approved_capabilities": [
+      "subprocess"
+    ],
+    "missing_capabilities": [],
+    "invalid_capabilities": [],
+    "expired_capabilities": [],
+    "approval_count": 1,
+    "required_count": 1,
+    "missing_count": 0,
+    "invalid_count": 0,
+    "expired_count": 0,
+    "approvals": [
+      {
+        "capability": "subprocess",
+        "status": "approved",
+        "scripts": [
+          "scripts\\analyze_impact.py"
+        ],
+        "reviewer": "zengliugen",
+        "scope": "仅调用本地 git 只读子命令（git show、git rev-parse、git rev-list、git status）读取历史版本与提交信息。",
+        "reason": "影响分析需对比引擎仓库两版本的索引与包注册表，必须读取历史快照；不调用写操作子命令，不下载外部内容。",
+        "expires_at": "2027-10-23",
+        "evidence": [
+          "scripts/analyze_impact.py",
+          "reports/security_trust_report.md"
+        ],
+        "target_enforcement": {
+          "openai": "metadata-only permission_contract plus adapter",
+          "claude": "adapter target_permission_contract",
+          "generic": "adapter target_permission_contract",
+          "vscode": "adapter target_permission_contract",
+          "codebuddy-code": "native"
+        },
+        "validation": []
+      }
+    ]
+  },
+  "trust_metadata": {
+    "source_tier": "local",
+    "remote_inline_execution": "forbid",
+    "remote_metadata_policy": "allow-metadata-only"
+  },
+  "artifacts": {
+    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\engine-sync\\reports\\security_trust_report.json",
+    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\engine-sync\\reports\\security_trust_report.md"
+  }
+}

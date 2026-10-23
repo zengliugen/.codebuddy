@@ -1,0 +1,24 @@
+{
+  "skill": "engine-sync",
+  "language": "zh",
+  "threshold": 0.48,
+  "phrases": {
+    "positive": [
+      { "text": "更新引擎", "weight": 0.9 },
+      { "text": "同步项目侧", "weight": 1.0 },
+      { "text": "升级 codebuddy 引擎", "weight": 0.9 },
+      { "text": "引擎有更新", "weight": 0.8 },
+      { "text": "子模块指针", "weight": 0.6 },
+      { "text": "引擎同步", "weight": 0.9 }
+    ],
+    "negative": [
+      { "text": "初始化配置", "weight": -1.0 },
+      { "text": "新建技能", "weight": -0.9 },
+      { "text": "提交", "weight": -0.5 },
+      { "text": "推送", "weight": -0.5 },
+      { "text": "拆分规则", "weight": -0.7 },
+      { "text": "代码审查", "weight": -0.7 }
+    ]
+  },
+  "notes": "正向需同时含「引擎」与「同步/更新到项目侧」语义；仅查询版本或纯 git 操作不触发。"
+}

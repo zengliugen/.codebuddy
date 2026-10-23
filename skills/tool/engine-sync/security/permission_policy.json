@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-10-23",
+  "capabilities": {
+    "subprocess": {
+      "decision": "approved",
+      "reviewer": "zengliugen",
+      "scope": "仅调用本地 git 只读子命令（git show、git rev-parse、git rev-list、git status）读取历史版本与提交信息。",
+      "reason": "影响分析需对比引擎仓库两版本的索引与包注册表，必须读取历史快照；不调用写操作子命令，不下载外部内容。",
+      "expires_at": "2027-10-23",
+      "evidence": [
+        "scripts/analyze_impact.py",
+        "reports/security_trust_report.md"
+      ],
+      "target_enforcement": {
+        "openai": "metadata-only permission_contract plus adapter",
+        "claude": "adapter target_permission_contract",
+        "generic": "adapter target_permission_contract",
+        "vscode": "adapter target_permission_contract",
+        "codebuddy-code": "native"
+      }
+    },
+    "network": {
+      "decision": "denied",
+      "reviewer": "zengliugen",
+      "scope": "本技能全部脚本不发起任何网络请求。",
+      "reason": "分析所需数据全部来自本地 git 仓库与本地文件。",
+      "expires_at": "2027-10-23",
+      "evidence": [
+        "scripts/analyze_impact.py",
+        "reports/security_trust_report.md"
+      ],
+      "target_enforcement": {
+        "openai": "metadata-only permission_contract plus adapter",
+        "claude": "adapter target_permission_contract",
+        "generic": "adapter target_permission_contract",
+        "vscode": "adapter target_permission_contract",
+        "codebuddy-code": "native"
+      }
+    },
+    "file_write": {
+      "decision": "denied",
+      "reviewer": "zengliugen",
+      "scope": "脚本自身不写盘、不删除文件；项目侧改动由智能体按流程执行并经用户确认。",
+      "reason": "analyze_impact.py 为只读分析工具，写操作由调用方逐项授权执行。",
+      "expires_at": "2027-10-23",
+      "evidence": [
+        "scripts/analyze_impact.py",
+        "references/sync-playbook.md"
+      ],
+      "target_enforcement": {
+        "openai": "metadata-only permission_contract plus adapter",
+        "claude": "adapter target_permission_contract",
+        "generic": "adapter target_permission_contract",
+        "vscode": "adapter target_permission_contract",
+        "codebuddy-code": "native"
+      }
+    }
+  }
+}

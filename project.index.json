@@ -13,7 +13,8 @@
       "unity_pipeline.cache": ".codebuddy.project/caches/skills/unity-pipeline/unity-pipeline/.cache",
       "vcs_router.cache": ".codebuddy.project/caches/skills/vcs/vcs-router/.cache",
       "vcs_router.lock": ".codebuddy.project/caches/.vcs-lock",
-      "session_distill.reports": ".codebuddy.project/caches/skills/tool/session-lesson-distill/reports"
+      "session_distill.reports": ".codebuddy.project/caches/skills/tool/session-lesson-distill/reports",
+      "engine_sync.reports": ".codebuddy.project/caches/skills/tool/engine-sync/reports"
     }
   },
   "root_symlinks": {
