@@ -54,13 +54,13 @@
           "bash-command-shape",
           "engine-maintenance"
         ],
-    "skills": [
-      "cmd-script-writing",
-      "engine-sync",
-      "export-zipped-dir",
-      "rule-consolidation",
-      "session-lesson-distill"
-    ],
+        "skills": [
+          "cmd-script-writing",
+          "engine-sync",
+          "export-zipped-dir",
+          "rule-consolidation",
+          "session-lesson-distill"
+        ],
         "agents": []
       }
     },
