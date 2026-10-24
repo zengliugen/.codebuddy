@@ -1,0 +1,43 @@
+interface:
+  display_name: "Python 工具环境"
+  short_description: "用 uv 管理只含 ruff 与 coverage 的独立工具环境，并探测可用的应用解释器"
+  default_prompt: "使用 $python-env 检查或创建 Python 工具环境：先跑 check 判断是否就绪，未就绪时跑 ensure 创建（数秒、可离线）。需要应用解释器路径时跑 python 子命令。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "建.*Python.*环境|Python.*环境.*就绪"
+      - keyword: "装.*ruff|ruff.*环境"
+      - keyword: "重建.*工具环境|工具环境"
+      - keyword: "python-env"
+      - keyword: "应用解释器|解释器.*路径"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      uv: ">=0.4"
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "scripts/env.py"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: python-env
+version: "0.1"
+mode: Production

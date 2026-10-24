@@ -1,0 +1,13 @@
+# python 包的工具环境依赖定义。
+#
+# 本文件与同目录 uv.lock 是「工具环境装什么、装哪个版本」的唯一事实来源：
+# 各项目侧的环境实例（.codebuddy.project/envs/python）由 python-env 技能的 ensure
+# 子命令按 --locked 模式物化，锁定文件与声明不一致时会报错而非静默忽略。
+#
+# 修改流程：改本文件 → 在本目录执行 uv lock → 提交这两个文件。
+# 版本必须精确固定：ruff 的小版本会改变规则行为，锁版本是「报告可复现」的前提。
+[project]
+name = "python-tools"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["ruff==0.17.2", "coverage==7.17.0"]

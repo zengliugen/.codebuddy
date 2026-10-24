@@ -1,0 +1,74 @@
+---
+description: Python 代码审查规范入口（始终生效）。定义审查的强制入口路由：所有 Python 代码审查必须通过 python-code-review 技能执行，由技能调度 Agent 拉起审查。子规则（质量/注释/Bug/报告）由 Agent 按需加载，不全局生效。
+alwaysApply: true
+enabled: true
+updatedAt: 2026-10-24T00:00:00.000Z
+provider:
+---
+
+# Python 代码审查规范
+
+本文件是 Python 代码审查规范的**入口规则**，**始终生效**（`alwaysApply: true）。其中「强制入口规则」是审查路由的兜底强制条款：无论技能自动触发机制是否生效，本规则都要求 Python 代码审查必须经 `python-code-review` 技能统一入口执行，禁止绕过技能直接审查。
+
+## 强制入口规则
+
+- **所有 Python 代码审查必须通过 `python-code-review` 技能执行**：技能负责触发识别与 Agent 调度，实际审查逻辑由 `python-code-review` Agent 承担。
+- 触发场景：用户要求审查 Python 代码（未提交的 Git 变更、单个 `.py` 文件、目录、粘贴的代码片段），或用户要求修复审查发现的问题（Agent 进入修复模式）。
+- 禁止行为：
+  - **禁止**绕过技能直接在对话中凭记忆审查 Python 代码。
+  - **禁止**以纯文本方式「假装审查」后给出无规则依据的结论。
+  - **禁止**在未触发审查技能的情况下自行读取/修改被审查代码。
+- 审查规则由 Agent 按需加载（见下文「规则加载方式」），**子规则不全局生效**；本入口规则负责把审查请求正确路由到技能与 Agent。
+
+## 1. 审查维度总览（子规则路由表）
+
+| 维度 | 规则文件 | 审查重点 |
+|------|---------|---------|
+| 代码质量与规范 | `quality-spec.mdc` | 命名、可读性、复杂度、项目代码风格 |
+| 注释合规 | `comment-spec.mdc` | 模块/类/函数 docstring、行内注释合规性 |
+| 潜在 Bug 与边界 | `bug-spec.mdc` | 可变默认参数、裸 except、资源未释放、`is` 比较、迭代期间修改集合 |
+| 审查报告 | `report-spec.mdc` | 报告结构、分级、落盘位置 |
+
+以上子规则均为**按需加载**（`alwaysApply: false`），仅在 `python-code-review` Agent 执行审查时读取。
+
+> **格式维度不设独立规则**：代码格式（引号、缩进、换行、import 排序）由 `python-lint` 技能通过 `ruff` 做确定性检查，属工具结果而非人工判断。Agent 执行审查时，格式维度**直接采信 `ruff` 的输出**，不以本规则未列为由判为「无问题」。
+
+### 审查范围
+
+| 范围 | 是否审查 | 理由 |
+|------|---------|------|
+| `extensions/**` | 是 | 项目自有运行时代码 |
+| `extensions_tests/**` | 是 | 项目扩展的测试 |
+| `src/**` | **否** | 血缘上是上游模板，改动会被上游覆盖 |
+| `tests/**` | **否** | 上游基线测试，只新增不修改 |
+| 依赖与工具目录 | 否 | `envs/`、`.venv/`、`__pycache__/` 等 |
+
+范围口径与 `python-lint` 的 `include_patterns` 保持一致（实际取值在项目侧配置中声明）。
+
+## 2. 规则加载方式
+
+Agent 执行审查前，**必须读取**以下全部规则文件：
+
+- `.codebuddy/rules/python/python-code/quality-spec.mdc`
+- `.codebuddy/rules/python/python-code/comment-spec.mdc`
+- `.codebuddy/rules/python/python-code/bug-spec.mdc`
+- `.codebuddy/rules/python/python-code/report-spec.mdc`
+
+注释维度的执行标准引用 `.codebuddy/rules/python/python-comment/` 下的注释规范；可机械判定的部分（有无 docstring、首行标点、段标题格式）以 `ruff` 的 `D` 系列结果为准。
+
+## 3. 严重级别定义
+
+| 级别 | 含义 | 处理要求 |
+|------|------|---------|
+| `error` | 确定的 Bug 风险、明显违反强制规范、可能导致运行时故障 | 必须修复 |
+| `warning` | 潜在风险、可疑逻辑、偏离推荐规范 | 建议修复 |
+| `info` | 改进建议、代码风格提示、可优化点 | 可选择性处理 |
+
+## 4. 审查原则
+
+1. **只报告不修改**：默认仅输出审查报告，不修改源代码；用户明确要求修复时才可修改。
+2. **证据优先**：每个问题必须附行号、代码片段或依据，禁止无依据的主观判断。
+3. **区分事实与推测**：确定为问题用 `error`/`warning`，仅凭推测的用 `info` 并在描述中标注「疑似」。
+4. **只审本次变更**：默认只报告本次改动引入的问题，不重复报存量问题——存量扫描会附带大量未变更行的结论，淹没本次评审重点。
+5. **结合项目上下文**：判定问题时需考虑「项目专属代码只写在 `extensions/`」这一约定（见项目侧 `upstream-compat` 规则）。
+6. **报告文件落盘**：审查完成后必须在 `check_logs/` 目录生成 `.md` 报告文件，格式见 `report-spec.mdc`。

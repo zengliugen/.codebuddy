@@ -1,0 +1,42 @@
+interface:
+  display_name: "Python 注释检查"
+  short_description: "按 google 风格检查与修复 Python docstring 与行内注释，要求全中文全角标点"
+  default_prompt: "使用 $python-comment 检查或修复 Python 注释：要求全中文、全角标点（首行句号与段标题冒号都用全角），可机械判定的结构项交给 ruff 的 D 系列规则，标点统一与内容准确性由技能判断；修复后复跑 ruff 确认通过。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "注释.*规范|docstring|注释.*检查"
+      - keyword: "补.*注释|补全.*docstring|修.*注释"
+      - keyword: "注释.*代码.*不一致|注释.*过期"
+      - keyword: "全角|标点.*统一"
+      - keyword: "python-comment"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "references/guide.md"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: python-comment
+version: "0.2"
+mode: Production

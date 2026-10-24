@@ -153,6 +153,33 @@
         ],
         "agents": []
       }
+    },
+    "python": {
+      "category": "Python",
+      "description": "Python 全套：ruff 检查、代码审查、注释规范、测试覆盖率",
+      "default": false,
+      "location": "lib",
+      "requires": [
+        "core",
+        "vcs"
+      ],
+      "comps": {
+        "rules": [
+          "python-code",
+          "python-comment",
+          "python-test"
+        ],
+        "skills": [
+          "python-env",
+          "python-lint",
+          "python-code-review",
+          "python-comment",
+          "python-test-coverage"
+        ],
+        "agents": [
+          "python-code-review"
+        ]
+      }
     }
   }
 }

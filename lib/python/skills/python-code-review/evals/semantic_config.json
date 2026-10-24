@@ -1,0 +1,46 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1,
+      "phrases": [
+        "审查 Python 代码",
+        "review",
+        "代码质量",
+        "潜在 bug",
+        "代码问题",
+        "审查变更",
+        "审查改动",
+        "找问题",
+        "python-code-review"
+      ]
+    },
+    "dimension": {
+      "weight": 0.8,
+      "phrases": [
+        "命名是否合理",
+        "类型注解",
+        "异常处理有没有问题",
+        "可变默认参数",
+        "代码可读性",
+        "复杂度"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.6,
+      "exclusive": true,
+      "phrases": [
+        "跑 ruff",
+        "格式化代码",
+        "检查注释规范",
+        "建环境",
+        "测试覆盖率",
+        "解释这段代码"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

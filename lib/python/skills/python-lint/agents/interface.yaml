@@ -1,0 +1,44 @@
+interface:
+  display_name: "Python 静态检查"
+  short_description: "用 ruff 按项目配置检查与格式化 Python 代码，并提供提交门禁用的变更清单"
+  default_prompt: "使用 $python-lint 检查 Python 代码：默认 check 模式只检查不修改；提交前用 check --blocking 走分级阻塞；需要收集本次变更清单时用同目录的 collect_targets.py。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "检查.*Python.*代码|Python.*代码.*问题"
+      - keyword: "ruff|ruff check|ruff format"
+      - keyword: "格式化.*Python|Python.*格式"
+      - keyword: "lint.*Python|Python.*lint"
+      - keyword: "Python.*规范|Python.*合规"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      uv: ">=0.4"
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "scripts/run_ruff.py"
+      - "scripts/collect_targets.py"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: python-lint
+version: "0.1"
+mode: Production

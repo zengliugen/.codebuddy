@@ -14,7 +14,9 @@
       "vcs_router.cache": ".codebuddy.project/caches/skills/vcs/vcs-router/.cache",
       "vcs_router.lock": ".codebuddy.project/caches/.vcs-lock",
       "session_distill.reports": ".codebuddy.project/caches/skills/tool/session-lesson-distill/reports",
-      "engine_sync.reports": ".codebuddy.project/caches/skills/tool/engine-sync/reports"
+      "engine_sync.reports": ".codebuddy.project/caches/skills/tool/engine-sync/reports",
+      "python_code_review.check_logs": ".codebuddy.project/caches/skills/python/python-code-review/check_logs",
+      "python_test_coverage.check_logs": ".codebuddy.project/caches/skills/python/python-test-coverage/check_logs"
     }
   },
   "root_symlinks": {
@@ -24,12 +26,12 @@
         "link": ".codebuddy/settings.json",
         "path": ".codebuddy.project/configs/settings.json",
         "format": "json",
-      "template": {
-        "language": "<界面与回复语言，如 简体中文>",
-        "env": {
-          "CODEBUDDY_REPL_NESTED_TIMEOUT_MS": "14400000"
-        },
-        "enabledPlugins": {
+        "template": {
+          "language": "<界面与回复语言，如 简体中文>",
+          "env": {
+            "CODEBUDDY_REPL_NESTED_TIMEOUT_MS": "14400000"
+          },
+          "enabledPlugins": {
             "<插件名@市场名，如 csharp-lsp@codebuddy-plugins-official>": true
           },
           "enableAllProjectMcpServers": true,
@@ -268,6 +270,60 @@
         ],
         "near_neighbor": [
           "<邻近易混淆、易误触发的输入，如 检查测试覆盖率>"
+        ]
+      }
+    },
+    "python_lint.config": {
+      "path": ".codebuddy.project/configs/skills/python/python-lint/config.json",
+      "description": "python-lint 技能参数：行宽、规则集、docstring 风格、检查范围白名单与黑名单",
+      "format": "json",
+      "template": {
+        "version": 1,
+        "_comment": "本文件为 python-lint 的项目配置：line_length/select/ignore/pydocstyle_convention/target_version 决定 ruff 的规则口径，include_patterns/exclude_patterns 决定检查范围。本文件是规则与范围的唯一来源——脚本不内置任何默认值，缺失、损坏或缺少必需键时直接报错退出（退出码 3）。",
+        "python_version": "3.12",
+        "app_python": "",
+        "line_length": 120,
+        "select": [
+          "E",
+          "F",
+          "I",
+          "D"
+        ],
+        "ignore": [
+          "E501",
+          "D400",
+          "D415"
+        ],
+        "pydocstyle_convention": "google",
+        "target_version": "py312",
+        "include_patterns": [
+          "extensions/**/*.py",
+          "extensions_tests/**/*.py"
+        ],
+        "exclude_patterns": [
+          "**/__pycache__/**",
+          "**/.venv/**",
+          "**/envs/**"
+        ]
+      }
+    },
+    "python_coverage.config": {
+      "path": ".codebuddy.project/configs/skills/python/python-test-coverage/config.json",
+      "description": "python-test-coverage 技能参数：测试框架、测试根、覆盖率分母、分支覆盖开关、报告格式",
+      "format": "json",
+      "template": {
+        "version": 1,
+        "_comment": "本文件为 python-test-coverage 的项目配置：test_runner 决定用 unittest 还是 pytest，test_root 决定测试根，source 决定覆盖率分母（不含测试自身），branch 决定是否采集分支覆盖，fail_under 为 0 表示不作为门禁阈值，report_formats 决定落盘与终端格式。本文件是覆盖率口径的唯一来源——脚本不内置任何默认值，缺失或缺少必需键时直接报错退出（退出码 3）。",
+        "test_runner": "unittest",
+        "test_root": "extensions_tests",
+        "source": [
+          "extensions"
+        ],
+        "branch": true,
+        "fail_under": 0,
+        "report_formats": [
+          "term-missing",
+          "json"
         ]
       }
     }

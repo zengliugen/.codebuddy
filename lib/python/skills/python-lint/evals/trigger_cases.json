@@ -1,0 +1,26 @@
+{
+  "skill": "python-lint",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "检查 Python 代码问题",
+    "跑一下 ruff",
+    "ruff check 这个目录",
+    "格式化 Python 代码",
+    "Python 代码符合规范吗",
+    "lint 一下扩展目录",
+    "只检查本次变更",
+    "collect_targets 输出清单"
+  ],
+  "should_not_trigger": [
+    "建 Python 环境",
+    "装 ruff",
+    "审查这段代码逻辑",
+    "补全注释内容",
+    "统计测试覆盖率"
+  ],
+  "near_neighbor": [
+    "修复注释格式",
+    "检查代码质量",
+    "Python 环境就绪了吗"
+  ]
+}

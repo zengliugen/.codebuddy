@@ -1,0 +1,46 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1,
+      "phrases": [
+        "建 Python 环境",
+        "Python 环境就绪",
+        "装 ruff",
+        "工具环境",
+        "重建环境",
+        "python-env",
+        "应用解释器",
+        "解释器路径",
+        "Python 检查环境"
+      ]
+    },
+    "env_check": {
+      "weight": 0.85,
+      "phrases": [
+        "环境是否就绪",
+        "环境检查",
+        "ensure",
+        "check 环境",
+        "uv 环境",
+        "虚拟环境不一致"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "检查代码问题",
+        "跑 ruff",
+        "格式化代码",
+        "代码审查",
+        "测试覆盖率",
+        "写单元测试"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

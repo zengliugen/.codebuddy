@@ -1,0 +1,41 @@
+interface:
+  display_name: "Python 测试覆盖率"
+  short_description: "在应用环境执行测试并采集真实覆盖率，校验用例确实执行过而非全部跳过"
+  default_prompt: "使用 $python-test-coverage 采集覆盖率：默认用应用解释器执行，测试逐文件传路径，采集后断言实际执行用例数大于零；用例全部跳过时退出 3 并说明是环境问题。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "覆盖率|coverage|测试覆盖"
+      - keyword: "cov report|coverage report"
+      - keyword: "测试.*覆盖.*情况|有没有.*覆盖"
+      - keyword: "python-test-coverage"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "scripts/run_coverage.py"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: python-test-coverage
+version: "0.1"
+mode: Production

@@ -1,0 +1,43 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1,
+      "phrases": [
+        "覆盖率",
+        "coverage",
+        "测试覆盖",
+        "cov report",
+        "覆盖情况",
+        "python-test-coverage",
+        "有没有覆盖"
+      ]
+    },
+    "detail": {
+      "weight": 0.8,
+      "phrases": [
+        "分支覆盖",
+        "行覆盖",
+        "覆盖了哪些",
+        "测试跑过没有",
+        "用例执行了没"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.6,
+      "exclusive": true,
+      "phrases": [
+        "审查代码",
+        "跑 ruff",
+        "格式化",
+        "建环境",
+        "写测试",
+        "补注释"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

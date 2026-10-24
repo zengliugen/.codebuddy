@@ -1,0 +1,26 @@
+{
+  "skill": "python-test-coverage",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "统计测试覆盖率",
+    "跑一下覆盖率",
+    "coverage report 看看",
+    "扩展代码的测试覆盖情况",
+    "这次改动有没有测试覆盖",
+    "python-test-coverage 跑一遍",
+    "分支覆盖率多少",
+    "测试真的跑了吗"
+  ],
+  "should_not_trigger": [
+    "审查这段代码",
+    "跑一下 ruff",
+    "格式化 Python 代码",
+    "建 Python 环境",
+    "帮我写个单元测试"
+  ],
+  "near_neighbor": [
+    "跑一下测试",
+    "检查注释是否规范",
+    "代码质量如何"
+  ]
+}

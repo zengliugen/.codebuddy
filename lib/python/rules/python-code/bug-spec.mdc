@@ -1,0 +1,104 @@
+---
+description: Python 潜在 Bug 与边界审查细则 —— 可变默认参数、异常处理、资源释放、比较语义、并发。由 python-code-review Agent 按需读取。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-24T00:00:00.000Z
+provider:
+---
+
+# Python 潜在 Bug 与边界审查
+
+## 1. 可变默认参数（高频陷阱）
+
+```python
+# 错误：默认值只求值一次，所有调用共享同一个列表
+def append_item(item, bucket=[]):
+    bucket.append(item)
+    return bucket
+
+# 正确：用 None 作哨兵，函数内创建
+def append_item(item, bucket=None):
+    if bucket is None:
+        bucket = []
+    bucket.append(item)
+    return bucket
+```
+
+判据：任何 `def f(x=[])`/`def f(x={})`/`def f(x=set())` 一律 `error`。
+`tuple`/`frozenset`/`None` 等不可变默认值不构成问题。
+
+## 2. `is` 与 `==` 的误用
+
+| 写法 | 判定 | 说明 |
+|------|------|------|
+| `x is None` / `x is not None` | 正确 | 单例比较应用 `is` |
+| `x is 1` | `error` | 小整数缓存是实现细节，非保证 |
+| `x is "abc"` | `error` | 字符串驻留不保证 |
+| `x == True` | `warning` | 冗余，用 `if x:` |
+| `type(x) == int` | `warning` | 应 `isinstance(x, int)` |
+
+## 3. 异常处理
+
+| 反模式 | 级别 | 问题 | 正确做法 |
+|--------|------|------|---------|
+| `except:`（裸 except） | `error` | 吞掉 `KeyboardInterrupt`/`SystemExit` | 至少 `except Exception:` |
+| `except Exception: pass` | `warning` | 静默故障，事后无从排查 | 记录日志或重抛，或注释说明为何可忽略 |
+| 捕获后不处理也不记录 | `warning` | 同上 | 同上 |
+| `try` 块过大 | `warning` | 掩盖真实出错位置 | 只包住可能抛异常的最小语句 |
+| 用异常做控制流 | `info` | 可读性差、性能差 | 改用条件判断 |
+| 自定义异常继承 `Exception` 以外的基类 | `warning` | 语义不明 | 业务异常继承 `Exception` |
+
+## 4. 资源释放
+
+| 检查项 | 级别 | 说明 |
+|--------|------|------|
+| `open()` 未用 `with` | `warning` | 异常路径下文件句柄泄漏 |
+| `open()` 未指定 `encoding` | `warning` | 平台默认编码不同，跨平台行为不一致 |
+| 数据库连接/网络套接字未关闭 | `warning` | 用 `with` 或 `try/finally` |
+| 线程/进程未 join 或未设 `daemon` | `warning` | 退出时挂起或资源残留 |
+| `tempfile` 创建的临时文件未清理 | `info` | 视生命周期而定 |
+
+## 5. 集合与迭代
+
+| 反模式 | 级别 | 说明 |
+|--------|------|------|
+| 迭代中增删同一集合 | `error` | `RuntimeError: dictionary changed size during iteration`；应迭代副本 |
+| 迭代中修改列表并依赖索引 | `error` | 索引漂移，跳过元素 |
+| 修改函数返回的可变对象 | `warning` | 若返回的是内部状态引用，调用方修改会造成隐藏耦合 |
+| 浅拷贝用于嵌套结构 | `warning` | `dict.copy()`/`list.copy()` 只复制一层，应 `copy.deepcopy` 或显式重建 |
+
+## 6. 比较与相等
+
+| 检查项 | 级别 | 说明 |
+|--------|------|------|
+| 自定义类未实现 `__eq__` 却用于集合/字典键 | `warning` | 默认按身份比较，行为不符直觉 |
+| 实现 `__eq__` 未实现 `__hash__` | `error` | 类变得不可哈希，放入集合即报错 |
+| 浮点数用 `==` 比较 | `warning` | 用 `math.isclose` |
+| 比较 `None` 用 `==` | `info` | `is None` 更明确 |
+
+## 7. 并发与状态
+
+| 检查项 | 级别 | 说明 |
+|--------|------|------|
+| 多线程共享可变状态无锁 | `warning` | 数据竞争，结果不确定 |
+| 模块级可变全局状态 | `warning` | 测试隔离性差，难以并行 |
+| `time.sleep` 用于等待条件 | `info` | 应轮询条件或用 `Event` |
+| 在锁内做 I/O 或长耗时操作 | `warning` | 阻塞其他线程 |
+
+## 8. 其他高频缺陷
+
+| 检查项 | 级别 | 说明 |
+|--------|------|------|
+| `dict.get(k)` 返回值未判断 `None` 就直接用 | `warning` | `KeyError` 变成 `TypeError`，报错位置偏移 |
+| 路径拼接用字符串 `+` | `warning` | 分隔符在 Windows/Linux 不同，应 `os.path.join` 或 `pathlib` |
+| 子进程调用未用列表形式传参 | `warning` | 字符串形式在路径含空格时失败，且有注入风险 |
+| 正则未转义用户输入 | `warning` | `re.escape` 缺失导致匹配异常或 `re.error` |
+| `int()` 转换未处理 `ValueError` | `warning` | 输入非数字时抛裸异常 |
+| 除以可能为零的变量 | `warning` | `ZeroDivisionError` |
+
+## 9. 判定要点
+
+1. **能确定为缺陷的判 `error`**（可变默认参数、裸 except、迭代中修改集合、`is` 比字面量）。
+2. **依赖上下文才能定的判 `warning`** 并说明前提（如「若此函数被多线程调用则存在竞争」）。
+3. **每个问题必须给出行号与代码片段**，并给出修复示例。
+4. **不为未发生的可能性报错**：仅在代码路径确实可达时报，不报「万一将来有人这样调」。

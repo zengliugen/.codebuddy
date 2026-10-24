@@ -1,0 +1,26 @@
+{
+  "skill": "python-env",
+  "recommended_threshold": 0.5,
+  "should_trigger": [
+    "建一下 Python 检查环境",
+    "装个 ruff",
+    "工具环境就绪了吗",
+    "重建工具环境",
+    "应用解释器在哪",
+    "python-env check",
+    "这个环境跟锁定文件一致吗",
+    "Python 环境怎么初始化"
+  ],
+  "should_not_trigger": [
+    "检查这段代码有没有问题",
+    "跑一下 ruff",
+    "把代码格式化",
+    "写个单元测试",
+    "审查这个函数"
+  ],
+  "near_neighbor": [
+    "检查 Python 代码规范",
+    "修复注释格式",
+    "统计测试覆盖率"
+  ]
+}

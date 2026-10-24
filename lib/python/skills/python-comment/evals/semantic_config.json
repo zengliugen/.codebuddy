@@ -1,0 +1,44 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1,
+      "phrases": [
+        "注释规范",
+        "docstring",
+        "补注释",
+        "注释检查",
+        "注释与代码不一致",
+        "注释风格",
+        "python-comment",
+        "写注释"
+      ]
+    },
+    "structure": {
+      "weight": 0.8,
+      "phrases": [
+        "Args 怎么写",
+        "google 风格",
+        "摘要行",
+        "参数说明",
+        "Raises 段"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.6,
+      "exclusive": true,
+      "phrases": [
+        "审查代码",
+        "跑 ruff",
+        "格式化",
+        "潜在 bug",
+        "建环境",
+        "代码逻辑"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

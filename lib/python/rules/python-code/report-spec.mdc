@@ -1,0 +1,111 @@
+---
+description: Python 代码审查报告规范 —— 报告结构、分级、落盘位置与命名。由 python-code-review Agent 按需读取。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-24T00:00:00.000Z
+provider:
+---
+
+# Python 代码审查报告规范
+
+## 1. 落盘位置
+
+报告写入项目侧缓存目录，路径由索引 `artifacts.dirs` 的 `code_review.check_logs` 类条目决定。
+本项目对应位置：
+
+```
+.codebuddy.project/caches/skills/python/python-code-review/check_logs/
+```
+
+| 文件 | 内容 |
+|------|------|
+| `review-<时间戳>.md` | 审查报告正文（给人看） |
+| `review-<时间戳>.json` | 结构化结果（`error`/`warning`/`info` 计数与条目） |
+
+时间戳格式：`YYYYMMDD-HHMMSS`。目录不存在时先创建。
+
+## 2. 报告结构
+
+```markdown
+# Python 代码审查报告
+
+## 概览
+
+| 项 | 值 |
+|----|-----|
+| 审查范围 | 本次变更（N 个文件） |
+| 变更来源 | git status（已跟踪 M 个 / 未跟踪 N 个） |
+| 问题计数 | error X / warning Y / info Z |
+| 审查时间 | YYYY-MM-DD HH:MM:SS |
+
+## 审查文件
+
+- extensions/bootstrap.py（已跟踪修改）
+- extensions/core/loader.py（未跟踪新文件）
+
+## 问题清单
+
+### [error] 可变默认参数导致跨调用共享状态
+
+- **文件**：extensions/core/loader.py:42
+- **代码**：
+
+  ```python
+  def register(item, bucket=[]):
+  ```
+
+- **问题**：默认值在函数定义时求值一次，所有调用共享同一列表。
+- **建议**：改为 `bucket=None`，函数内 `bucket = [] if bucket is None else bucket`。
+- **依据**：bug-spec §1
+
+### [warning] 注释与实现不一致
+
+- **文件**：extensions/overrides.py:18
+- **代码**：
+
+  ```python
+  """应用全部覆写，缺键时静默跳过."""
+  ```
+
+- **问题**：实现中缺键会抛 `RuntimeError`，与「静默跳过」相反。
+- **建议**：改为「缺键时一次性列出并抛错」。
+- **依据**：comment-spec §2
+
+## 未覆盖项
+
+| 项 | 原因 |
+|----|------|
+| src/** | 上游模板，不在审查范围 |
+| 格式维度 | 由 python-lint 的 ruff 结果承担 |
+
+## 结论
+
+（一句话：是否可提交 / 需要先修复哪些）
+```
+
+## 3. 分级标准
+
+| 级别 | 含义 | 报告中是否需要修复建议 |
+|------|------|----------------------|
+| `error` | 确定的缺陷，会导致运行期错误或数据损坏 | 必须给 |
+| `warning` | 潜在风险或明显偏离规范 | 必须给 |
+| `info` | 改进建议 | 可选 |
+
+**阻塞规则**：`error` 必须修复或获得用户明确授权忽略；`warning` 建议修复；`info` 不作要求。
+
+## 4. 内容要求
+
+| 要求 | 说明 |
+|------|------|
+| 每条必带位置 | 文件路径 + 行号，缺一不可 |
+| 每条必带代码片段 | 便于核对，不要求整段函数 |
+| 每条必带依据 | 指向具体规则文件与条目（如「bug-spec §1」） |
+| 不重复报存量 | 只报本次变更引入的问题；存量问题单独列「存量提示」小节，不计入阻塞 |
+| 无问题的维度不写空表 | 直接省略该小节，避免噪音 |
+| 中文书写 | 报告正文使用简体中文 |
+
+## 5. 与门禁的关系
+
+- 审查报告的 `error` 计数是门禁判定依据（`blocking_level = error` 时，`error > 0` 即阻塞提交）。
+- 报告须同时维护 `.md` 与 `.json` 两个文件：`.md` 给人看，`.json` 给脚本读取计数。
+- 报告生成失败视为未完成审查，不得视为通过。

@@ -1,0 +1,26 @@
+{
+  "skill": "python-code-review",
+  "recommended_threshold": 0.5,
+  "should_trigger": [
+    "审查一下这次的改动",
+    "帮我看看这段 Python 代码",
+    "检查代码质量",
+    "找找有没有潜在 bug",
+    "review extensions 目录",
+    "这次的修改有没有问题",
+    "python-code-review 看一下 overrides.py",
+    "审查后顺手修掉 error"
+  ],
+  "should_not_trigger": [
+    "跑一下 ruff",
+    "格式化这段代码",
+    "补全 docstring",
+    "建个 Python 环境",
+    "统计测试覆盖率"
+  ],
+  "near_neighbor": [
+    "检查注释是否和代码一致",
+    "这个函数的命名合适吗",
+    "代码符合 PEP 8 吗"
+  ]
+}

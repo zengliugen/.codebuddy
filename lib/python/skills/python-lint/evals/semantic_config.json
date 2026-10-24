@@ -1,0 +1,45 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1,
+      "phrases": [
+        "检查 Python 代码",
+        "跑 ruff",
+        "ruff check",
+        "ruff format",
+        "Python 代码规范",
+        "lint",
+        "静态检查",
+        "格式化 Python"
+      ]
+    },
+    "scope": {
+      "weight": 0.8,
+      "phrases": [
+        "本次变更检查",
+        "变更清单",
+        "白名单范围",
+        "collect_targets",
+        "检查哪些文件"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.6,
+      "exclusive": true,
+      "phrases": [
+        "建环境",
+        "装 ruff",
+        "Python 环境就绪",
+        "代码审查",
+        "补注释",
+        "测试覆盖率",
+        "性能优化"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

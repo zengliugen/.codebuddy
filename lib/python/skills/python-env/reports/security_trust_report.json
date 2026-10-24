@@ -1,0 +1,143 @@
+{
+  "ok": true,
+  "skill_dir": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-env",
+  "summary": {
+    "scanned_files": 9,
+    "script_count": 1,
+    "internal_module_count": 0,
+    "secret_findings": 0,
+    "dependency_files": [],
+    "network_script_count": 0,
+    "network_policy_covered_count": 0,
+    "network_policy_missing_count": 0,
+    "file_write_script_count": 1,
+    "permission_required_count": 2,
+    "permission_approved_count": 0,
+    "permission_missing_count": 2,
+    "permission_invalid_count": 0,
+    "permission_expired_count": 0,
+    "help_smoke_checked_count": 1,
+    "help_smoke_failed_count": 0,
+    "interactive_script_count": 0,
+    "package_hash_scope": "source-contract-without-generated-reports",
+    "package_hash_file_count": 9,
+    "package_sha256": "b9f391289f1f85d343881522ade2aaba3f0550a5784ece57e8256618ff4921a0"
+  },
+  "failures": [],
+  "warnings": [
+    "No dependency or lock file detected",
+    "Permission approvals missing: file_write, subprocess"
+  ],
+  "secrets": [],
+  "scripts": [
+    {
+      "path": "scripts\\env.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": true,
+      "network_urls": [
+        "https://docs.astral.sh/uv/getting-started/installation/"
+      ],
+      "network_hosts": [
+        "docs.astral.sh"
+      ]
+    }
+  ],
+  "dependencies": {
+    "present": [],
+    "pinned": [],
+    "unpinned": []
+  },
+  "network_policy": {
+    "present": false,
+    "path": "security/network_policy.json",
+    "schema_version": "",
+    "network_script_count": 0,
+    "covered_scripts": [],
+    "missing_scripts": [],
+    "mismatches": [],
+    "default_policy": {}
+  },
+  "help_smoke": {
+    "enabled": true,
+    "timeout_seconds": 5.0,
+    "candidate_count": 1,
+    "checked_count": 1,
+    "passed_count": 1,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "failed_scripts": [],
+    "results": [
+      {
+        "path": "scripts\\env.py",
+        "command": "python3 scripts\\env.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: env.py [-h] [--json] [--force] {check,ensure,python,tool}\n\npython-env：工具环境与应用解释器管理\n\npositional arguments:\n  {check,ensure,python,tool}\n                        子命令\n\noptions:\n  -h, --help            show this help message and exit\n  --",
+        "stderr_excerpt": ""
+      }
+    ],
+    "skipped": []
+  },
+  "permission_governance": {
+    "present": false,
+    "path": "security/permission_policy.json",
+    "schema_version": "",
+    "reviewed_at": "",
+    "required_capabilities": [
+      "file_write",
+      "subprocess"
+    ],
+    "approved_capabilities": [],
+    "missing_capabilities": [
+      "file_write",
+      "subprocess"
+    ],
+    "invalid_capabilities": [],
+    "expired_capabilities": [],
+    "approval_count": 0,
+    "required_count": 2,
+    "missing_count": 2,
+    "invalid_count": 0,
+    "expired_count": 0,
+    "approvals": [
+      {
+        "capability": "file_write",
+        "status": "missing",
+        "scripts": [
+          "scripts\\env.py"
+        ],
+        "validation": [
+          "approval entry is missing"
+        ]
+      },
+      {
+        "capability": "subprocess",
+        "status": "missing",
+        "scripts": [
+          "scripts\\env.py"
+        ],
+        "validation": [
+          "approval entry is missing"
+        ]
+      }
+    ]
+  },
+  "trust_metadata": {
+    "source_tier": "local",
+    "remote_inline_execution": "forbid",
+    "remote_metadata_policy": "allow-metadata-only"
+  },
+  "artifacts": {
+    "json": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-env\\reports\\security_trust_report.json",
+    "markdown": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-env\\reports\\security_trust_report.md"
+  }
+}

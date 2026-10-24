@@ -1,0 +1,26 @@
+{
+  "skill": "python-comment",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "检查注释是否规范",
+    "docstring 该怎么写",
+    "补全缺失的 docstring",
+    "注释和代码对不上了",
+    "统一注释风格",
+    "这个函数缺注释，补一下",
+    "python-comment 检查 overrides.py",
+    "Args 段怎么写"
+  ],
+  "should_not_trigger": [
+    "审查这段代码逻辑",
+    "跑一下 ruff",
+    "格式化 Python 代码",
+    "建 Python 环境",
+    "统计测试覆盖率"
+  ],
+  "near_neighbor": [
+    "检查代码质量",
+    "注释里有个错别字",
+    "代码符合规范吗"
+  ]
+}

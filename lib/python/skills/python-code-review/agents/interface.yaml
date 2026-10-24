@@ -1,0 +1,41 @@
+interface:
+  display_name: "Python 代码审查"
+  short_description: "调度 python-code-review Agent，从代码质量、注释合规、潜在 Bug 三维度审查 Python 代码"
+  default_prompt: "使用 $python-code-review 审查 Python 代码：先判断模式（git 变更/单文件/目录/片段），加载 python-code 规则后调度 Agent 执行三维审查，报告落盘并回传 error 计数与路径。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "审查.*Python|Python.*审查|review.*Python"
+      - keyword: "代码质量|潜在.*bug|代码问题"
+      - keyword: "审查.*变更|审查.*改动"
+      - keyword: "python-code-review"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "references/guide.md"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: python-code-review
+version: "0.1"
+mode: Production
