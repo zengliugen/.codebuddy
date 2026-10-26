@@ -42,10 +42,10 @@ provider:
 | 1 | 在 `lib/<pack>/<类型>/<名>` 建目录（可选包），或 `.codebuddy/<类型>/<pack>/<名>`（默认包） |
 | 2 | 在 `lib/packs.json` 对应 pack 的 `comps.<类型>` **追加组件名** |
 | 3 | 若是规则且带项目事实正文 → 在 `project.index.json` 的 `rule_shells` **加键**（键含 pack 层） |
-| 4 | 若是技能且需项目配置 → 在 `project.index.json` 的 `files` **加条目**（**仅限引擎侧技能**；项目专有包下的规则/技能/智能体一律不登记，见 `codebuddy-project-config` 第 7 条） |
+| 4 | 若是技能且需项目配置 → 在 `project.index.json` 的 `files` **加条目**（**仅限引擎侧技能**；项目专有包下的规则/技能/智能体一律不登记，见本规则入口第 6 条） |
 | 5 | 跑 `pack_install.py install <pack>` 物化链接，再 `status` 确认一致 |
 | 6 | **核对引用边界**：新组件是否引用了 `requires` 闭包外的包组件？若是，改为泛化或条件化（见「第 8 项」） |
-| 7 | 更新 `README.md` 目录树与包表；若是规则，同步 `rule-consolidation/references/pattern-spec.md` 的全景表 |
+| 7 | 更新 `README.md` 目录树与包表；若是规则，同步规则全景表（由规则整合类技能维护，见引擎 README） |
 
 ### 删除组件
 

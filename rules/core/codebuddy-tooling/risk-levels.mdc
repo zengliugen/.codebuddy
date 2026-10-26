@@ -43,4 +43,4 @@ CRITICAL → HIGH → MEDIUM → 白名单 SAFE → 其余 LOW。
 2. 复合命令的每个子命令都在白名单内；
 3. 避免不必要的重定向（含重定向时通配符规则失效）。
 
-具体写法约定见同目录 `command-forms.mdc`。
+具体写法约定见同目录 `command-shape-spec.mdc`。

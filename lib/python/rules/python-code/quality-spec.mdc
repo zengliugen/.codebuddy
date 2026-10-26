@@ -52,7 +52,7 @@ provider:
 | 上游文件改动 | 改动上游文件必须在 `divergence.yaml` 登记 | 同上 |
 | 接线点 | `src/config.py` 相对上游只允许一行 import | 同上 |
 | 侵入性改动 | patch 必须断言目标符号存在，缺失立即崩溃并指名 | 同上 |
-| 配置读取 | 项目专有值经索引从项目侧配置读取，不硬编码 | 项目侧 `codebuddy-project-config` 规则 <!-- pack-ref-ok: codebuddy-project-config —— 仅作判据来源的关系说明，引用的是规则名而非组件路径或命令 --> |
+| 配置读取 | 项目专有值经索引从项目侧配置读取，不硬编码 | 项目侧 `codebuddy-engine` 规则 <!-- pack-ref-ok: codebuddy-engine —— 仅作判据来源的关系说明，引用的是规则名而非组件路径或命令 --> |
 | 配置默认值 | 脚本**不内置**任何默认值，缺失即报错退出（退出码 3） | 同上 |
 
 ## 5. 常见反模式

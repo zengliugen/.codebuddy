@@ -67,10 +67,9 @@ provider:
 
 | 规则目录 | 入口生效方式 | 子规则数 | 说明 |
 |---------|-------------|---------|------|
-| `bash-command-shape` | alwaysApply: true | 2 | Bash 命令形状规范（避免复合命令判定与风险分级造成无谓询问） |
-| `codebuddy-engine-vcs` | paths: `"**/.codebuddy/**"` | 1 | 引擎仓库提交归属（.codebuddy 自身独立仓库，与项目仓库分开提交） |
-| `codebuddy-project-config` | paths: `"**/.codebuddy/**"` | 1 | 项目配置隔离（外置到项目侧、索引登记、示例泛化、事实标注） |
-| `engine-maintenance` | paths: `"**/.codebuddy/**"` | 2 | 引擎维护一致性（登记表与引用同步、重构验收） |
+| `codebuddy-engine` | paths: `"**/.codebuddy/**"` | 3 | 引擎内容维护（项目配置隔离、登记点同步、重构验收） |
+| `codebuddy-tooling` | alwaysApply: true | 4 | 工具调用纪律（命令形状 + 结果校验：失败可能返回 {error} 对象而非抛错） |
+| `vcs-codebuddy-engine` | paths: `"**/.codebuddy/**"` | 1 | 引擎仓库提交（只治引擎侧；submodule 与独立 git 检出两种形态） |
 | `csharp-code` | alwaysApply: true | 5 | 审查规范 |
 | `csharp-comment` | alwaysApply: true | 5 | 注释规范 |
 | `csharp-lsp` | paths: `"**/*.cs"` | 0 | 单文件（内容少，无独立加载场景） |
@@ -81,8 +80,10 @@ provider:
 | `yao-meta-skill` | alwaysApply: true | 0 | 技能工程强制入口（创建/重构/审计技能必须走该技能）；可选包规则，未装包时不存在 |
 | `vcs-router` | alwaysApply: true | 4 | 提交规范（仅 Git；审查门禁已并入 `git-commit/references/project-config.md`，不在本规则目录） |
 
-> **注**：`bash-command-shape` 常驻（`alwaysApply: true`，约 2.3 KB），核心底线压进入口、分级细则下沉子规则，是为让规则在构造命令时真正生效的必要代价。
+> **注**：`codebuddy-tooling` 常驻（`alwaysApply: true`，入口约 2.5 KB）。它把「命令如何构造」与「结果如何判定」合到同一条规则下——两者共享同一前提（工具被拦下或做失败时都不抛异常，只改变返回值），且都必须在每次工具调用时生效。核心底线压进入口、分级细则与校验命令下沉子规则，是为让纪律在调用时真正生效的必要代价。
 >
-> **注**：`codebuddy-engine-vcs` 与 `codebuddy-project-config` 触发面相同（均为 `.codebuddy/**`），但职责不同——
-> 前者管「提交到哪个仓库」（引擎仓库 vs 项目仓库），后者管「内容如何写」（外置配置、索引登记、事实标注）。评估规则结构时勿将两者合并。
+> **注**：`codebuddy-engine`（core）与 `vcs-codebuddy-engine`（vcs）触发面相同（均为 `.codebuddy/**`），但**分包存放**：
+> 前者管「内容如何写、改完同步哪里」，属内容维护；后者管「提交到哪个仓库」，与 `vcs-router` 同属版本控制主题。
+> 分包而非合并的原因有两条：一是避免 `core.requires` 与 `vcs.requires` 形成环（`vcs` 已依赖 `core`），
+> 二是 `vcs-codebuddy-engine` 需要引用 `vcs-router`（同包引用比跨包引用更稳）。评估规则结构时勿将两者合并，也勿把后者移回 core。
 > 项目侧文件的生成由 `codebuddy-init` 技能负责。

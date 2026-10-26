@@ -369,7 +369,7 @@ def main():
                 continue
             problems.append("索引 rule_shells 的键在磁盘不存在（目录重构后未同步）：%s" % key)
 
-        # 项目专有包的内容不得登记索引（规则 codebuddy-project-config 第 7 条）：
+        # 项目专有包的内容不得登记索引（规则 codebuddy-engine 第 6 条）：
         # 索引随引擎共享且对所有消费项目一致，登入项目专有内容会让其他项目在
         # codebuddy-init 时生成用不上的骨架。
         project_root_for_index = os.path.dirname(codebuddy_dir)

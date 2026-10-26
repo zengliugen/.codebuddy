@@ -65,4 +65,4 @@
 - 入口回查：技能的 `SKILL.md` 参考文献表、规则的 `RULE.mdc` 路由表已同步。
 - 编码回查：写入文件为 UTF-8 无 BOM。
 - 边界回查：改动文件均落在临时确定的写回白名单内。
-- 配置回查：本次变更若新增/修改了需项目配置的技能，提示用户登记 `.codebuddy/project.index.json`（引擎侧唯一索引，见 `rules/codebuddy-project-config/config-isolation-spec.mdc` §3.6）。
+- 配置回查：本次变更若新增/修改了需项目配置的技能，提示用户登记 `.codebuddy/project.index.json`（引擎侧唯一索引，见 `rules/core/codebuddy-engine/config-isolation-spec.mdc` §3.6）。

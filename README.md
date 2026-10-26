@@ -51,9 +51,11 @@
 │
 ├── rules/                      # 规则扫描根：默认包真实目录 + 可选包链接
 │   ├── core/                   #   默认包：language/ project-guide/
-│   ├── vcs/                    #   默认包：vcs-router/
-│   ├── tool/                   #   默认包：codebuddy-engine-vcs/ codebuddy-project-config/
-│   │                           #            bash-command-shape/ engine-maintenance/
+│   │                           #            codebuddy-tooling/（始终生效：命令形状 + 结果校验）
+│   │                           #            codebuddy-engine/（.codebuddy/**：内容隔离 + 登记同步）
+│   ├── vcs/                    #   默认包：vcs-router/ vcs-codebuddy-engine/（.codebuddy/**：引擎仓库提交）
+│   ├── tool/                   #   默认包：本包已无规则（原 5 条已按触发面迁移至 core / vcs）
+│   │                           #            规则整合判断记录见 skills/tool/rule-consolidation/
 │   ├── project ──链接──▶ 项目侧 #   项目专有规则（.codebuddy.project/rules/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
@@ -253,12 +255,13 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 
 | 包 | 类别 | 默认 | 组件 |
 |---|---|---|---|
-| `core` | 基础 | ✅ | rules: language、project-guide；skills: codebuddy-init |
+| `core` | 基础 | ✅ | rules: language、project-guide、codebuddy-tooling、codebuddy-engine；skills: codebuddy-init |
 | `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
-| `vcs` | 基础 | ✅ | rules: vcs-router；skills: vcs-router、git-commit、git-merge |
-| `tool` | 基础 | ✅ | rules: codebuddy-engine-vcs、codebuddy-project-config、bash-command-shape、engine-maintenance；skills: cmd-script-writing、engine-sync、export-zipped-dir、rule-consolidation、session-lesson-distill |
+| `vcs` | 基础 | ✅ | rules: vcs-router、vcs-codebuddy-engine；skills: vcs-router、git-commit、git-merge |
+| `tool` | 基础 | ✅ | rules: 无；skills: cmd-script-writing、engine-sync、export-zipped-dir、rule-consolidation、session-lesson-distill |
 | `csharp` | C# | ❌ | rules: csharp-code、csharp-comment、csharp-lsp、csharp-test；skills: 6 个；agents: 2 个 |
 | `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
+| `python` | Python | ❌ | rules: python-code、python-comment、python-test；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 2 个 |
 | `grilling` | third-party（本地维护） | ❌ | skills: grilling |
 | `yao-meta-skill` | third-party | ❌ | rules: yao-meta-skill；skills: yao-meta-skill |
 
@@ -333,7 +336,7 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
 ## 仓库维护约定
 
 1. **新增需项目配置的技能配置**时，须在 `project.index.json` 登记（逻辑名/路径/骨架），
-   详见 `rules/codebuddy-project-config/config-isolation-spec.mdc` §3.6。
+   详见 `rules/core/codebuddy-engine/config-isolation-spec.mdc` §3.6。
 2. **不把项目专有值写入本库**（脚本、配置、索引、示例均不得硬编码）；项目值只出现在消费项目侧。
 3. **技能/规则清单维护**：本 README 的目录结构节即引擎构成清单；新增/删除技能或规则时同步更新本节。
    运行 `python scripts/check_manifest.py` 核对一致性。
@@ -343,10 +346,13 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
 5. **本仓库自身即「引擎仓库」，改动须提交到本仓库**：`.codebuddy/` 是一个独立 Git 仓库（在消费项目中
    以 submodule 出现），其内文件的提交发生在**引擎仓库**，与「项目仓库」是两个提交目标——不得混为一笔，
    且更新 submodule 指针须**先推送引擎、再提交项目指针**。约定详见
-   `rules/codebuddy-engine-vcs/`。
-6. **四条触发规则职责不同，勿合并**：`codebuddy-engine-vcs` 管「提交到哪个仓库」，
-   `codebuddy-project-config` 管「内容如何写」（项目内容外置），`engine-maintenance` 管「还要同步维护哪些地方」
-   （登记表与引用一致性），`bash-command-shape` 管「命令如何构造」（避免权限系统的无谓拦截）。
+   `rules/vcs/vcs-codebuddy-engine/`。
+6. **三条规则按触发面分层，勿合并**：
+   - `codebuddy-tooling`（core，**始终生效**）：管工具调用的前后两端——命令如何构造（避免权限系统的无谓拦截）、
+     结果如何判定（失败可能返回 `{error}` 对象而非抛错）。
+   - `codebuddy-engine`（core，`.codebuddy/**` 触发）：管内容如何写（项目专有值外置）与改完还要同步哪些登记点。
+   - `vcs-codebuddy-engine`（vcs，`.codebuddy/**` 触发）：只治理**引擎仓库**的提交，含 submodule 与独立检出两种形态。
+   三者职责互不重叠；**不得合并**——合并会让引擎条款常驻，或让提交归属失去独立加载时机。
    另：`yao-meta-skill` 包的 `rules/yao-meta-skill/` 是**技能工程的强制入口**（技能创建/重构/审计必须走该技能），
    属可选包规则，仅在安装该包时生效。
 

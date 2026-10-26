@@ -70,7 +70,7 @@
 - [ ] 技能的 `SKILL.md` 参考文献表 / 规则的 `RULE.mdc` 路由表已同步？
 - [ ] 写入文件为 UTF-8 无 BOM，且新增的路径引用真实存在？
 - [ ] 固化报告已落盘，并列出「建议但未写入」项？
-- [ ] 本次变更若新增/修改了需项目配置的技能，是否已登记 `.codebuddy/project.index.json`（见 `rules/codebuddy-project-config/`）？
+- [ ] 本次变更若新增/修改了需项目配置的技能，是否已登记 `.codebuddy/project.index.json`（见 `rules/core/codebuddy-engine/`）？
 
 ---
 

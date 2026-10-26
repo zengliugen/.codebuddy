@@ -11,7 +11,9 @@
       "comps": {
         "rules": [
           "language",
-          "project-guide"
+          "project-guide",
+          "codebuddy-tooling",
+          "codebuddy-engine"
         ],
         "skills": [
           "codebuddy-init"
@@ -29,7 +31,8 @@
       ],
       "comps": {
         "rules": [
-          "vcs-router"
+          "vcs-router",
+          "vcs-codebuddy-engine"
         ],
         "skills": [
           "vcs-router",
@@ -48,12 +51,7 @@
         "core"
       ],
       "comps": {
-        "rules": [
-          "codebuddy-engine-vcs",
-          "codebuddy-project-config",
-          "bash-command-shape",
-          "engine-maintenance"
-        ],
+        "rules": [],
         "skills": [
           "cmd-script-writing",
           "engine-sync",

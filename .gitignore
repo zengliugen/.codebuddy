@@ -14,6 +14,8 @@
 #   **新装包的链接默认即被忽略**，避免遗漏。
 #   放行清单与 lib/packs.json 中 location=engine 的包保持一致（core / vcs / tool）；
 #   新增默认包时须同步在此追加一行 ! 放行。
+#   tool 包当前无规则组件，但仍保留放行——将来该包若新增规则无需改本文件；
+#   目录不存在时 Git 对 ! 行不报错（实测）。
 /rules/*
 !/rules/core/
 !/rules/tool/

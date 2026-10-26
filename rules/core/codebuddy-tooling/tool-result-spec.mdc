@@ -1,0 +1,85 @@
+---
+description: 工具返回值形状对照表 —— Write / Edit 在成功与各类失败下的返回形态（string vs 含 error 字段的对象）、实测证据与误判后果，说明为何 try/catch 兜不住这类失败。需要判断某个工具返回值是否代表失败时按需加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-26T00:00:00.000Z
+provider:
+---
+
+# 工具返回值形状
+
+## 一、核心事实
+
+CodeBuddy 的文件类工具在**失败时不抛异常**，而是返回一个普通对象：
+
+```js
+const r = await Write({ file_path: "a.md", content: "# 新内容" })
+// 成功：r === "Successfully overwrote file: ..."      typeof r === "string"
+// 失败：r === { error: "File has not been read yet: ..." }  typeof r === "object"
+```
+
+因此下面这种写法**不会**被 `try/catch` 捕获，也不会中断流程：
+
+```js
+try {
+  await Write({ file_path: "a.md", content: newContent })  // 返回 {error}，不抛
+  if (something) return "已更新"                            // 照常执行
+} catch (e) {
+  // 永远进不来
+}
+```
+
+## 二、Write 的返回形态（实测）
+
+| 场景 | 返回值 | 类型 |
+|---|---|---|
+| 目标文件不存在（新建） | `"Successfully created and wrote to new file: <path>"` | string |
+| 目标文件存在且本会话已 Read 过 | `"Successfully overwrote file: <path>"` | string |
+| 目标文件存在但本会话**未 Read** | `{error: "File has not been read yet: <path>. Read it first before writing to it."}` | **object** |
+| 目标文件存在，Read 过后被外部改动 | `{error: "File has been modified since read: <path> (modified by user or linter). Read it again before attempting to write it."}` | **object** |
+
+关键推论：
+
+1. **「已读」是会话内状态**，不是文件属性。同一会话内 Write 过的文件，后续再 Write 无需先 Read
+   （Write 本身建立了该状态）；但由**脚本、技能、shell 命令**创建的文件**不算已读**。
+2. **外部修改会使已读状态失效**——包括 linter 自动格式化、生成脚本重跑、另一个进程写盘。
+
+## 三、Edit 的返回形态（实测）
+
+| 场景 | 返回值 | 类型 |
+|---|---|---|
+| 替换成功 | `"Successfully edited file: <path>"` | string |
+| `old_string` 在文件中不存在 | `{error: "String to replace not found in file. ..."}` | **object** |
+| 目标文件不存在 | `{error: "File not found: <path>. Use an empty old_string to create a new file."}` | **object** |
+
+Edit **不要求**先 Read 才能改（与 Write 不同），但要求 `old_string` 与磁盘内容**逐字一致**。
+若 Edit 失败后紧跟一次 Write，Write 会因为「已读状态未建立」而再次失败——两次失败叠加，
+但两次都不抛错。
+
+## 四、误判后果
+
+| 误判 | 后果 |
+|---|---|
+| 把「调用没抛错」当作成功 | 文件内容未变，流程继续推进，后续基于错误假设运行 |
+| 只看流程末尾「全部完成」的总结 | 总结是调用方写的，不是磁盘状态；写入失败不会污染总结 |
+| 批量写入只看第一个 | 后续文件可能各自失败，形成「部分成功」的混合状态 |
+| 依赖文件大小/mtime 相同判断「无需重写」 | 失败时大小不变，恰好与「内容本来就对」难以区分 |
+
+**真实案例**：技能脚本生成三份文档骨架后，直接 Write 覆盖中文正文。三次调用返回
+`{error: "File has not been read yet"}`，返回值被丢弃，三份文件始终是模板内容。
+发现时已在后续汇报中声称「已写入」。
+
+## 五、判定写法
+
+把返回值当**判别式**用，而不是当**日志**用：
+
+```js
+const r = await Write({ file_path, content })
+if (typeof r === "object" && r && r.error) {
+  // 明确失败：要么先 Read 重试，要么直接报错终止
+  return { 失败: r.error }
+}
+```
+
+在 REPL 中，**把关键写操作的结果纳入返回值**（而不是让它们在 stdout 里被后续输出淹没），
+是最省事的兜底：这样失败会在最终结果里显式出现。
