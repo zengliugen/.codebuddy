@@ -53,8 +53,8 @@ references:
   - vcs-config: 项目侧 .codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json（索引 git_commit.config）
   - vcs-lock: references/vcs-lock.md
   - vcs-entry-rules: ../../../../rules/vcs/vcs-router/RULE.mdc
-  - vcs-commit-spec: ../../../../rules/vcs/vcs-router/common-commit-spec.mdc
-  - vcs-safety-spec: ../../../../rules/vcs/vcs-router/common-submission-safety-spec.mdc
+  - vcs-commit-spec: ../../../../rules/vcs/vcs-git-commit/commit-spec.mdc
+  - vcs-safety-spec: ../../../../rules/vcs/vcs-git-commit/submission-safety-spec.mdc
   - vcs-git-spec: ../../../../rules/vcs/vcs-router/git-commit-spec.mdc
 evaluation:
   trigger_evals: evals/trigger/

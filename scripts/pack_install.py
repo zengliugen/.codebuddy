@@ -407,9 +407,14 @@ def scan_drift(paths, packs, state):
                 # 链接正确时，逐个核对声明的组件在链接内可见
                 for comp in names:
                     suffix = ".md" if comp_type == "agents" else ""
-                    if not os.path.exists(os.path.join(pack_link, comp + suffix)):
-                        issues.append(("component", os.path.join(pack_link, comp + suffix),
-                                       "包内组件缺失"))
+                    target = os.path.join(pack_link, comp + suffix)
+                    # 规则组件可能是入口独立目录（<名>.entry），两种形态都算存在
+                    if comp_type == "rules":
+                        entry = os.path.join(pack_link, comp + ".entry")
+                        if os.path.isdir(entry):
+                            continue
+                    if not os.path.exists(target):
+                        issues.append(("component", target, "包内组件缺失"))
     # 默认的项目专有包：桥接必须存在（内容缺失不算漂移，项目可能尚未放内容）
     for name, meta in sorted(packs.items()):
         if meta.get("default") and meta.get("location") == "project":

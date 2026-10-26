@@ -1,6 +1,6 @@
 ---
-description: Unity 操作规范入口（始终生效）。所有 Unity 相关操作必须通过 unity-pipeline 技能执行，禁止绕过技能直接调用 unity CLI。覆盖场景、硬性约束、提交衔接细则见同目录子规则，按需加载。
-alwaysApply: true
+description: Unity 操作规范。所有 Unity 相关操作必须通过 unity-pipeline 技能执行，禁止绕过技能直接调用 unity CLI。覆盖场景、硬性约束、提交衔接细则见同目录子规则，按需加载。
+alwaysApply: false
 enabled: true
 updatedAt: 2026-08-18T00:00:00.000Z
 provider:

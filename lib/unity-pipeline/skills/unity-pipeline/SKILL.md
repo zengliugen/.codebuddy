@@ -22,7 +22,7 @@ metadata:
 ## 0. CLI 检查与安装
 
 ```bash
-python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/check_unity_cli.py
+python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/check_unity_cli.py
 ```
 
 通过后缓存 24 小时（按 `unity` 路径与版本指纹失效，失败不缓存；`--no-cache` 强制重查）。

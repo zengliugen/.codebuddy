@@ -11,14 +11,14 @@ metadata:
 # C# LSP（csharp-lsp）技能
 
 本技能封装 `csharp-lsp@codebuddy-plugins-official` 插件的完整使用流程。触发约束见规则
-`.codebuddy/rules/csharp/csharp-lsp/RULE.mdc`（按需加载，操作 `.cs` 文件时注入）。
+`.codebuddy/lib/csharp/rules/csharp-lsp/RULE.mdc`（按需加载，操作 `.cs` 文件时注入）。
 
 ## 1. 环境检查（使用前执行，含本地缓存）
 
 处理 C# 代码前，先运行环境检查脚本，确认语言服务器与插件均就绪：
 
 ```bash
-python .codebuddy/skills/csharp/csharp-lsp/scripts/check_env.py --project .
+python .codebuddy/lib/csharp/skills/csharp-lsp/scripts/check_env.py --project .
 ```
 
 脚本检查 csharp-ls 安装、插件安装记录、插件开启状态三个维度，输出中文结论（退出码 0 就绪）。
@@ -36,7 +36,7 @@ python .codebuddy/skills/csharp/csharp-lsp/scripts/check_env.py --project .
 - **搜索范围**：`Grep` 与 LSP 查询必须同时覆盖 `Assets/` 与 `Packages/` 两个目录（如 `grep -rn "符号" Assets Packages --include="*.cs"`），禁止只搜其一；非 `.cs` 文件中的引用（场景、配置）需显式扩展 `--include`。
 - **不重复调用**：若上下文已掌握目标符号信息（已读过定义文件），无需额外调用 LSP。
 - **失败降级**：LSP 调用失败（工具报错/超时）时，回退 `Grep`/`Read` 继续任务，不阻塞流程。
-- **与既有规则的关系**：本技能只负责代码智能查询，不替代 `csharp-code`（审查）、`csharp-comment`（注释）、`unity-pipeline`（编译/测试，**可选包，未安装时降级 `dotnet build/test`**）。
+- **与既有规则的关系**：本技能只负责代码智能查询，不替代 `csharp-code-review`（审查）、`csharp-comment`（注释）、`unity-pipeline`（编译/测试，**可选包，未安装时降级 `dotnet build/test`**）。
 
 ## 技能包结构
 

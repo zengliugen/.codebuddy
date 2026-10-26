@@ -146,13 +146,13 @@ FixedMathematics(+.Editor), Game, Graph(+.Editor), LogTrack(+.Editor), UI(+.Edit
 
 ```bash
 # 0) 前置检查（不写入），确认编辑器状态与当前覆盖率状态
-python .codebuddy/skills/csharp/csharp-test-coverage/scripts/collect_real_coverage.py --dry-run
+python .codebuddy/lib/csharp/skills/csharp-test-coverage/scripts/collect_real_coverage.py --dry-run
 
 # 1) 实际采集（会写入配置、触发域重载、跑测试、解析产物）
-python .codebuddy/skills/csharp/csharp-test-coverage/scripts/collect_real_coverage.py --confirm
+python .codebuddy/lib/csharp/skills/csharp-test-coverage/scripts/collect_real_coverage.py --confirm
 
 # 2) 仅解析已有产物
-python .codebuddy/skills/csharp/csharp-test-coverage/scripts/parse_unity_coverage.py
+python .codebuddy/lib/csharp/skills/csharp-test-coverage/scripts/parse_unity_coverage.py
 ```
 
 脚本内部步骤：

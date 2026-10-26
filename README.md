@@ -255,13 +255,13 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 
 | 包 | 类别 | 默认 | 组件 |
 |---|---|---|---|
-| `core` | 基础 | ✅ | rules: core-language、core-project-guide、core-tooling、core-engine；skills: core-init |
+| `core` | 基础 | ✅ | rules: core-language、core-project-guide、core-tooling、core-engine、core-init、core-rule-governance；skills: core-init |
 | `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
-| `vcs` | 基础 | ✅ | rules: vcs-router、vcs-engine-commit；skills: vcs-router、vcs-git-commit、vcs-git-merge |
-| `tool` | 基础 | ✅ | rules: 无；skills: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-rule-consolidation、tool-session-lesson-distill |
-| `csharp` | C# | ❌ | rules: csharp-code、csharp-comment、csharp-lsp、csharp-test；skills: 6 个；agents: 2 个 |
+| `vcs` | 基础 | ✅ | rules: vcs-router、vcs-engine-commit、vcs-git-commit、vcs-git-merge；skills: vcs-router、vcs-git-commit、vcs-git-merge |
+| `tool` | 基础 | ✅ | rules: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-rule-consolidation、tool-session-lesson-distill；skills: 同名 5 个 |
+| `csharp` | C# | ❌ | rules: csharp-code-review、csharp-comment、csharp-lsp、csharp-test、csharp-test-coverage、csharp-format-checker；skills: csharp-code-review、csharp-comment-checker、csharp-comment-generator、csharp-format-checker、csharp-lsp、csharp-test-coverage；agents: 2 个 |
 | `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
-| `python` | Python | ❌ | rules: python-code、python-comment、python-test；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 2 个 |
+| `python` | Python | ❌ | rules: python-code-review、python-comment、python-test、python-env、python-lint、python-test-coverage；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 2 个 |
 | `grilling` | third-party（本地维护） | ❌ | skills: grilling |
 | `yao-meta-skill` | third-party | ❌ | rules: yao-meta-skill；skills: yao-meta-skill |
 
@@ -280,6 +280,22 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 
 校验由 `check_manifest.py` 执行（校验项 8）：组件名不以 `<包名>-` 开头且不等于包名时报错。
 新建组件时照着命名即可，漏改会在提交前的 `pre-commit` 钩子被拦下。
+
+### 规则分类与命名
+
+规则分三类，详见 `rules/core/core-rule-governance/`：
+
+| 类型 | 文件名 | 触发方式 | 职责 |
+|---|---|---|---|
+| **入口规则** | `<技能名>.entry.mdc` | `alwaysApply` 或 `paths` | 只定义「必须经该技能执行」 |
+| **规范规则** | `RULE.mdc` | `alwaysApply: false` | 具体规范，由技能加载 |
+| **底线规范** | `RULE.mdc`（无对应技能） | 允许 `alwaysApply: true` | 无条件适用的底线（语言、项目结构、工具纪律） |
+
+规范命名：**单技能使用 → 与技能同名；多技能共用 → 取共同前缀**。
+被其他技能拉起的技能**不建入口规则**（链路已固定，再加会造成两个入口）。
+
+校验项 9 覆盖：入口规则必须有对应技能（或为其前缀）；有同名技能的包内，规范规则不得
+`alwaysApply: true`。
 
 ```bash
 python .codebuddy/scripts/pack_install.py list             # 列出全部包与安装状态

@@ -1,7 +1,7 @@
 interface:
-  display_name: "规则文件重组"
-  short_description: "按入口加子规则模式拆分、合并或评估 .codebuddy 规则文件结构"
-  default_prompt: "使用 $rule-consolidation 重组规则文件。指定目标规则目录与操作意图（拆分/合并/评估）。"
+  display_name: "单条规则结构重组"
+  short_description: "对**某一条规则**做入口加子规则的拆分、子规则合并或结构评估；不管引擎该有几条规则"
+  default_prompt: "使用 $tool-rule-consolidation 重组某一条规则的内部结构。指定目标规则目录与操作意图（拆分/合并/评估）；全局规则体系调整不走本技能。"
 compatibility:
   canonical_format: "agent-skills"
   adapter_targets:

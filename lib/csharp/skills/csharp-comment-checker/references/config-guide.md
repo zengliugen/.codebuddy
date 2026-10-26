@@ -58,6 +58,6 @@
 
 ## 规则文件与配置的关系
 
-项目的注释规范定义在 `.codebuddy/rules/csharp/csharp-comment/` 目录下的 `.mdc` 文件中。这些文件为人工维护的规范文档。本技能的检查逻辑由独立的运行时配置文件 `comment_config.json` 驱动，不直接读取 `.mdc` 文件。
+项目的注释规范定义在 `.codebuddy/lib/csharp/rules/csharp-comment/` 目录下的 `.mdc` 文件中。这些文件为人工维护的规范文档。本技能的检查逻辑由独立的运行时配置文件 `comment_config.json` 驱动，不直接读取 `.mdc` 文件。
 
 > **注意：** 修改规范文件（`.mdc`）后，需要同步更新 `comment_config.json` 中的对应规则配置，否则检查行为不会自动变更。

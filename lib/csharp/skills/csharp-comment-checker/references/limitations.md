@@ -46,4 +46,4 @@
   `<param name="...">` 必须写不带 `@` 的实际标识符（如 `name="object"`）；写 `name="@object"` 会触发编译器
   CS1572 / CS1573。本工具的 `missing_param` / `param_mismatch` / `missing_typeparam` / `typeparam_mismatch`
   规则已与编译器判定对齐：内部统一按剥离 `@` 后的标识符比对，故正确写法不再被误报，错误写法（带 `@`）会被报出。
-  规范见 `.codebuddy/rules/csharp/csharp-comment/doc-comment-spec.mdc` §3.3。
+  规范见 `.codebuddy/lib/csharp/rules/csharp-comment/doc-comment-spec.mdc` §3.3。

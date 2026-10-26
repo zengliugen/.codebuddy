@@ -19,7 +19,7 @@ output_contract:
   optional:
     - fix_verification: 修复模式的修复前后统计对比
   evidence:
-    - rule_loaded: 已读取 .codebuddy/rules/csharp/csharp-code/ 规则文件
+    - rule_loaded: 已读取 .codebuddy/lib/csharp/rules/csharp-code-review/ 规则文件
     - comment_tool: 注释合规维度已调用 csharp-comment-checker Roslyn 工具（模式 D 除外）
     - format_tool: 格式合规维度已复用 5 分钟内 check_logs 报告或调用 csharp-format-checker dotnet format 工具（模式 D 除外）
 exclusion_contract:
@@ -33,10 +33,10 @@ safety_constraints:
   - 禁止臆测业务逻辑与无依据的判错
   - 禁止在技能层执行审查逻辑
 references:
-  - review-rules: .codebuddy/rules/csharp/csharp-code/RULE.mdc
-  - quality-spec: .codebuddy/rules/csharp/csharp-code/quality-spec.mdc
-  - comment-spec: .codebuddy/rules/csharp/csharp-code/comment-spec.mdc
-  - bug-boundary-spec: .codebuddy/rules/csharp/csharp-code/bug-boundary-spec.mdc
-  - architecture-spec: .codebuddy/rules/csharp/csharp-code/architecture-spec.mdc
-  - report-spec: .codebuddy/rules/csharp/csharp-code/report-spec.mdc
-  - agent: .codebuddy/agents/csharp/csharp-code-review.md
+  - review-rules: .codebuddy/lib/csharp/rules/csharp-code-review/RULE.mdc
+  - quality-spec: .codebuddy/lib/csharp/rules/csharp-code-review/quality-spec.mdc
+  - comment-spec: .codebuddy/lib/csharp/rules/csharp-code-review/comment-spec.mdc
+  - bug-boundary-spec: .codebuddy/lib/csharp/rules/csharp-code-review/bug-boundary-spec.mdc
+  - architecture-spec: .codebuddy/lib/csharp/rules/csharp-code-review/architecture-spec.mdc
+  - report-spec: .codebuddy/lib/csharp/rules/csharp-code-review/report-spec.mdc
+  - agent: .codebuddy/lib/csharp/agents/csharp-code-review.md

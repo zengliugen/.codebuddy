@@ -1,6 +1,6 @@
 # 提交摘要书写规范
 
-> **规范主源**：type 定义、subject 规则等强制条款以 `.codebuddy/rules/vcs/vcs-router/common-commit-spec.mdc`（提交摘要规范子规则）为准。本文件提供**详细决策参考**：近似 type 区分规则、正确/错误示例、提交正文、多模块拆分与编排顺序。
+> **规范主源**：type 定义、subject 规则等强制条款以 `.codebuddy/rules/vcs/vcs-git-commit/commit-spec.mdc`（提交摘要规范子规则）为准。本文件提供**详细决策参考**：近似 type 区分规则、正确/错误示例、提交正文、多模块拆分与编排顺序。
 
 ## 基本格式
 

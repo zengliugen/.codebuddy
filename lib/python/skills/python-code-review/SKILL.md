@@ -20,7 +20,7 @@ metadata:
 | 拥有的任务 | 把「审查 Python 代码」的请求路由到 `python-code-review` Agent，并保证规则已加载、报告已落盘 |
 | 输出 | Agent 审查报告（`.md` + `.json`）+ error/warning/info 计数 + 报告绝对路径 |
 | 排除 | 不自己做审查判断；不检查非 Python 文件；不覆盖上游模板与上游基线测试；不承担格式检查（由 `python-lint` 的 ruff 承担） |
-| 前提 | `python-code-review` Agent 可用；`python-code` 规则目录完整；`python-lint` 工具环境可选（用于格式维度复用） |
+| 前提 | `python-code-review` Agent 可用；`python-code-review` 规则目录完整；`python-lint` 工具环境可选（用于格式维度复用） |
 
 ## 为什么是薄入口
 

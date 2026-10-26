@@ -1,0 +1,45 @@
+---
+description: csharp-format-checker 技能强制入口 —— 需要检查或修复 C# 代码格式时必须经该技能执行（dotnet format + 项目根 .editorconfig）。禁止凭人工判断代码格式，也禁止在审查流程外自行格式化。本文件是入口规则，执行规范由技能按需加载。
+alwaysApply: false
+paths: "**/*.cs"
+enabled: true
+updatedAt: 2026-10-26T00:00:00.000Z
+provider:
+---
+
+# csharp-format-checker 强制入口
+
+本文件是 `csharp-format-checker` 技能的**入口规则**，只定义强制入口，不含执行规范。
+
+## 强制条款
+
+1. **C# 格式检查与修复必须经 `csharp-format-checker` 执行**。格式的**唯一标准**是项目根
+   `.editorconfig`，由 `dotnet format` 确定性执行；规则文件里列的常见项只是快速对照，
+   **不得作为最终判定依据**。
+
+2. **禁止人工判断格式**。不得以「看起来对齐了」「规则文件没写这条」为由判为格式合规。
+   工具报出的诊断应直接采信。
+
+3. **审查流程内的复用规则**：`csharp-code-review` 执行格式维度时，**优先复用**
+   `csharp-format-checker` 5 分钟内的报告；过期或缺失时再调用，避免重复耗时。
+
+4. **检查范围仅限自研代码**。`Assets/` 与 `Packages/` 下的业务代码；三方库与生成代码
+   一律不检查也不修改。
+
+## 规范在哪
+
+格式标准的载体是**项目根 `.editorconfig`**（不在规则文件内）。工具用法与参数见技能
+`SKILL.md`；检查范围的判定口径见 `csharp-code-review` 规则的格式维度章节。
+
+## 加载机制说明
+
+- 本文件为**入口规则**：只定义强制入口与判据来源。
+- 无子规则：格式标准本身是 `.editorconfig`，技能只负责执行与报告。
+
+## 与其他规则的关系
+
+| 规则 | 管什么 |
+|---|---|
+| `csharp-format-checker`（本规则） | **必须走该技能**，格式以工具结果为准 |
+| `csharp-code-review` | 审查流程，其中格式维度复用本技能 |
+| `csharp-comment` | 注释规范（与本规则互不重叠） |

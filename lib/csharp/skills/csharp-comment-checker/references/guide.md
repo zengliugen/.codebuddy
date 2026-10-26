@@ -110,7 +110,7 @@ python scripts/check_comments.py path/to/file.cs --output-dir D:/my_reports/
 6. 复扫清零后，再跑一次**工作区行尾检测**（批量改写源码有行尾被静默转成 LF 的风险，`git status` 看不到）：
 
    ```bash
-   python .codebuddy/skills/csharp/csharp-format-checker/scripts/check_eol.py --path <本次改动目录>
+   python .codebuddy/lib/csharp/skills/csharp-format-checker/scripts/check_eol.py --path <本次改动目录>
    ```
 
    退出码 0 通过 / 1 存在异常（按脚本 `--fix` 输出的命令修复后复检）/ 3 配置或环境不可用。

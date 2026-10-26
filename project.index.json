@@ -396,23 +396,14 @@
         "## 资源与性能约束"
       ]
     },
-    "rules/csharp/csharp-code/architecture-spec.mdc": {
-      "path": ".codebuddy.project/configs/rules/csharp/csharp-code/architecture-spec.mdc",
+    "rules/csharp/csharp-code-review/architecture-spec.mdc": {
+      "path": ".codebuddy.project/configs/rules/csharp/csharp-code-review/architecture-spec.mdc",
       "format": "markdown",
       "template_outline": [
         "# 架构与性能审查 —— 项目事实",
         "## 框架包依赖顺序",
         "## 领域分层",
         "## 热更新程序集清单"
-      ]
-    },
-    "rules/csharp/csharp-lsp/RULE.mdc": {
-      "path": ".codebuddy.project/configs/rules/csharp/csharp-lsp/RULE.mdc",
-      "format": "markdown",
-      "template_outline": [
-        "# C# LSP 使用规则 —— 项目事实",
-        "## 实际搜索目录",
-        "## 受 LSP 索引影响的程序集（实测）"
       ]
     },
     "rules/csharp/csharp-test/naming-layout.mdc": {
@@ -422,6 +413,15 @@
         "# 测试文件命名 —— 项目事实",
         "## 存量对齐现状",
         "## 生成测试代码豁免的实测教训"
+      ]
+    },
+    "rules/csharp/csharp-lsp.entry/csharp-lsp.entry.mdc": {
+      "path": ".codebuddy.project/configs/rules/csharp/csharp-lsp.entry/csharp-lsp.entry.mdc",
+      "format": "markdown",
+      "template_outline": [
+        "# C# LSP 使用规则 —— 项目事实",
+        "## 实际搜索目录",
+        "## 受 LSP 索引影响的程序集（实测）"
       ]
     }
   }

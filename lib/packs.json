@@ -13,7 +13,9 @@
           "core-language",
           "core-project-guide",
           "core-tooling",
-          "core-engine"
+          "core-engine",
+          "core-init",
+          "core-rule-governance"
         ],
         "skills": [
           "core-init"
@@ -32,7 +34,9 @@
       "comps": {
         "rules": [
           "vcs-router",
-          "vcs-engine-commit"
+          "vcs-engine-commit",
+          "vcs-git-commit",
+          "vcs-git-merge"
         ],
         "skills": [
           "vcs-router",
@@ -51,7 +55,13 @@
         "core"
       ],
       "comps": {
-        "rules": [],
+        "rules": [
+          "tool-cmd-script-writing",
+          "tool-engine-sync",
+          "tool-export-zipped-dir",
+          "tool-rule-consolidation",
+          "tool-session-lesson-distill"
+        ],
         "skills": [
           "tool-cmd-script-writing",
           "tool-engine-sync",
@@ -85,10 +95,12 @@
       ],
       "comps": {
         "rules": [
-          "csharp-code",
+          "csharp-code-review",
           "csharp-comment",
           "csharp-lsp",
-          "csharp-test"
+          "csharp-test",
+          "csharp-test-coverage",
+          "csharp-format-checker"
         ],
         "skills": [
           "csharp-code-review",
@@ -163,9 +175,12 @@
       ],
       "comps": {
         "rules": [
-          "python-code",
+          "python-code-review",
           "python-comment",
-          "python-test"
+          "python-test",
+          "python-env",
+          "python-lint",
+          "python-test-coverage"
         ],
         "skills": [
           "python-env",

@@ -12,7 +12,7 @@
 本技能对应的步骤行由项目侧 `project-config.md` §4 给出，典型形如：
 
 ```
-python .codebuddy/skills/csharp/csharp-format-checker/scripts/dotnet_format.py check \
+python .codebuddy/lib/csharp/skills/csharp-format-checker/scripts/dotnet_format.py check \
     --changed-from-file <本笔清单文件> --reuse-report
 ```
 

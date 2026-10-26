@@ -16,8 +16,8 @@
     "report_based_fix"
   ],
   "dependencies": {
-    "rules": ".codebuddy/rules/csharp/csharp-comment/",
-    "agents": ".codebuddy/agents/csharp/csharp-comment-generator/"
+    "rules": ".codebuddy/lib/csharp/rules/csharp-comment/",
+    "agents": ".codebuddy/lib/csharp/agents/csharp-comment-generator/"
   },
   "related_skills": [
     {

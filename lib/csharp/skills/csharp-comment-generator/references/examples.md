@@ -5,7 +5,7 @@
 用户："为 `MyClass.cs` 添加注释"
 
 Agent 流程：
-1. 读取规则目录（`.codebuddy/rules/csharp/csharp-comment/`）下的全部规则文件
+1. 读取规则目录（`.codebuddy/lib/csharp/rules/csharp-comment/`）下的全部规则文件
 2. 读取并分析 `MyClass.cs` 的代码结构
 3. 识别所有需要注释的成员
 4. 为缺失注释的成员生成 XML 文档注释
@@ -20,7 +20,7 @@ Agent 流程：
 用户："检查 `MyLogic.cs` 的注释是否符合项目规范"
 
 Agent 流程：
-1. 读取规则目录（`.codebuddy/rules/csharp/csharp-comment/`）下的全部规则文件
+1. 读取规则目录（`.codebuddy/lib/csharp/rules/csharp-comment/`）下的全部规则文件
 2. 读取并分析 `MyLogic.cs` 的代码结构和现有注释
 3. 按修正规则四维度检查已有注释质量（书写正确性、描述清晰度、描述完整性、语义一致性）
 4. 识别不合规的注释（格式错误、内容缺失、书写错误、描述不清等）
@@ -34,7 +34,7 @@ Agent 流程：
 用户："按照项目注释规范补全 `MyManager.cs` 缺失的注释"
 
 Agent 流程：
-1. 读取规则目录（`.codebuddy/rules/csharp/csharp-comment/`）下的全部规则文件
+1. 读取规则目录（`.codebuddy/lib/csharp/rules/csharp-comment/`）下的全部规则文件
 2. 读取并分析 `MyManager.cs` 的代码结构
 3. 识别所有缺失注释的成员
 4. 为缺失注释的成员生成 XML 文档注释
@@ -47,7 +47,7 @@ Agent 流程：
 用户："只为 `MyClass.cs` 中 `SwitchState` 方法相关的代码添加注释"
 
 Agent 流程：
-1. 读取规则目录（`.codebuddy/rules/csharp/csharp-comment/`）下的全部规则文件
+1. 读取规则目录（`.codebuddy/lib/csharp/rules/csharp-comment/`）下的全部规则文件
 2. 读取 `MyClass.cs`，定位 `SwitchState` 方法及其直接关联成员
 3. 仅为用户指定的方法及相关成员生成文档注释和行内注释
 4. 跳过文件中的其他成员，不做修改

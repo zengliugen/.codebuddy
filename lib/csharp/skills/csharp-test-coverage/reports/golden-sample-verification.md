@@ -129,11 +129,11 @@ M:...Queue`1.Enqueue(`0@)                 ← 运行时侧
 
 ```bash
 # 全量回归（core 包）
-python .codebuddy/skills/csharp/csharp-test-coverage/scripts/check_coverage.py \
+python .codebuddy/lib/csharp/skills/csharp-test-coverage/scripts/check_coverage.py \
   Packages/com.littlebaby.framework.core
 
 # 生成测试代码回归（fixedmathematics 包）
-python .codebuddy/skills/csharp/csharp-test-coverage/scripts/check_coverage.py \
+python .codebuddy/lib/csharp/skills/csharp-test-coverage/scripts/check_coverage.py \
   Packages/com.littlebaby.framework.fixedmathematics
 ```
 

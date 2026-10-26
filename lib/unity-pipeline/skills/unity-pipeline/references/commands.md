@@ -8,7 +8,7 @@
 
 ```bash
 # 环境检查（含缓存）
-python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/check_unity_cli.py [--no-cache]
+python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/check_unity_cli.py [--no-cache]
 
 # 未安装时自动安装（离线优先 + 在线回退）
 powershell -ExecutionPolicy Bypass -File "<技能目录>\tools\unity-cli-offline\install.ps1" [-Proxy <代理URL>]
@@ -44,8 +44,8 @@ unity command "test run" --mode editor --async_tests true     # 预计 >30s 也�
 unity command "test status"                          # 异步测试轮询；test cancel 中止
 
 # 辅助脚本（替代手写轮询与内联解析；分组命令名整体加引号）
-python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_wait.py --command "script recompile_status"
-python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_test_summary.py --file Temp/pipeline_test_status.json
+python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/unity_wait.py --command "script recompile_status"
+python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/unity_test_summary.py --file Temp/pipeline_test_status.json
 ```
 
 > **超时**：每个请求只有一个超时，按「请求顶层 timeout（毫秒）→ 命令自身 timeout 参数 → 命令默认值」

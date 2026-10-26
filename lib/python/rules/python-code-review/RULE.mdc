@@ -1,6 +1,6 @@
 ---
-description: Python 代码审查规范入口（始终生效）。定义审查的强制入口路由：所有 Python 代码审查必须通过 python-code-review 技能执行，由技能调度 Agent 拉起审查。子规则（质量/注释/Bug/报告）由 Agent 按需加载，不全局生效。
-alwaysApply: true
+description: Python 代码审查规范。定义审查的强制入口路由：所有 Python 代码审查必须通过 python-code-review 技能执行，由技能调度 Agent 拉起审查。子规则（质量/注释/Bug/报告）由 Agent 按需加载，不全局生效。
+alwaysApply: false
 enabled: true
 updatedAt: 2026-10-24T00:00:00.000Z
 provider:
@@ -49,10 +49,10 @@ provider:
 
 Agent 执行审查前，**必须读取**以下全部规则文件：
 
-- `.codebuddy/rules/python/python-code/quality-spec.mdc`
-- `.codebuddy/rules/python/python-code/comment-spec.mdc`
-- `.codebuddy/rules/python/python-code/bug-spec.mdc`
-- `.codebuddy/rules/python/python-code/report-spec.mdc`
+- `.codebuddy/rules/python/python-code-review/quality-spec.mdc`
+- `.codebuddy/rules/python/python-code-review/comment-spec.mdc`
+- `.codebuddy/rules/python/python-code-review/bug-spec.mdc`
+- `.codebuddy/rules/python/python-code-review/report-spec.mdc`
 
 注释维度的执行标准引用 `.codebuddy/rules/python/python-comment/` 下的注释规范；可机械判定的部分（有无 docstring、首行标点、段标题格式）以 `ruff` 的 `D` 系列结果为准。
 

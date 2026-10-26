@@ -62,7 +62,7 @@ scope 的具体取值以 `references/project-config.md` §1 中的项目配置�
 
 ### 阶段四：生成提交摘要
 
-按 `<type>(<scope>): <subject>` 格式生成。**type 定义、subject 规范、授权确认方式遵循 `.codebuddy/rules/vcs/vcs-router/common-commit-spec.mdc` 与 `common-submission-safety-spec.mdc` 公共子规则**，近似 type 的详细区分规则见 `references/commit-spec.md`。
+按 `<type>(<scope>): <subject>` 格式生成。**type 定义、subject 规范、授权确认方式遵循 `.codebuddy/rules/vcs/vcs-git-commit/commit-spec.mdc` 与 `common-submission-safety-spec.mdc` 公共子规则**，近似 type 的详细区分规则见 `references/commit-spec.md`。
 
 默认 type 枚举（读取自项目侧 `skills/git-commit/config.json`，索引逻辑名 `git_commit.config`，目标项目可调整）：
 

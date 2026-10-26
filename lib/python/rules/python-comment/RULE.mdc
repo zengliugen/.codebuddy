@@ -1,5 +1,5 @@
 ---
-description: Python 注释与 docstring 书写规范入口（paths: **/*.py）。要求注释全中文、全角标点（与语言规范一致）；定义 docstring 结构、段标题写法与行内注释规范。
+description: Python 注释与 docstring 书写规范。要求注释全中文、全角标点（与语言规范一致）；定义 docstring 结构、段标题写法与行内注释规范。
 alwaysApply: false
 paths: "**/*.py"
 enabled: true

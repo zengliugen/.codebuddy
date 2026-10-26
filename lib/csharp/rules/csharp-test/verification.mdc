@@ -21,7 +21,7 @@ provider:
 
 | 情形 | 做法 |
 |---|---|
-| **已安装** `unity-pipeline`（`.codebuddy/skills/unity-pipeline/` 存在） | 测试的**编译与运行必须通过该技能**（`script recompile` / `script recompile_status` / `test run` / `test status`，命令按 `unity command <分组> <名称>` 分组命名）。**禁止**用 Bash/PowerShell 直接调用 `unity` CLI 绕过（详见 `unity-pipeline/RULE.mdc`） |
+| **已安装** `unity-pipeline`（`.codebuddy/lib/unity-pipeline/skills/` 存在） | 测试的**编译与运行必须通过该技能**（`script recompile` / `script recompile_status` / `test run` / `test status`，命令按 `unity command <分组> <名称>` 分组命名）。**禁止**用 Bash/PowerShell 直接调用 `unity` CLI 绕过（详见 `unity-pipeline/RULE.mdc`） |
 | **未安装**（非 Unity 项目，或项目未启用该包） | 降级为直接调用 .NET SDK：`dotnet build <解决方案或工程>` 做编译校验、`dotnet test` 跑测试；**须在交付说明中标注「未经 unity-pipeline 校验」** |
 
 > **不要**为了让本规则「总能执行」而把 `unity-pipeline` 加进 `csharp.requires`——
@@ -39,12 +39,12 @@ unity command "editor set_auto_tick" --enable true
 
 # 3. 重编译并轮询到终态（按 JSON 字段判终态；completed / up_to_date 为终态）
 unity command "script recompile"
-python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_wait.py --command "script recompile_status"
+python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/unity_wait.py --command "script recompile_status"
 
 # 4. 运行测试（预计超过 30 秒必须异步：CLI --timeout 默认 30 秒且覆盖命令默认值）
 unity command "test run" --mode editor --async_tests true
-python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_wait.py --command "test status" --until completed --fail-field status --fail-value error,cancelled
-python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_test_summary.py --file Temp/pipeline_test_status.json
+python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/unity_wait.py --command "test status" --until completed --fail-field status --fail-value error,cancelled
+python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/unity_test_summary.py --file Temp/pipeline_test_status.json
 ```
 
 硬性要求：
@@ -79,7 +79,7 @@ unity command "editor focus"      # 激活编辑器窗口后再轮询，可解�
 - 测试目录**已纳入** `csharp-comment-checker` 的检查范围（`comment_config.json` 的 `exclude.paths` 不含 `/Tests/`）。
 - 新增 / 修改测试文件后，必须对**该测试目录**复扫一次（链路与细则见 `csharp-comment/RULE.mdc`）：
   ```bash
-  python .codebuddy/skills/csharp/csharp-comment-checker/scripts/check_comments.py <测试目录>
+  python .codebuddy/lib/csharp/skills/csharp-comment-checker/scripts/check_comments.py <测试目录>
   ```
 - 复扫须达到**「所有文件注释检查通过」**；有残留按 checker → generator → 复扫链路处理，不得留在工作区。
 - 测试代码上的噪声（如 `inline_magic_number` 命中测试字面量）应通过**补行内注释**消除（见 `authoring.mdc` 第 4 节），
@@ -103,7 +103,7 @@ unity command "editor focus"      # 激活编辑器窗口后再轮询，可解�
 
 ## 7. 提交衔接
 
-- 测试代码属于 `.cs` 变更，提交走 `vcs-router` 技能；若变更含 `.cs`，提交前会自动触发 `csharp-code` 审查门禁，
+- 测试代码属于 `.cs` 变更，提交走 `vcs-router` 技能；若变更含 `.cs`，提交前会自动触发 `csharp-code-review` 审查门禁，
   存在 `error` 级别问题必须修复或获得明确授权忽略后方可提交。
 - 仅新增测试文件时也应照常走提交流程，不得绕过技能直接 `git commit`。
 

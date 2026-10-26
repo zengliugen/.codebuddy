@@ -1,6 +1,6 @@
 # 项目规则统一模式规范
 
-<!-- pack-ref-ok: csharp-code, csharp-comment, csharp-lsp, csharp-test, unity-pipeline, yao-meta-skill, grilling, vcs-router, vcs-git-commit —— 本文件是「引擎规则全景表」，如实登记各包规则的结构与规模；引用的是规则清单而非运行时调用。 -->
+<!-- pack-ref-ok: csharp-code, csharp-comment, csharp-lsp, csharp-test, csharp-test-coverage, python-code, python-comment, python-test, python-env, python-lint, python-test-coverage, unity-pipeline, yao-meta-skill, grilling, vcs-router, vcs-git-commit —— 本文件是「引擎规则全景表」，如实登记各包规则的结构与规模；引用的是规则清单而非运行时调用。 -->
 
 本项目 `.codebuddy/rules/<name>/` 下所有规则遵循统一结构，评估重组时必须对照本规范。
 
@@ -59,27 +59,54 @@ provider:
 
 | 元素 | 规范 | 示例 |
 |------|------|------|
-| 目录名 | `<name>` 与对应技能同名 | `csharp-code`、`vcs-router` |
+| 目录名 | `<name>` 与对应技能同名 | `csharp-code-review`、`vcs-router` |
 | 入口文件 | `RULE.mdc`（固定） | `RULE.mdc` |
 | 子规则 | `<主题>-spec.mdc` 或 `<主题>.mdc` | `quality-spec.mdc`、`compliance.mdc` |
 
 ## 项目规则全景
 
-| 规则目录 | 入口生效方式 | 子规则数 | 说明 |
-|---------|-------------|---------|------|
-| `core-engine` | paths: `"**/.codebuddy/**"` | 3 | 引擎内容维护（项目配置隔离、登记点同步、重构验收） |
-| `core-language` | alwaysApply: true | 1 | 语言编码规范 |
-| `core-project-guide` | alwaysApply: true | 5 | 项目指导（**项目事实，迁移时整体重写**） |
-| `core-tooling` | alwaysApply: true | 4 | 工具调用纪律（命令形状 + 结果校验：失败可能返回 {error} 对象而非抛错） |
-| `csharp-code` | alwaysApply: true | 5 | 审查规范 |
-| `csharp-comment` | alwaysApply: true | 5 | 注释规范 |
-| `csharp-lsp` | paths: `"**/*.cs"` | 0 | 单文件（内容少，无独立加载场景） |
-| `csharp-test` | paths: `"**/Tests/**"` | 3 | 测试代码规范（命名/编排/验收） |
-| `grilling` | alwaysApply: true | 0 | 方案诘问（组件名=包名，命名约定的豁免项） |
-| `unity-pipeline` | alwaysApply: true | 1 | Unity 操作规范（组件名=包名，豁免） |
-| `vcs-engine-commit` | paths: `"**/.codebuddy/**"` | 1 | 引擎仓库提交（只治引擎侧；submodule 与独立 git 检出两种形态） |
-| `vcs-router` | alwaysApply: true | 4 | 提交规范（仅 Git；审查门禁已并入 `vcs-git-commit/references/project-config.md`，不在本规则目录） |
-| `yao-meta-skill` | alwaysApply: true | 0 | 技能工程强制入口（组件名=包名，豁免）；可选包规则，未装包时不存在 |
+规则分三类（治理规则见 `rules/core/core-rule-governance/`）：
+
+| 类型 | 文件名 | 触发方式 |
+|---|---|---|
+| **入口规则** | `<技能名>.entry.mdc` | `alwaysApply` 或 `paths` |
+| **规范规则** | `RULE.mdc`（有对应技能） | `alwaysApply: false`，由技能加载 |
+| **底线规范** | `RULE.mdc`（无对应技能） | 允许 `alwaysApply: true` |
+
+| 规则 | 包 | 类型 | 触发方式 | 子规范 |
+|---|---|---|---|---|
+| `core-init` | core | 入口 | `paths: **/.codebuddy/**` | 0 |
+| `core-engine` | core | 底线规范 | `paths: **/.codebuddy/**` | 3 |
+| `core-language` | core | 底线规范 | `alwaysApply` | 1 |
+| `core-project-guide` | core | 底线规范 | `alwaysApply` | 5 |
+| `core-rule-governance` | core | 底线规范 | `paths: **/.codebuddy/**` | 0 |
+| `core-tooling` | core | 底线规范 | `alwaysApply` | 4 |
+| `csharp-code-review` | csharp | 入口 | `paths: **/*.cs` | 5 |
+| `csharp-comment` | csharp | 入口 | `alwaysApply` | 5 |
+| `csharp-format-checker` | csharp | 入口 | `paths: **/*.cs` | 0 |
+| `csharp-lsp` | csharp | 入口 | `paths: **/*.cs` | 0 |
+| `csharp-test-coverage` | csharp | 入口 | `paths: **/Tests/**` | 0 |
+| `csharp-test` | csharp | 底线规范 | `paths: **/Tests/**` | 3 |
+| `python-code-review` | python | 入口 | `paths: **/*.py` | 4 |
+| `python-comment` | python | 入口 | `paths: **/*.py` | 1 |
+| `python-env` | python | 入口 | `paths: **/.codebuddy/**` | 0 |
+| `python-lint` | python | 入口 | `paths: **/*.py` | 0 |
+| `python-test-coverage` | python | 入口 | `paths: **/tests/**` | 0 |
+| `python-test` | python | 底线规范 | `paths: **/tests/**/*.py, **/extensions_tests/**/*.py` | 0 |
+| `tool-cmd-script-writing` | tool | 入口 | `paths: **/*.{cmd,bat}` | 0 |
+| `tool-engine-sync` | tool | 入口 | `paths: **/.codebuddy/**` | 0 |
+| `tool-export-zipped-dir` | tool | 入口 | `paths: **/.codebuddy/**` | 0 |
+| `tool-rule-consolidation` | tool | 入口 | `paths: **/.codebuddy/**` | 0 |
+| `tool-session-lesson-distill` | tool | 入口 | `paths: **/.codebuddy/**` | 0 |
+| `unity-pipeline` | unity-pipeline | 入口 | `alwaysApply` | 1 |
+| `vcs-git-commit` | vcs | 入口 | `paths: **/*` | 3 |
+| `vcs-git-merge` | vcs | 入口 | `paths: **/*` | 1 |
+| `vcs-router` | vcs | 入口 | `alwaysApply` | 0 |
+| `vcs-engine-commit` | vcs | 底线规范 | `paths: **/.codebuddy/**` | 1 |
+| `yao-meta-skill` | yao-meta-skill | 入口 | `alwaysApply` | 0 |
+
+> 合计 29 条：入口 21、底线规范 8。**无「有技能对应的规范规则」**——规范全部随技能走，
+> 不单独成规则，避免规范与技能双份维护。
 
 > **注**：`core-tooling` 常驻（`alwaysApply: true`，入口约 2.5 KB）。它把「命令如何构造」与「结果如何判定」合到同一条规则下——两者共享同一前提（工具被拦下或做失败时都不抛异常，只改变返回值），且都必须在每次工具调用时生效。核心底线压进入口、分级细则与校验命令下沉子规则，是为让纪律在调用时真正生效的必要代价。
 >

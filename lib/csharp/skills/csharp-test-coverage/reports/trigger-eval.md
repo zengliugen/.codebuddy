@@ -20,7 +20,7 @@
 ## 复现方式
 
 ```bash
-python .codebuddy/skills/csharp/csharp-test-coverage/scripts/trigger_eval.py
+python .codebuddy/lib/csharp/skills/csharp-test-coverage/scripts/trigger_eval.py
 ```
 
 ## 判定逻辑

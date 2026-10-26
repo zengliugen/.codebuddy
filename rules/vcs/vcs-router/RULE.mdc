@@ -1,36 +1,48 @@
 ---
-description: 版本控制操作规范入口规则（Git）。操作统一入口路由强制条款。始终生效；提交摘要、授权安全等详细规范见同目录子规则，按通用/Git 分类命名，按需加载。
-alwaysApply: true
+description: 版本控制操作路由规范 —— 定义操作类型识别、仓库类型检测与路由去向表。本文件是规范规则（不是入口规则）：不定义「必须经哪个技能」，那由同包 vcs-router.entry 承载。由 vcs-router 技能按需加载。
+alwaysApply: false
 enabled: true
-updatedAt: 2026-09-22T00:00:00.000Z
+updatedAt: 2026-10-26T00:00:00.000Z
 provider:
 ---
 
-# 版本控制操作规范（Git）
+# 版本控制操作路由规范
 
-本规则为 `vcs-router` 路由技能及 `vcs-git-commit`、`vcs-git-merge` 执行技能共享的**操作规范入口**，**始终生效**（`alwaysApply: true`）。其中「强制入口规则」是操作路由的兜底强制条款：无论技能触发机制是否生效，本规则都要求版本控制操作必须经 `vcs-router` 技能统一入口路由，禁止绕过技能直接执行对应命令。
+本文件是 `vcs-router` 技能的**路由规范**，由技能按需加载。它定义路由判据——
+识别操作类型、检测仓库类型、决定去向；「必须经该技能」的入口约束见
+同包 `vcs-router.entry/`。
 
-详细规范拆分在同目录子规则中，由对应技能执行时按需加载，不随入口全局注入。
+## 路由判据
 
-## 强制入口规则
+1. **识别操作类型**：从用户请求提取 commit / merge 等操作；未显式指定时默认 commit。
 
-- **所有版本控制操作（含提交/合并）必须通过 `vcs-router` 技能统一入口路由**，由 vcs-router 检测当前目录是否为 Git 仓库后，路由到对应的 `git-<op>` 执行技能（如 `vcs-git-commit`）执行。当前 `vcs-git-merge` 为占位空实现，被路由时仅提示暂未实现。
-- 禁止直接使用 Bash/PowerShell 工具执行 `git commit` 等命令绕过技能入口。跳过技能等于跳过变更分析、操作计划、安全检查和授权环节。
-- 本次变更包含项目审查门禁配置的文件类型（默认 `.cs`）时，提交前自动触发代码审查（机制见 `vcs-git-commit` 技能 `references/project-config.md` §2（参数见项目侧 `project-config.md`），作为 H1 首个步骤执行）；存在 `error` 级别问题时必须修复或获得用户明确授权忽略后才可提交，禁止静默提交。
+2. **检测仓库类型**：判断当前目录是否 Git 仓库；非 Git 仓库时终止并提示，不执行任何操作。
 
-## 子规则路由表
+3. **校验目标技能存在**：目标技能不存在或为占位实现时，如实告知用户该操作暂未支持。
 
-| 分类 | 场景 | 子规则文件 | 内容 |
-|------|------|-----------|------|
-| 通用 | 生成提交摘要 | `common-commit-spec.mdc` | 提交摘要格式、type 类型定义与决策流程、scope 提取、subject 书写规则 |
-| 通用 | 提交授权与安全检查 | `common-submission-safety-spec.mdc` | 提交/推送发起权（按项目配置）、AskUserQuestion 授权、提交与推送分离、敏感信息检查 |
-| Git | Git 仓库提交 | `git-commit-spec.mdc` | Git 特定约束：.gitignore 检查、禁止行为、Git 边界情况 |
-| Git | Git 仓库合并 | `git-merge-spec.mdc` | Git 合并规范（当前未实现，空实现占位） |
+4. **不支持的操作类型直接拒绝**：`amend`、`rebase`、`cherry-pick`、`revert`、`stash`、
+   分支操作等非路由类操作不在技能范围。
+
+## 路由去向
+
+| 操作类型 | 目标技能 | 该技能的规范在哪 |
+|---|---|---|
+| `commit` | `vcs-git-commit` | `rules/vcs/vcs-git-commit/`（提交摘要、授权安全、Git 约束） |
+| `merge` | `vcs-git-merge` | `rules/vcs/vcs-git-merge/`（当前为占位空实现） |
+| 引擎仓库内的提交 | `vcs-git-commit` | 另需遵循 `rules/vcs/vcs-engine-commit/`（仓库归属与先子后父） |
 
 ## 加载机制说明
 
-- 4 个子规则均为**按需加载**（`alwaysApply: false`），由 `vcs-git-commit` / `vcs-git-merge` 技能执行对应操作时显式读取对应子规则。
-- 提交摘要、授权安全为**公共**规范（`common-*` 前缀的两个子规则由所有执行技能共用）；`git-commit-spec.mdc`、`git-merge-spec.mdc` 为 Git 特定规范。
-- **审查门禁不在本目录**：提交前审查门禁的**机制由 `vcs-git-commit` 技能 `references/project-config.md` §2 承载**，**参数由项目侧配置（索引 `git_commit.project_config`）承载**（作为 §3 H1 首个步骤执行），不再单独设子规则文件。
-- **项目配置说明**：提交摘要确定性参数（type/长度/语言）见项目侧配置（索引 `git_commit.config`）；流程级配置（scope 规则、审查门禁参数、钩子步骤取值）见项目侧配置（索引 `git_commit.project_config`）。机制由 `vcs-git-commit` 技能 `references/project-config.md` 承载。目标项目只改项目侧配置，不改本规则。
-- 若操作不涉及版本控制提交或合并，但需要查阅对应规范，请主动 Read 对应子规则文件。
+- 本文件是**规范规则**（`alwaysApply: false`），由技能按需加载。
+- **无子规则**：执行规范已按技能拆分到独立规则目录，见路由去向表。
+- 入口约束见同包 `vcs-router.entry/`；历史上本规则曾同时承载入口与提交/合并规范，均已拆出。
+
+## 与其他规则的关系
+
+| 规则 | 管什么 |
+|---|---|
+| `vcs-router`（本文件） | **路由判据**：怎么识别、怎么检测、去哪里 |
+| `vcs-router.entry` | **必须经该技能**（入口约束） |
+| `vcs-git-commit` | 提交的**执行规范**：摘要格式、授权、安全检查、Git 约束 |
+| `vcs-git-merge` | 合并的**执行规范**（占位） |
+| `vcs-engine-commit` | **引擎仓库**的提交：归哪个仓库、要不要补父侧指针 |

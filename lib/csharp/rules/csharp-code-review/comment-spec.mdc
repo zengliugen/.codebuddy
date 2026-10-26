@@ -15,7 +15,7 @@ provider:
 调用方式：
 
 ```bash
-python .codebuddy/skills/csharp/csharp-comment-checker/scripts/check_comments.py <目标路径> --json
+python .codebuddy/lib/csharp/skills/csharp-comment-checker/scripts/check_comments.py <目标路径> --json
 ```
 
 ## 2. 检查范围（Roslyn 工具覆盖）
@@ -32,7 +32,7 @@ python .codebuddy/skills/csharp/csharp-comment-checker/scripts/check_comments.py
 
 ## 3. 规则引用
 
-注释规范的完整定义位于 `.codebuddy/rules/csharp/csharp-comment/`：
+注释规范的完整定义位于 `.codebuddy/lib/csharp/rules/csharp-comment/`：
 
 - `doc-comment-spec.mdc` — 文档注释规范
 - `inline-comment-spec.mdc` — 行内注释规范

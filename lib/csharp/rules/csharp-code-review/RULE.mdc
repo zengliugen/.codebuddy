@@ -1,6 +1,6 @@
 ---
-description: C# 代码审查规范入口（始终生效）。定义审查的强制入口路由：所有 C# 代码审查必须通过 csharp-code-review 技能执行，由技能调度 Agent 拉起审查。子规则（质量/注释/Bug/架构/报告）由 Agent 按需加载，不全局生效。
-alwaysApply: true
+description: C# 代码审查规范。定义审查的强制入口路由：所有 C# 代码审查必须通过 csharp-code-review 技能执行，由技能调度 Agent 拉起审查。子规则（质量/注释/Bug/架构/报告）由 Agent 按需加载，不全局生效。
+alwaysApply: false
 enabled: true
 updatedAt: 2026-08-10T00:00:00.000Z
 provider:
@@ -8,7 +8,7 @@ provider:
 
 # C# 代码审查规范
 
-本文件是 C# 代码审查规范的**入口规则**，**始终生效**（`alwaysApply: true`）。其中「强制入口规则」是审查路由的兜底强制条款：无论技能自动触发机制是否生效，本规则都要求 C# 代码审查必须经 `csharp-code-review` 技能统一入口执行，禁止绕过技能直接审查。
+本文件是 C# 代码审查的**规范规则**，由技能按需加载。其中「强制入口规则」是审查路由的兜底强制条款：无论技能自动触发机制是否生效，本规则都要求 C# 代码审查必须经 `csharp-code-review` 技能统一入口执行，禁止绕过技能直接审查。
 
 ## 强制入口规则
 
@@ -79,13 +79,13 @@ provider:
 
 Agent 执行审查前，**必须读取**以下全部规则文件：
 
-- `.codebuddy/rules/csharp/csharp-code/quality-spec.mdc`
-- `.codebuddy/rules/csharp/csharp-code/comment-spec.mdc`
-- `.codebuddy/rules/csharp/csharp-code/bug-boundary-spec.mdc`
-- `.codebuddy/rules/csharp/csharp-code/architecture-spec.mdc`
-- `.codebuddy/rules/csharp/csharp-code/report-spec.mdc`
+- `.codebuddy/lib/csharp/rules/csharp-code-review/quality-spec.mdc`
+- `.codebuddy/lib/csharp/rules/csharp-code-review/comment-spec.mdc`
+- `.codebuddy/lib/csharp/rules/csharp-code-review/bug-boundary-spec.mdc`
+- `.codebuddy/lib/csharp/rules/csharp-code-review/architecture-spec.mdc`
+- `.codebuddy/lib/csharp/rules/csharp-code-review/report-spec.mdc`
 
-注释合规维度的执行标准引用 `.codebuddy/rules/csharp/csharp-comment/` 下的注释规范，审查时以 Roslyn 工具（`csharp-comment-checker`）的实际检查结果为准。
+注释合规维度的执行标准引用 `.codebuddy/lib/csharp/rules/csharp-comment/` 下的注释规范，审查时以 Roslyn 工具（`csharp-comment-checker`）的实际检查结果为准。
 
 ## 3. 严重级别定义
 

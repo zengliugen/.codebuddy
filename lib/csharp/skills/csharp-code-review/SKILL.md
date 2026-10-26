@@ -1,6 +1,6 @@
 ---
 name: csharp-code-review
-description: C# 代码审查入口技能。当用户要求审查 C# 代码（未提交变更、.cs 文件、目录/程序集、代码片段）时触发。本技能只负责识别触发场景并调度 csharp-code-review Agent，不执行实际审查逻辑。审查入口规则（.codebuddy/rules/csharp/csharp-code/RULE.mdc）始终生效，负责路由到本技能；子规则（质量/注释/Bug/架构/报告）由 Agent 按需加载，不全局生效。调用时直接将用户指定的目标路径或代码片段传递给 Agent，无需预扫描或预分析。
+description: C# 代码审查入口技能。当用户要求审查 C# 代码（未提交变更、.cs 文件、目录/程序集、代码片段）时触发。本技能只负责识别触发场景并调度 csharp-code-review Agent，不执行实际审查逻辑。审查入口规则（.codebuddy/lib/csharp/rules/csharp-code-review/RULE.mdc）始终生效，负责路由到本技能；子规则（质量/注释/Bug/架构/报告）由 Agent 按需加载，不全局生效。调用时直接将用户指定的目标路径或代码片段传递给 Agent，无需预扫描或预分析。
 license: MIT
 mode: Production
 metadata:

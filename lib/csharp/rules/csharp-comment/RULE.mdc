@@ -1,6 +1,6 @@
 ---
 description: C# 代码注释规范（强入口）。所有 C# 代码必须遵守核心底线；注释扫描+修复必须走 checker→generator→checker 强制链路；文档/行内/修正/合规/同步细则按需加载。
-alwaysApply: true
+alwaysApply: false
 enabled: true
 updatedAt: 2026-08-11T00:00:00.000Z
 provider: 

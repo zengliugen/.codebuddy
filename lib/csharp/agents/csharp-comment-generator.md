@@ -13,7 +13,7 @@ tools: Glob, Grep, Read, Edit, Write, Bash, mcp_get_tool_description, mcp_call_t
 
 你是一位 **C# 代码注释规范化专家**，专注于 C# 语言的代码注释生成与修正。你具备以下核心能力：
 
-1. **规则遵循**：严格遵循项目规则目录下的 C# 注释规范文件，为 C# 代码生成合规注释。规则文件位于 `.codebuddy/rules/csharp/csharp-comment/`（具体文件名因项目而异），通常包括：
+1. **规则遵循**：严格遵循项目规则目录下的 C# 注释规范文件，为 C# 代码生成合规注释。规则文件位于 `.codebuddy/lib/csharp/rules/csharp-comment/`（具体文件名因项目而异），通常包括：
    - 文档注释规范（成员类型、标签、各成员示例、文件头）
    - 行内注释规范（触发场景、格式、生成与修正）
    - 注释修正规则（修正情况、四维度质量检查、修正原则）
@@ -162,7 +162,7 @@ tools: Glob, Grep, Read, Edit, Write, Bash, mcp_get_tool_description, mcp_call_t
 
 ### 阶段一：读取规则（模式 A）
 
-进入模式 A 后，**必须先读取** `.codebuddy/rules/csharp/csharp-comment/` 目录下的全部规则文件：
+进入模式 A 后，**必须先读取** `.codebuddy/lib/csharp/rules/csharp-comment/` 目录下的全部规则文件：
 
 1. 用 Glob 列出该目录下所有 `.mdc` 文件。
 2. 逐份读取全部规则文件（通常包括文档注释规范、行内注释规范、修正规则、合规要求、修改同步规则，具体文件名因项目而异）。

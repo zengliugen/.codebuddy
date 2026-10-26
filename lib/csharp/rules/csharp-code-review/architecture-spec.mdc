@@ -9,7 +9,7 @@ provider:
 # C# 架构与性能审查
 
 > **本规则的项目事实已外置**：框架包依赖顺序、领域分层、热更新程序集清单等，
-> 见 `.codebuddy/project.index.json` 的 `rule_shells["rules/csharp/csharp-code/architecture-spec.mdc"].path`
+> 见 `.codebuddy/project.index.json` 的 `rule_shells["rules/csharp/csharp-code-review/architecture-spec.mdc"].path`
 > 指向的项目侧文件。判定依赖方向与热更新边界时**以该正文为准**。
 
 ## 1. 模块依赖

@@ -1,19 +1,24 @@
 ---
-description: C# LSP 代码智能使用入口规则 —— 操作或引用 .cs 文件时，C# 代码智能查询（跳转定义、查找引用、悬停、接口实现、符号检索）应通过 csharp-lsp 技能执行；技能负责 csharp-ls 安装检查与 csharp-lsp 插件开启检查。查询方式按性质分流（语义查询 LSP + Grep 交叉验证、简单检索直接 Grep），搜索范围必须同时覆盖业务代码与框架包目录。项目事实（实际搜索目录、受索引影响的程序集）已外置。
+description: csharp-lsp 技能强制入口 —— 需要该技能的场景必须经 csharp-lsp 执行，禁止绕过技能手工完成。本文件是入口规则（只定义「必须走该技能」），执行规范由技能按需加载。
 alwaysApply: false
 paths: "**/*.cs"
 enabled: true
-updatedAt: 2026-10-16T00:00:00.000Z
+updatedAt: 2026-10-26T00:00:00.000Z
 provider:
 ---
 
-# C# LSP 代码智能使用规则（触发入口）
+
+# csharp-lsp 强制入口
+
+本文件是 `csharp-lsp` 技能的**入口规则**，只定义「什么时候必须走该技能」与查询方式分流；
+LSP 环境检查与工具调用的执行细节由技能承担。
+
 
 <!-- pack-ref-ok: unity-pipeline —— 编译校验引用按安装状态条件化（未安装降级 dotnet build）。 -->
 
 ## 强制入口规则
 
-- **C# 代码语义智能查询（符号定义、引用关系、接口实现、类型信息、符号结构）必须通过 `csharp-lsp` 技能执行**（位置：`.codebuddy/skills/csharp/csharp-lsp/`），禁止绕过技能直接凭经验猜测符号定义或引用关系；简单字符串检索不受此约束（见「查询方式分流原则」）。
+- **C# 代码语义智能查询（符号定义、引用关系、接口实现、类型信息、符号结构）必须通过 `csharp-lsp` 技能执行**（位置：`.codebuddy/lib/csharp/skills/csharp-lsp/`），禁止绕过技能直接凭经验猜测符号定义或引用关系；简单字符串检索不受此约束（见「查询方式分流原则」）。
 - 该技能封装完整流程：**环境检查**（csharp-ls 安装检查 + csharp-lsp 插件开启检查）→ **LSP 工具调用**（跳转定义、查找引用、悬停、接口实现、符号检索、调用链）。
 - 处理 `.cs` 文件时，凡需了解符号定义、引用范围、类型信息或文件结构，应主动调用本技能（经技能说明执行 LSP 操作）。
 
@@ -54,5 +59,5 @@ provider:
 ## 兜底条款
 
 - 本规则为**使用引导**，非强制门禁：LSP 调用失败（工具报错、超时）时，直接回退常规代码阅读方式（`Grep`/`Read`）继续任务，不得阻塞；LSP 返回空结果时按分流原则用 `Grep` 交叉验证后再下结论。
-- 本规则不替代 `csharp-code`（代码审查）、`csharp-comment`（注释规范）、`unity-pipeline`（Unity 编译/测试校验，**可选包**）等既有规则。
+- 本规则不替代 `csharp-code-review`（代码审查）、`csharp-comment`（注释规范）、`unity-pipeline`（Unity 编译/测试校验，**可选包**）等既有规则。
 - 修改 C# 代码后的编译校验：**已安装 `unity-pipeline`** 时须遵循其规则执行 `recompile`；**未安装**时降级为 `dotnet build`（判定见 `csharp-test/verification.mdc` §1）。

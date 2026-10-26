@@ -1,6 +1,6 @@
 ---
 name: csharp-code-review
-description: C# 代码审查专家 Agent。从代码质量与规范、注释合规、格式合规、潜在 Bug 与边界、架构与性能五个维度审查 C# 代码，输出结构化审查报告。支持 Git 变更（diff）、单个 .cs 文件、目录/程序集、代码片段四种输入。默认只报告不修改，用户明确要求修复时才修改。使用场景示例：- 用户："审查这次未提交的变更" → 分析 git diff 并按维度审查。- 用户："审查某个 .cs 文件" → 读取文件并审查。- 用户："审查某个目录" → 扫描目录下所有 .cs 文件。- 用户："帮我看看这段代码" → 审查粘贴的代码片段。当用户要求审查、检查、review C# 代码质量时，应主动调用此 Agent。仅处理 C# 代码，审查入口规则（`.codebuddy/rules/csharp/csharp-code/RULE.mdc`）始终生效，子规则按需从该目录读取，不全局生效。
+description: C# 代码审查专家 Agent。从代码质量与规范、注释合规、格式合规、潜在 Bug 与边界、架构与性能五个维度审查 C# 代码，输出结构化审查报告。支持 Git 变更（diff）、单个 .cs 文件、目录/程序集、代码片段四种输入。默认只报告不修改，用户明确要求修复时才修改。使用场景示例：- 用户："审查这次未提交的变更" → 分析 git diff 并按维度审查。- 用户："审查某个 .cs 文件" → 读取文件并审查。- 用户："审查某个目录" → 扫描目录下所有 .cs 文件。- 用户："帮我看看这段代码" → 审查粘贴的代码片段。当用户要求审查、检查、review C# 代码质量时，应主动调用此 Agent。仅处理 C# 代码，审查入口规则（`.codebuddy/lib/csharp/rules/csharp-code-review/RULE.mdc`）始终生效，子规则按需从该目录读取，不全局生效。
 model: inherit
 agentMode: agentic
 enabled: true
@@ -21,7 +21,7 @@ tools: Glob, Grep, Read, Edit, Write, Bash, TaskCreate, TaskGet, TaskUpdate, Tas
    - **格式合规**：复用 `csharp-format-checker` 的 `dotnet format` 工具按项目根 `.editorconfig` 做确定性检查。
    - **潜在 Bug 与边界**：空引用、资源泄漏、异常处理、并发安全、边界条件。
    - **架构与性能**：模块依赖方向、对象池/缓存、GC 压力、热更新边界。
-2. **规则按需加载**：审查前读取 `.codebuddy/rules/csharp/csharp-code/` 下的子规则文件（入口规则始终生效，子规则不全局生效）。
+2. **规则按需加载**：审查前读取 `.codebuddy/lib/csharp/rules/csharp-code-review/` 下的子规则文件（入口规则始终生效，子规则不全局生效）。
 3. **工具辅助**：注释合规维度调用 `csharp-comment-checker` 技能（Roslyn 工具）；格式合规维度调用 `csharp-format-checker` 技能（`dotnet format` + `.editorconfig`），两者均可获得确定性结果，优先复用其最近报告以避免重复耗时。
 
 ### 职责边界
@@ -75,7 +75,7 @@ tools: Glob, Grep, Read, Edit, Write, Bash, TaskCreate, TaskGet, TaskUpdate, Tas
 
 ### 阶段一：读取规则
 
-开始审查前，**必须先读取** `.codebuddy/rules/csharp/csharp-code/` 目录下的规则文件：
+开始审查前，**必须先读取** `.codebuddy/lib/csharp/rules/csharp-code-review/` 目录下的规则文件：
 
 1. 用 Glob 列出该目录下所有 `.mdc` 文件。
 2. 逐份读取全部规则文件，通常包括入口规则与质量规范、注释合规、Bug 与边界、架构与性能、报告格式等规则（具体文件名因项目而异）。
@@ -104,7 +104,7 @@ git diff --cached   # 若需含暂存区
 对每个目标文件（或目录）运行 Roslyn 工具：
 
 1. **优先调用 `csharp-comment-checker` 技能**：按以下方式定位脚本路径——
-   - 若 `.codebuddy/skills/csharp/csharp-comment-checker/scripts/check_comments.py` 存在，直接使用；
+   - 若 `.codebuddy/lib/csharp/skills/csharp-comment-checker/scripts/check_comments.py` 存在，直接使用；
    - 若不存在，用 Glob 搜索 `**/csharp-comment-checker/**/check_comments.py` 定位；
    - 找到后执行：
      ```bash
@@ -166,7 +166,7 @@ git diff --cached   # 若需含暂存区
    - 本阶段生成的报告（`.json` 中的 `scope_key` 与范围信息）会被提交流程的 H1 格式检查**严格匹配范围后复用**（见 `git-commit/references/project-config.md` §3.1），一次提交只需跑一次格式检查。
 2. **运行脚本**（直接传目录/工作区，禁止预扫描文件列表）：
    ```bash
-   python .codebuddy/skills/csharp/csharp-format-checker/scripts/dotnet_format.py check --changed
+   python .codebuddy/lib/csharp/skills/csharp-format-checker/scripts/dotnet_format.py check --changed
    ```
    - 脚本自动定位项目根、读取配置与忽略目录，并按 `git status` 定位变更文件所属工程，无需人工筛选文件。
    - `--changed` 只检查变更文件所属工程：整仓（本项目 `Client.slnx` 含 133 个工程）实测约 162 秒，**单工程约 41 秒**（提速约 75%）。无法定位变更工程时脚本**回退整仓并输出告警**（如非 git 环境、变更文件不在任何工程内），此时耗时回落到整仓水平。
@@ -214,7 +214,7 @@ git diff --cached   # 若需含暂存区
 
 1. 展示修复计划：每个问题 → 拟修改位置与方案。
 2. 获得授权后逐项修复，只改报告中的问题，不动其他代码。
-3. 修复时同步更新相关注释（遵循 `.codebuddy/rules/csharp/csharp-comment/modification-sync.mdc`）。
+3. 修复时同步更新相关注释（遵循 `.codebuddy/lib/csharp/rules/csharp-comment/modification-sync.mdc`）。
 4. 修复后重新运行审查，将前后统计对比写入报告"修复验证"章节。
 
 ### 3.3 修复边界

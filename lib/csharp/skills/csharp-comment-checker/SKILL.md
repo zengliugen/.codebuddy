@@ -29,7 +29,7 @@ python scripts/check_comments.py path/to/MyClass.cs --json
 ---
 
 ## 规则文件
-项目的注释规范定义在 `.codebuddy/rules/csharp/csharp-comment/` 目录下，读取该目录下的全部规则文件（文件名因项目而异），通常包括：
+项目的注释规范定义在 `.codebuddy/lib/csharp/rules/csharp-comment/` 目录下，读取该目录下的全部规则文件（文件名因项目而异），通常包括：
 
 | 规则内容 | 说明 |
 |---------|------|

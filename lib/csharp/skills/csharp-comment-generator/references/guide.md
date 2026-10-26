@@ -15,9 +15,9 @@
 
    ```bash
    # 复扫单个文件或目录，确认问题清零
-   python .codebuddy/skills/csharp/csharp-comment-checker/scripts/check_comments.py <目标文件或目录>
+   python .codebuddy/lib/csharp/skills/csharp-comment-checker/scripts/check_comments.py <目标文件或目录>
    # JSON 输出便于与修复前报告对比
-   python .codebuddy/skills/csharp/csharp-comment-checker/scripts/check_comments.py <目标文件或目录> --json
+   python .codebuddy/lib/csharp/skills/csharp-comment-checker/scripts/check_comments.py <目标文件或目录> --json
    ```
 
    若复扫结果仍有 error/warning，说明修复不完整，继续修复直至清零或用户确认残留可接受。
@@ -64,7 +64,7 @@ git diff -U0 -- <路径或目录> | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' |
 因此注释修复完成后，**必须**对本次改动范围执行一次行尾检测：
 
 ```bash
-python .codebuddy/skills/csharp/csharp-format-checker/scripts/check_eol.py --path <本次改动的目录>
+python .codebuddy/lib/csharp/skills/csharp-format-checker/scripts/check_eol.py --path <本次改动的目录>
 ```
 
 | 退出码 | 含义 | 处理 |
@@ -82,7 +82,7 @@ rm -f "<文件>" && git checkout -- "<仓库相对路径>"
 > 检测与修复的完整说明见 `csharp-format-checker/SKILL.md` §6。
 
 ## Agent 规则文件
-本技能对应的注释规范文件位于项目规则目录 `.codebuddy/rules/csharp/csharp-comment/`，Agent 读取该目录下的全部规则文件（文件名因项目而异），通常包括：
+本技能对应的注释规范文件位于项目规则目录 `.codebuddy/lib/csharp/rules/csharp-comment/`，Agent 读取该目录下的全部规则文件（文件名因项目而异），通常包括：
 
 | 规则内容 | 说明 |
 |---------|------|

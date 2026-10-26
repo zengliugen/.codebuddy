@@ -61,7 +61,7 @@
 | `scripts/collect_review_targets.py` | 收集本次门禁审查目标：`git status` 中的 M/A/R/C/U 变更 + **未跟踪的 `.cs` 新文件**（`git diff` 看不到），过滤顺序为**扩展名（默认 `.cs`）→ 白名单（可选）→ 黑名单**：`include_patterns` 非空即启用白名单模式（默认拒绝），缺失或为空则退回黑名单模式（默认放行、仅按 `exclude_patterns` 排除）；供门禁派发提示词直接使用。排除清单与 `csharp-format-checker/config.json` 的 `exclude_dirs` 保持同一口径，新增排除项须同步更新 |
 
 ```bash
-python .codebuddy/skills/csharp/csharp-code-review/scripts/collect_review_targets.py [--json]
+python .codebuddy/lib/csharp/skills/csharp-code-review/scripts/collect_review_targets.py [--json]
 ```
 
 ## 检查清单
@@ -75,5 +75,5 @@ python .codebuddy/skills/csharp/csharp-code-review/scripts/collect_review_target
 | 文件 | 内容 |
 |------|------|
 | `agents/interface.yaml` | 输入/输出/排除契约 |
-| `.codebuddy/rules/csharp/csharp-code/RULE.mdc` | 审查规则入口（始终生效，负责路由到本技能；子规则由 Agent 读取） |
+| `.codebuddy/lib/csharp/rules/csharp-code-review/RULE.mdc` | 审查规则入口（始终生效，负责路由到本技能；子规则由 Agent 读取） |
 | `../../agents/csharp-code-review.md` | 审查 Agent 定义 |

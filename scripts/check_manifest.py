@@ -88,16 +88,30 @@ def load_packs(codebuddy_dir):
 
 
 def component_path(codebuddy_dir, packs, pack, comp_type, name):
-    """按 location 推导组件真实路径（与 pack_install.py 保持同一条推导规则）。"""
+    """按 location 推导组件真实路径（与 pack_install.py 保持同一条推导规则）。
+
+    规则组件支持两种目录形态：
+      `<类型>/<pack>/<name>/`          —— 规范规则（含 RULE.mdc 与子规则）
+      `<类型>/<pack>/<name>.entry/`    —— 入口规则（独占目录）
+    优先返回实际存在的那个；均不存在时返回规范形态（供报错展示期望路径）。
+    """
     meta = packs[pack]
     suffix = ".md" if comp_type == "agents" else ""
     if meta["location"] == "engine":
-        return os.path.join(codebuddy_dir, comp_type, pack, name + suffix)
-    if meta["location"] == "project":
+        bases = [os.path.join(codebuddy_dir, comp_type, pack)]
+    elif meta["location"] == "project":
         # 项目专有包与其他包同构：内容在 .codebuddy.project/<类型>/<pack>/ 下
-        return os.path.join(os.path.dirname(codebuddy_dir), ".codebuddy.project",
-                            comp_type, pack, name + suffix)
-    return os.path.join(codebuddy_dir, "lib", pack, comp_type, name + suffix)
+        bases = [os.path.join(os.path.dirname(codebuddy_dir), ".codebuddy.project",
+                              comp_type, pack)]
+    else:
+        bases = [os.path.join(codebuddy_dir, "lib", pack, comp_type)]
+
+    primary = os.path.join(bases[0], name + suffix)
+    if comp_type == "rules":
+        entry = os.path.join(bases[0], name + ".entry" + suffix)
+        if os.path.isdir(entry) and not os.path.isdir(primary):
+            return entry
+    return primary
 
 
 def check_packs(codebuddy_dir, packs):
@@ -259,6 +273,67 @@ def check_component_naming(packs):
     return problems
 
 
+def check_rule_classification(codebuddy_dir, packs):
+    """校验规则分类、目录落位与命名约定（校验项 9）。
+
+    约定（见 rules/core/core-rule-governance/）：
+      1. 入口规则独占目录：`<规则名>.entry/<规则名>.entry.mdc`；
+      2. 入口规则必须有对应技能（精确同名，或为其共同前缀）；
+      3. 规范规则在 `<规则名>/RULE.mdc`，有对应技能时不得 alwaysApply: true；
+      4. 被其他技能拉起的技能不建入口规则（由人工判定，脚本只查落位）。
+
+    返回：
+        缺口列表
+    """
+    problems = []
+    for pack, meta in packs.items():
+        if meta.get("location") == "project":
+            continue
+        loc = meta.get("location")
+        skills = set((meta.get("comps") or {}).get("skills") or [])
+        base_dir = (os.path.join(codebuddy_dir, "rules", pack) if loc == "engine"
+                    else os.path.join(codebuddy_dir, "lib", pack, "rules"))
+        if not os.path.isdir(base_dir):
+            continue
+        for entry_dir in sorted(os.listdir(base_dir)):
+            full = os.path.join(base_dir, entry_dir)
+            if not os.path.isdir(full) or not entry_dir.endswith(".entry"):
+                continue
+            rule_name = entry_dir[: -len(".entry")]
+            expect = os.path.join(full, rule_name + ".entry.mdc")
+            rel_dir = os.path.relpath(full, codebuddy_dir).replace("\\", "/")
+            if not os.path.isfile(expect):
+                problems.append(
+                    "入口规则目录缺少同名文件：%s（期望 %s.entry.mdc）" % (rel_dir, rule_name))
+                continue
+            if not (rule_name in skills or any(s.startswith(rule_name + "-") for s in skills)):
+                problems.append(
+                    "入口规则无对应技能：%s（期望技能 %s 或其前缀技能存在于包 %s）"
+                    % (rel_dir, rule_name, pack))
+
+        # 规范规则：有同名技能时不得 alwaysApply: true
+        for rule in (meta.get("comps") or {}).get("rules") or []:
+            d = os.path.join(base_dir, rule)
+            rf = os.path.join(d, "RULE.mdc")
+            if not os.path.isfile(rf):
+                continue
+            try:
+                with open(rf, "r", encoding="utf-8") as handle:
+                    text = handle.read()
+            except OSError:
+                continue
+            head = text
+            if text.startswith("---"):
+                end = text.find("\n---", 3)
+                if end != -1:
+                    head = text[:end]
+            if "alwaysApply: true" in head and rule in skills:
+                problems.append(
+                    "规范规则不应 alwaysApply: true：%s（该包存在同名技能 %s，规范应由其按需加载）"
+                    % (os.path.relpath(rf, codebuddy_dir).replace("\\", "/"), rule))
+    return problems
+
+
 def check_cross_pack_refs(codebuddy_dir, packs):
     """校验各包正文是否引用了依赖闭包之外的包组件（校验项 7）。
 
@@ -345,6 +420,8 @@ def main():
         problems.extend(check_cross_pack_refs(codebuddy_dir, packs))
         # 8. 组件命名合规（包前缀约定）
         problems.extend(check_component_naming(packs))
+        # 9. 规则分类与命名（入口 vs 规范）
+        problems.extend(check_rule_classification(codebuddy_dir, packs))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")

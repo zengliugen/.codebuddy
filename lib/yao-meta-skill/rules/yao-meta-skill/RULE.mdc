@@ -1,6 +1,6 @@
 ---
-description: 技能工程强制入口（始终生效）。新增、改进、重构、审计、评测技能时必须经 yao-meta-skill 技能执行，禁止手写 SKILL.md 或手工搭目录绕过。覆盖场景、不适用范围与相邻技能分工见本文件。
-alwaysApply: true
+description: 技能工程流程规范。新增、改进、重构、审计、评测技能时必须经 yao-meta-skill 技能执行，禁止手写 SKILL.md 或手工搭目录绕过。覆盖场景、不适用范围与相邻技能分工见本文件。
+alwaysApply: false
 enabled: true
 updatedAt: 2026-10-22T00:00:00.000Z
 provider:

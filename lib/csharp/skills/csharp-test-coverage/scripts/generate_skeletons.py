@@ -537,7 +537,7 @@ def main():
     if os.path.isfile(unity_wait_py):
         print(">>> [已安装 unity-pipeline]")
         print(">>>   unity command script recompile")
-        print(">>>   python .codebuddy/skills/unity-pipeline/unity-pipeline/scripts/unity_wait.py "
+        print(">>>   python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/unity_wait.py "
               "--command \"script recompile_status\"")
         print(">>> 确认 failed=false、errors=[] 后方可进入补断言阶段。")
     else:
