@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-引擎清单一致性校验（codebuddy-init / 引擎维护辅助）。
+引擎清单一致性校验（core-init / 引擎维护辅助）。
 
 原「迁移文档同步门禁」（`rules/codebuddy-migration-sync/` 规则）随迁移机制废除而删除。
 本脚本承担其留下的**轻量登记守护**职责：核对引擎实际目录与登记清单是否一致，避免
@@ -233,6 +233,32 @@ def pack_of_file(codebuddy_dir, path):
     return None
 
 
+def check_component_naming(packs):
+    """校验组件命名是否符合「包前缀」约定（校验项 8）。
+
+    约定：组件名必须以 `<包名>-` 开头；组件名等于包名时豁免
+    （vendor 包自名组件，如 unity-pipeline / grilling / yao-meta-skill）。
+
+    背景：组件名同时是目录名、packs.json 键与跨包引用锚点，命名无前缀时
+    无法从名字判断归属，重构与排查都要反查注册表，因此把约定固化为校验。
+
+    返回：
+        缺口列表
+    """
+    problems = []
+    for pack, meta in packs.items():
+        if meta.get("location") == "project":
+            continue  # 项目专有包由项目自行管理
+        for comp_type in ("rules", "skills", "agents"):
+            for name in (meta.get("comps") or {}).get(comp_type) or []:
+                if name == pack or name.startswith(pack + "-"):
+                    continue
+                problems.append(
+                    "组件命名不合规：%s/%s=%s（应以 %s- 开头，或与包名相同）"
+                    % (pack, comp_type, name, pack))
+    return problems
+
+
 def check_cross_pack_refs(codebuddy_dir, packs):
     """校验各包正文是否引用了依赖闭包之外的包组件（校验项 7）。
 
@@ -317,6 +343,8 @@ def main():
         problems.extend(check_packs(codebuddy_dir, packs))
         # 7. 跨包引用合规（防默认包硬编码可选包组件）
         problems.extend(check_cross_pack_refs(codebuddy_dir, packs))
+        # 8. 组件命名合规（包前缀约定）
+        problems.extend(check_component_naming(packs))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")
@@ -369,9 +397,9 @@ def main():
                 continue
             problems.append("索引 rule_shells 的键在磁盘不存在（目录重构后未同步）：%s" % key)
 
-        # 项目专有包的内容不得登记索引（规则 codebuddy-engine 第 6 条）：
+        # 项目专有包的内容不得登记索引（规则 core-engine 第 7 条）：
         # 索引随引擎共享且对所有消费项目一致，登入项目专有内容会让其他项目在
-        # codebuddy-init 时生成用不上的骨架。
+        # core-init 时生成用不上的骨架。
         project_root_for_index = os.path.dirname(codebuddy_dir)
         project_scan_roots = [
             os.path.join(project_root_for_index, ".codebuddy.project", kind, "project")
@@ -418,7 +446,7 @@ def main():
             if isinstance(link_rel, str) and link_rel and not os.path.isabs(link_rel):
                 link_abs = os.path.normpath(os.path.join(project_root, link_rel))
                 if not os.path.lexists(link_abs):
-                    problems.append("索引 root_symlinks.entries.%s 的链接不存在（请运行 codebuddy-init）：%s"
+                    problems.append("索引 root_symlinks.entries.%s 的链接不存在（请运行 core-init）：%s"
                                     % (logical_name, link_rel))
                 elif not os.path.islink(link_abs):
                     problems.append("索引 root_symlinks.entries.%s 的链接路径不是符号链接：%s"

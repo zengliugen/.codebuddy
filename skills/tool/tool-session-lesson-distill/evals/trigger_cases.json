@@ -1,0 +1,21 @@
+{
+  "skill": "tool-session-lesson-distill",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "把这次的经验固化一下",
+    "沉淀到技能里",
+    "复盘这次踩的坑",
+    "把经验写回规则",
+    "这次踩坑要不要记下来"
+  ],
+  "should_not_trigger": [
+    "总结一下这次会话",
+    "生成一个文档",
+    "审查代码",
+    "提交代码"
+  ],
+  "near_neighbor": [
+    "写个会话总结",
+    "沉淀一份文档"
+  ]
+}

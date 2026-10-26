@@ -14,7 +14,7 @@
 set -u
 
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SETUP_TOOL="$BASE/skills/core/codebuddy-init/scripts/init_project_config.py"
+SETUP_TOOL="$BASE/skills/core/core-init/scripts/init_project_config.py"
 
 if [ ! -f "$SETUP_TOOL" ]; then
     echo "[错误] 未找到初始化脚本：$SETUP_TOOL" >&2

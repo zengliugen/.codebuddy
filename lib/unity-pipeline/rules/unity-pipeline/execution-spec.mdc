@@ -34,4 +34,4 @@ provider:
 
 ## 与提交规范的衔接
 
-- 变更包含 Unity 相关代码（`.cs`、`.unity`、场景等）时，提交前需确认已通过 `script recompile_status` 编译检查；随后按 `vcs-router` 技能统一入口路由提交（Git 仓库路由到 `git-commit`）。
+- 变更包含 Unity 相关代码（`.cs`、`.unity`、场景等）时，提交前需确认已通过 `script recompile_status` 编译检查；随后按 `vcs-router` 技能统一入口路由提交（Git 仓库路由到 `vcs-git-commit`）。

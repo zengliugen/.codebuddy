@@ -155,7 +155,7 @@ def load_config(root):
     if not os.path.isfile(config_path):
         raise ConfigError(
             "配置未找到：%s\n"
-            "       该文件应在项目侧由 codebuddy-init 生成并按项目填写。" % config_path
+            "       该文件应在项目侧由 core-init 生成并按项目填写。" % config_path
         )
     try:
         with open(config_path, "r", encoding="utf-8") as handle:

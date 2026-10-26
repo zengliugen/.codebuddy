@@ -28,7 +28,7 @@
 | SN-01 | 审查这次未提交的 C# 变更 | `csharp-code-review` |
 | SN-02 | 为 `GameLoader.cs` 补全注释 | `csharp-comment-generator` |
 | SN-03 | 修改代码后重新编译并检查编译错误 | `unity-pipeline` |
-| SN-04 | 把 C# 变更提交到 git | `vcs-router` → `git-commit` |
+| SN-04 | 把 C# 变更提交到 git | `vcs-router` → `vcs-git-commit` |
 | SN-05 | 搜索所有包含字符串 "AssetBundle" 的 .cs 文件 | 直接 `Grep`（简单字符串检索，见分流原则） |
 | SN-06 | 生成 Excel 数据表 C# 代码 | `com.code-philosophy.luban` |
 

@@ -53,7 +53,7 @@ type 枚举见项目侧 `skills/git-commit/config.json`（索引 `git_commit.con
 9. 是否为构建/工具链/依赖变更 → `chore`
 10. 是否为回退操作 → `revert`
 
-近似 type 的详细区分规则见 `git-commit` 技能 `references/commit-spec.md`。
+近似 type 的详细区分规则见 `vcs-git-commit` 技能 `references/commit-spec.md`。
 
 ## 影响范围（scope）
 
@@ -66,4 +66,4 @@ type 枚举见项目侧 `skills/git-commit/config.json`（索引 `git_commit.con
 
 - 按项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）的 `commit_subject.subject_language` 撰写（`zh` 简体中文 / `en` 英文，默认 `zh`）；`zh` 时以动词开头（如"新增"、"修复"、"重构"）。
 - 不超过 `commit_subject.subject_max_len`（默认 50）字符，不以句号结尾。
-- 一次提交仅包含一个逻辑功能；多个独立功能必须拆分为多次提交（拆分规则见 `git-commit` 技能 `references/commit-spec.md`）。
+- 一次提交仅包含一个逻辑功能；多个独立功能必须拆分为多次提交（拆分规则见 `vcs-git-commit` 技能 `references/commit-spec.md`）。

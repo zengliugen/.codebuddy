@@ -1,0 +1,45 @@
+---
+description: 项目指导规则入口（始终生效）。提供目标项目的项目概述与架构总览；架构细则、常用命令、第三方依赖、Git 忽略清单、测试约束见同目录子规则，按需加载。代码风格以项目侧实际约定为准（已安装语言包时其风格规则自动生效）。项目事实正文已外置到项目侧配置目录。
+alwaysApply: true
+enabled: true
+updatedAt: 2026-10-16T00:00:00.000Z
+provider:
+---
+
+# 项目指导
+
+> **本规则的项目事实正文已外置**：见 `.codebuddy/project.index.json` 的
+> `rule_shells["rules/core/core-project-guide/RULE.mdc"].path` 指向的
+> `.codebuddy.project/configs/rules/core/core-project-guide/RULE.mdc`。
+> 迁移到其他项目时改写项目侧文件，不改本薄壳。
+
+本规则提供 CodeBuddy Code 在目标项目中工作时所需的项目背景知识（项目概述、架构总览）。**引擎侧只保留本薄壳与路由表**，项目事实正文按目标项目实际情况维护在项目侧配置目录。
+
+## 强制入口规则（始终生效，不可外置）
+
+- **项目背景知识（目录结构、包依赖、启动流程、第三方依赖、调试端口、测试约束等）一律以项目侧文档为准**，不得凭经验假设项目结构。
+- 处理涉及项目代码/资源/配置的任务前，**必须先读取**索引指向的项目侧正文与对应子规则：
+  ```
+  .codebuddy.project/configs/rules/core/core-project-guide/     # 项目侧正文（经索引 rule_shells 定位）
+  ```
+- 本薄壳的子规则路由表固定不变；子规则正文（`architecture.mdc` / `commands.mdc` / `dependencies.mdc` / `git-ignore.mdc` / `testing.mdc`）亦为**薄壳**，其项目事实正文同样外置到项目侧。
+
+## 子规则路由表
+
+| 场景 | 子规则文件 | 内容 |
+|------|-----------|------|
+| 需要理解项目目录结构、包依赖、启动流程、状态机、调试端口等 | `architecture.mdc` | 架构细则（目录结构、包依赖、领域分层、启动流程、主场景、状态机与生命周期、关键架构模式、调试端口、第三方工具链） |
+| 需要启动/运行项目、执行构建、运行测试、发布与分发 | `commands.mdc` | 常用命令（启动与运行、构建、测试、发布与分发） |
+| 需要确认项目第三方依赖与版本 | `dependencies.mdc` | 第三方依赖（包管理器依赖、本地与私有依赖、手动安装依赖） |
+| 需要确认哪些内容已被 git 忽略、需本地重新生成 | `git-ignore.mdc` | Git 忽略内容清单（含生成目录的入库例外与已知历史不一致） |
+| 需要编写/审查测试代码、处理测试环境限制 | `testing.mdc` | 测试约束（运行环境限制、断言与测试运行器、资源与性能约束） |
+
+## 代码风格指引
+
+代码风格与命名规范**以项目侧实际约定为准**（探测线索：`.editorconfig`、语言格式化工具配置、既有代码风格）。本项目如安装了对应语言包，其风格规则（如 `rules/csharp-code/quality-spec.mdc`、`rules/csharp-comment/`）会在该语言文件上自动生效，本规则不重复维护。
+
+## 加载机制说明
+
+- 本入口规则**始终生效**（`alwaysApply: true`），提供项目背景知识的**路由与强制读取条款**；项目事实正文外置。
+- 子规则均为**按需加载**（`alwaysApply: false`），仅在涉及对应场景时主动读取；其正文同样外置。
+- 薄壳位于 `.codebuddy/rules/core/core-project-guide/`，项目事实正文位于 `.codebuddy.project/configs/rules/core/core-project-guide/`（经索引定位）。

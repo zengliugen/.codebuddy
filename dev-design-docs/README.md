@@ -50,6 +50,6 @@ dev-design-docs/
    文档头须标注 `生命周期：临时` 并写明终止条件。
    > 不设「长期维护」档：本目录内容都不入库，宣称长期保留与实际不符；
    > 开发完成后仍需保留的结论，应移入包的组件文档（`rules/`、`skills/references/`）。
-3. 文档语言为简体中文、编码 UTF-8 无 BOM（遵循 `rules/core/language/`）。
+3. 文档语言为简体中文、编码 UTF-8 无 BOM（遵循 `rules/core/core-language/`）。
 4. 文档中引用其他包的组件不受限制——本目录内容不入库，不参与引擎校验项 7
    （`check_manifest.py` 的跨包引用检查）。

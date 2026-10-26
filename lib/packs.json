@@ -10,13 +10,13 @@
       "requires": [],
       "comps": {
         "rules": [
-          "language",
-          "project-guide",
-          "codebuddy-tooling",
-          "codebuddy-engine"
+          "core-language",
+          "core-project-guide",
+          "core-tooling",
+          "core-engine"
         ],
         "skills": [
-          "codebuddy-init"
+          "core-init"
         ],
         "agents": []
       }
@@ -32,12 +32,12 @@
       "comps": {
         "rules": [
           "vcs-router",
-          "vcs-codebuddy-engine"
+          "vcs-engine-commit"
         ],
         "skills": [
           "vcs-router",
-          "git-commit",
-          "git-merge"
+          "vcs-git-commit",
+          "vcs-git-merge"
         ],
         "agents": []
       }
@@ -53,11 +53,11 @@
       "comps": {
         "rules": [],
         "skills": [
-          "cmd-script-writing",
-          "engine-sync",
-          "export-zipped-dir",
-          "rule-consolidation",
-          "session-lesson-distill"
+          "tool-cmd-script-writing",
+          "tool-engine-sync",
+          "tool-export-zipped-dir",
+          "tool-rule-consolidation",
+          "tool-session-lesson-distill"
         ],
         "agents": []
       }

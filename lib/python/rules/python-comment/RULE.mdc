@@ -10,7 +10,7 @@ provider:
 # Python 注释与 docstring 规范
 
 本规则在编辑任一 `.py` 文件时生效。核心要求：**要么全中文、要么全英文，不混用**；
-中文注释一律使用**全角标点**，与引擎 `rules/core/language` 的语言规范保持一致。
+中文注释一律使用**全角标点**，与引擎 `rules/core/core-language` 的语言规范保持一致。
 
 ## 1. 标点约定（一句话版）
 
@@ -121,6 +121,6 @@ def load_config(root, strict=True):
 
 | 规则 | 分工 |
 |------|------|
-| `rules/core/language` | 语言无关的中文书写与编码要求；本规则在其基础上给出 docstring 的具体写法 |
+| `rules/core/core-language` | 语言无关的中文书写与编码要求；本规则在其基础上给出 docstring 的具体写法 |
 | `python-code/comment-spec` | 审查视角：评价注释**内容**是否准确、有价值；本规则管**怎么写** |
 | `python-lint` 技能 | 执行 `ruff` 判定与自动修复 |

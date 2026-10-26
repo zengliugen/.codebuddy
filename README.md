@@ -24,7 +24,7 @@
 **为什么不做目录布局调整**：`lib/<pack>/` 已是正式的 vendor 边界——`lib/packs.json` 据此推导路径，
 `scripts/pack_install.py` 据此建桥接链接；再套一层 `vendor/` 会打断这两个脚本。
 
-**语言规则豁免**：`yao-meta-skill` 与 `unity-pipeline` 的正文文档保留上游原语言，不受 `rules/core/language/`
+**语言规则豁免**：`yao-meta-skill` 与 `unity-pipeline` 的正文文档保留上游原语言，不受 `rules/core/core-language/`
 「人类可读文本一律中文」约束；但**本仓库新增的元数据**（`agents/interface.yaml`）与外层说明仍须中文。
 
 **`grilling` 为例外**：该包已从「只读 vendor」转为**本地维护分支**，其正文与参考文档均已中文化，受语言规则约束。
@@ -51,16 +51,16 @@
 │
 ├── rules/                      # 规则扫描根：默认包真实目录 + 可选包链接
 │   ├── core/                   #   默认包：language/ project-guide/
-│   │                           #            codebuddy-tooling/（始终生效：命令形状 + 结果校验）
-│   │                           #            codebuddy-engine/（.codebuddy/**：内容隔离 + 登记同步）
-│   ├── vcs/                    #   默认包：vcs-router/ vcs-codebuddy-engine/（.codebuddy/**：引擎仓库提交）
+│   │                           #            core-tooling/（始终生效：命令形状 + 结果校验）
+│   │                           #            core-engine/（.codebuddy/**：内容隔离 + 登记同步）
+│   ├── vcs/                    #   默认包：vcs-router/ vcs-engine-commit/（.codebuddy/**：引擎仓库提交）
 │   ├── tool/                   #   默认包：本包已无规则（原 5 条已按触发面迁移至 core / vcs）
-│   │                           #            规则整合判断记录见 skills/tool/rule-consolidation/
+│   │                           #            规则整合判断记录见 skills/tool/tool-rule-consolidation/
 │   ├── project ──链接──▶ 项目侧 #   项目专有规则（.codebuddy.project/rules/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
 ├── skills/                     # 技能扫描根：默认包真实目录 + 可选包链接
-│   ├── core/ codebuddy-init/
+│   ├── core/ core-init/
 │   ├── vcs/                    #   vcs-router/ git-commit/ git-merge/
 │   ├── tool/                   #   cmd-script-writing/ engine-sync/ export-zipped-dir/ rule-consolidation/ session-lesson-distill/
 │   ├── project ──链接──▶ 项目侧 #   项目专有技能（.codebuddy.project/skills/project/，gitignore）
@@ -164,34 +164,34 @@
    `.gitignore` 与 `cleanup-caches.cmd` 清理入口；建立 `settings.json` 与各可选包的 pack 链接；
    并按 `.codebuddy.project/configs/packs.json` 物化组件；同时配置引擎的提交前校验钩子
    （`core.hooksPath` → 入库的 `hooks/` 目录）。
-   （等价底层命令：`python .codebuddy/skills/core/codebuddy-init/scripts/init_project_config.py --setup`）
+   （等价底层命令：`python .codebuddy/skills/core/core-init/scripts/init_project_config.py --setup`）
 
    > **克隆后必须运行 setup**。除生成配置骨架外，它还负责建立各类软链接与
    > `core.hooksPath`——这三类产物都存在 `.git/` 或磁盘上、**不随仓库分发**。
    > 不运行则表现为：`settings.json` 链接缺失（CodeBuddy 读不到配置）、可选包技能不加载、
    > 引擎提交时没有一致性校验。改动引擎内容后如怀疑钩子失效，
    > 可执行 `git -C .codebuddy config --get core.hooksPath` 确认（应为 `hooks`）。
-3. **按项目填写**：按各技能 `references/config-guide.md` 填写占位值（`codebuddy-init` 会询问是否立即填写）。
+3. **按项目填写**：按各技能 `references/config-guide.md` 填写占位值（`core-init` 会询问是否立即填写）。
 
 > 未填写的配置在首次运行对应技能时会**明确报错**（配置缺失即报错，不静默使用默认值）。
 
 ## 配置注册表（project.index.json）
 
-引擎与项目侧之间的**唯一索引**。各技能脚本经它按**逻辑名**定位项目侧配置；`codebuddy-init` 经它生成骨架。
+引擎与项目侧之间的**唯一索引**。各技能脚本经它按**逻辑名**定位项目侧配置；`core-init` 经它生成骨架。
 
 - **路径基准**：项目根（`.codebuddy` 的父目录）；全部**相对路径**，**禁止绝对路径**。
 - **按包分层**：项目侧路径含包层（`configs/skills/<pack>/<技能>/`、`configs/rules/<pack>/<规则>/`、
-  `caches/skills/<pack>/<技能>/`），与 `lib/<pack>/` 一一对应。`codebuddy-init` 据此判定条目归属，
+  `caches/skills/<pack>/<技能>/`），与 `lib/<pack>/` 一一对应。`core-init` 据此判定条目归属，
   **未安装的包不生成配置与产物目录**；包名相同则不加重复层（如 `unity-pipeline` 包下的同名技能）。
 - **`files`**：配置类文件 → 逻辑名 + `path` + `format` + `template`（JSON 骨架 / Markdown 大纲）。
 - **`rule_shells`**：规则薄壳 → 键为薄壳相对 `.codebuddy` 的路径，值为项目事实正文路径。
 - **`artifacts.dirs`**：运行时产物目录（check_logs / .cache / .vcs-lock 等）→ 逻辑名 + 项目侧镜像路径；
   供脚本落盘与清理工具枚举，不入库。
 - **`root_symlinks.entries`**：引擎根下需**软链接外置**的单个文件（如 `settings.json`）→ 链接路径 + 项目侧源文件路径 + 骨架；
-  由 `codebuddy-init` 生成源文件并建链，CodeBuddy 本体经软链接直接读取。
+  由 `core-init` 生成源文件并建链，CodeBuddy 本体经软链接直接读取。
 - **入库共享**：内容须是**纯约定 + 相对路径 + 占位值**，对所有消费项目一致。
 
-schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`。
+schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 
 ## 项目侧软链接（**由项目侧创建，不入本库**）
 
@@ -218,10 +218,10 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
   故本库 `.gitignore` 对扫描根 `rules/`、`skills/`、`agents/` 采取**目录内全忽略 + 逐包放行**：
   默认包（`location=engine` 的 `core` / `vcs` / `tool`）显式 `!` 放行，其余同名条目（可选包与 `project` 的桥接链接）
   一律忽略；`agents/` 无默认包故整目录忽略。`/settings.json` 单独另列。
-- **如何创建**：消费项目 clone 本引擎后，运行 `codebuddy-init` 自动创建（幂等；失败时告警并给出手工 `mklink` 命令）。
+- **如何创建**：消费项目 clone 本引擎后，运行 `core-init` 自动创建（幂等；失败时告警并给出手工 `mklink` 命令）。
 - **机制依据**：实测 CodeBuddy **会解引用符号链接**——技能目录的链接下技能被正常扫描，`settings.json`
   链接的目标改变后回复语言随之变化。
-- **跨机器**：克隆者需 `git config core.symlinks true`（Windows 默认 `false`）；未开时重跑 `codebuddy-init` 重建。
+- **跨机器**：克隆者需 `git config core.symlinks true`（Windows 默认 `false`）；未开时重跑 `core-init` 重建。
 
 ## 运行时产物（外置到项目侧）
 
@@ -255,15 +255,31 @@ schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`
 
 | 包 | 类别 | 默认 | 组件 |
 |---|---|---|---|
-| `core` | 基础 | ✅ | rules: language、project-guide、codebuddy-tooling、codebuddy-engine；skills: codebuddy-init |
+| `core` | 基础 | ✅ | rules: core-language、core-project-guide、core-tooling、core-engine；skills: core-init |
 | `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
-| `vcs` | 基础 | ✅ | rules: vcs-router、vcs-codebuddy-engine；skills: vcs-router、git-commit、git-merge |
-| `tool` | 基础 | ✅ | rules: 无；skills: cmd-script-writing、engine-sync、export-zipped-dir、rule-consolidation、session-lesson-distill |
+| `vcs` | 基础 | ✅ | rules: vcs-router、vcs-engine-commit；skills: vcs-router、vcs-git-commit、vcs-git-merge |
+| `tool` | 基础 | ✅ | rules: 无；skills: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-rule-consolidation、tool-session-lesson-distill |
 | `csharp` | C# | ❌ | rules: csharp-code、csharp-comment、csharp-lsp、csharp-test；skills: 6 个；agents: 2 个 |
 | `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
 | `python` | Python | ❌ | rules: python-code、python-comment、python-test；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 2 个 |
 | `grilling` | third-party（本地维护） | ❌ | skills: grilling |
 | `yao-meta-skill` | third-party | ❌ | rules: yao-meta-skill；skills: yao-meta-skill |
+
+### 组件命名约定
+
+**组件名（规则 / 技能 / 智能体的目录名）必须以 `<包名>-` 开头**，让归属一目了然：
+
+| 情形 | 规则 | 示例 |
+|---|---|---|
+| 一般组件 | `<包名>-<语义名>` | `core-tooling`、`vcs-git-commit`、`tool-engine-sync` |
+| **组件名等于包名**（可选包自名组件） | **豁免**，保持与包名一致 | `unity-pipeline`、`grilling`、`yao-meta-skill` |
+
+豁免的第二个情形来自 vendor 约束：`unity-pipeline` 与 `yao-meta-skill` 是上游组件，
+改名会让上游 `git pull` 永久冲突；`grilling` 虽已转本地维护，但组件名与包名相同，
+加前缀会得到 `grilling-grilling` 这类无信息量的名字。
+
+校验由 `check_manifest.py` 执行（校验项 8）：组件名不以 `<包名>-` 开头且不等于包名时报错。
+新建组件时照着命名即可，漏改会在提交前的 `pre-commit` 钩子被拦下。
 
 ```bash
 python .codebuddy/scripts/pack_install.py list             # 列出全部包与安装状态
@@ -336,7 +352,7 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
 ## 仓库维护约定
 
 1. **新增需项目配置的技能配置**时，须在 `project.index.json` 登记（逻辑名/路径/骨架），
-   详见 `rules/core/codebuddy-engine/config-isolation-spec.mdc` §3.6。
+   详见 `rules/core/core-engine/config-isolation-spec.mdc` §3.6。
 2. **不把项目专有值写入本库**（脚本、配置、索引、示例均不得硬编码）；项目值只出现在消费项目侧。
 3. **技能/规则清单维护**：本 README 的目录结构节即引擎构成清单；新增/删除技能或规则时同步更新本节。
    运行 `python scripts/check_manifest.py` 核对一致性。
@@ -346,12 +362,12 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
 5. **本仓库自身即「引擎仓库」，改动须提交到本仓库**：`.codebuddy/` 是一个独立 Git 仓库（在消费项目中
    以 submodule 出现），其内文件的提交发生在**引擎仓库**，与「项目仓库」是两个提交目标——不得混为一笔，
    且更新 submodule 指针须**先推送引擎、再提交项目指针**。约定详见
-   `rules/vcs/vcs-codebuddy-engine/`。
+   `rules/vcs/vcs-engine-commit/`。
 6. **三条规则按触发面分层，勿合并**：
-   - `codebuddy-tooling`（core，**始终生效**）：管工具调用的前后两端——命令如何构造（避免权限系统的无谓拦截）、
+   - `core-tooling`（core，**始终生效**）：管工具调用的前后两端——命令如何构造（避免权限系统的无谓拦截）、
      结果如何判定（失败可能返回 `{error}` 对象而非抛错）。
-   - `codebuddy-engine`（core，`.codebuddy/**` 触发）：管内容如何写（项目专有值外置）与改完还要同步哪些登记点。
-   - `vcs-codebuddy-engine`（vcs，`.codebuddy/**` 触发）：只治理**引擎仓库**的提交，含 submodule 与独立检出两种形态。
+   - `core-engine`（core，`.codebuddy/**` 触发）：管内容如何写（项目专有值外置）与改完还要同步哪些登记点。
+   - `vcs-engine-commit`（vcs，`.codebuddy/**` 触发）：只治理**引擎仓库**的提交，含 submodule 与独立检出两种形态。
    三者职责互不重叠；**不得合并**——合并会让引擎条款常驻，或让提交归属失去独立加载时机。
    另：`yao-meta-skill` 包的 `rules/yao-meta-skill/` 是**技能工程的强制入口**（技能创建/重构/审计必须走该技能），
    属可选包规则，仅在安装该包时生效。

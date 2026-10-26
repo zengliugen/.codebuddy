@@ -1,0 +1,18 @@
+---
+description: 项目测试约束子规则 —— 运行环境限制、断言与测试运行器交互、资源与性能约束。编写/审查测试代码时按需加载。项目事实正文已外置。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-09-13T00:00:00.000Z
+provider:
+---
+
+# 测试约束
+
+> **本子规则的项目事实正文已外置**：见 `.codebuddy/project.index.json` 的
+> `rule_shells["rules/core/core-project-guide/testing.mdc"].path` 指向的项目侧文件。
+> 涉及本主题时必须先读取该正文，不得凭经验假设。
+
+## 强制条款（始终生效，不可外置）
+
+- 本主题的项目事实（路径、包名、模块名、端口、命令、依赖版本等）**一律以项目侧正文为准**。
+- 执行本主题相关操作前，**必须先读取**索引 `rule_shells` 指向的对应项目侧文件。

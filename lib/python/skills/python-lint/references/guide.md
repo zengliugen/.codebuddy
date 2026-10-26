@@ -72,7 +72,7 @@ python scripts/collect_targets.py --json
 | 不检查 | `E501` | 进 `ignore`，长行由 `ruff format` 以改写方式消除 |
 | 不检查 | `D400`/`D415` | 进 `ignore`：这两条只认 ASCII 后缀，无法识别中文 `。`。强行满足会让中文注释出现「半角点 + 全角句号」混排。首行标点由 `python-comment` 技能与人工自检保证 |
 
-> **`D400`/`D415` 的取舍**：项目要求中文注释**全角标点**（与 `rules/core/language` 一致）。
+> **`D400`/`D415` 的取舍**：项目要求中文注释**全角标点**（与 `rules/core/core-language` 一致）。
 > 这两条规则的判据是 ASCII 后缀匹配，`。` 会被判为「无标点」，与「完全没写标点」不可区分；
 > `--fix` 的修复是**在全角句号后追加半角点**（`中断。` → `中断。.`）。
 > 因此选择 ignore 这两条、把「首行必须有标点」交给 `python-comment` 技能保证。

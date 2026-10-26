@@ -20,7 +20,7 @@ rem ============================================================
 set "BASE=%~dp0"
 if "%BASE:~-1%"=="\" set "BASE=%BASE:~0,-1%"
 
-set "SETUP_TOOL=%BASE%\skills\core\codebuddy-init\scripts\init_project_config.py"
+set "SETUP_TOOL=%BASE%\skills\core\core-init\scripts\init_project_config.py"
 if not exist "%SETUP_TOOL%" (
     echo [错误] 未找到初始化脚本：%SETUP_TOOL%
     echo        请确认 .codebuddy 引擎包完整，且包含 core 默认包。

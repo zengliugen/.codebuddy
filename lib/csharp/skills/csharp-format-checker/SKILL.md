@@ -32,7 +32,7 @@ metadata:
 |------|------|
 | `references/guide.md` | 执行细节：快速上手、目标路径传递规则、结果文件强制要求、忽略目录配置、执行流程、边界排除、检查清单 |
 | `references/config-guide.md` | 项目侧配置项定义（`exclude_dirs`、扫描范围、工程定位）与索引登记 |
-| `references/h1-integration.md` | **提交门禁集成**：如何接入 `git-commit` 的 H1 暂存前钩子（命令、退出码、`--changed-from-file` vs `--changed`、报告复用、范围口径、与审查门禁的分工） |
+| `references/h1-integration.md` | **提交门禁集成**：如何接入 `vcs-git-commit` 的 H1 暂存前钩子（命令、退出码、`--changed-from-file` vs `--changed`、报告复用、范围口径、与审查门禁的分工） |
 
 > **H1 集成说明归属本技能**：`vcs` 包只定义「如何执行一个外部校验命令」的通用机制，
 > 不包含任何 C# / dotnet 细节。本技能在提交门禁中的调用方式由 `references/h1-integration.md`

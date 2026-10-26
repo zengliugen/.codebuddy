@@ -1,0 +1,43 @@
+interface:
+  display_name: "引擎接入与包管理"
+  short_description: "检测项目初始化状态并管理 .codebuddy 引擎可选包"
+  default_prompt: "使用 $core-init 检测项目配置状态或管理可选包。先做只读状态检测，再按现状询问操作意图。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "初始化.*配置"
+      - keyword: "接入.*codebuddy"
+      - keyword: "生成.*配置"
+      - keyword: "装了哪些包"
+      - keyword: "安装.*包"
+      - keyword: "卸载.*包"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "scripts/check_status.py"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: core-init
+version: "1.0"
+mode: Production

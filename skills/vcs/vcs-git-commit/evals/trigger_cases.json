@@ -1,0 +1,22 @@
+{
+  "skill": "vcs-git-commit",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "提交代码",
+    "帮我 commit",
+    "git commit",
+    "提交这次的变更"
+  ],
+  "should_not_trigger": [
+    "git push",
+    "切换分支",
+    "rebase 到 main",
+    "stash 一下",
+    "查看 git log"
+  ],
+  "near_neighbor": [
+    "提交并推送",
+    "先审查再提交",
+    "合并分支"
+  ]
+}

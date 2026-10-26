@@ -9,7 +9,7 @@
 ## 通用基础技能说明
 本技能为**通用基础技能**，无项目特定配置，迁移到其他项目后无需修改本文件（路由检测、缓存、互斥锁逻辑均通用）。项目可配置项位于：
 - 提交摘要确定性参数（type/长度/语言）：项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）
-- 流程级配置（scope 规则、审查门禁参数、钩子步骤取值）：项目侧 `skills/git-commit/project-config.md`（索引 `git_commit.project_config`）；机制见 `.codebuddy/skills/vcs/git-commit/references/project-config.md`
+- 流程级配置（scope 规则、审查门禁参数、钩子步骤取值）：项目侧 `skills/git-commit/project-config.md`（索引 `git_commit.project_config`）；机制见 `.codebuddy/skills/vcs/vcs-git-commit/references/project-config.md`
 
 ## 路由规则
 路由采用**双维度**设计：`操作类型（operation）` + `版本控制类型（vcs type）`，组合出目标技能 `git-<op>`。commit 与 merge 操作已纳入路由，未来扩展新操作（如 revert、stash、branch）时沿用统一入口。
@@ -20,8 +20,8 @@
 
 | 操作类型 | 关键词示例 | 目标技能（`git-<op>`） | 状态 |
 |---------|-----------|----------------------|------|
-| `commit` | 提交、commit、/commit | `git-commit` | 已实现 |
-| `merge` | 合并、merge | `git-merge` | 占位（暂未实现，仅提示） |
+| `commit` | 提交、commit、/commit | `vcs-git-commit` | 已实现 |
+| `merge` | 合并、merge | `vcs-git-merge` | 占位（暂未实现，仅提示） |
 
 - 用户未显式指定操作时，默认按 `commit` 处理。
 - 未来扩展新操作（如 `revert`、`stash`、`branch`）时，只需新增目标技能目录 `skills/git-<op>/`，无需修改本技能。
@@ -97,17 +97,17 @@ ls -d .git 2>/dev/null
 
 | 检测结果 | 路由目标 | 说明 |
 |---------|---------|------|
-| Git 仓库 | `git-<op>`（如 `git-commit`） | 常规 Git 仓库（含子目录，`git rev-parse` 在仓库任意子目录返回 true） |
+| Git 仓库 | `git-<op>`（如 `vcs-git-commit`） | 常规 Git 仓库（含子目录，`git rev-parse` 在仓库任意子目录返回 true） |
 | 非 Git 仓库 | 终止并提示 | 告知用户当前目录不是 Git 仓库，不执行任何操作 |
 
-- 脚本输出的 `target_exists` 为 `true` → 目标技能存在，路由过去。占位技能（`git-merge`）被路由后，由目标技能返回"未实现占位"提示。
+- 脚本输出的 `target_exists` 为 `true` → 目标技能存在，路由过去。占位技能（`vcs-git-merge`）被路由后，由目标技能返回"未实现占位"提示。
 - 脚本输出的 `target_exists` 为 `false` → 目标技能尚未实现，告知用户该操作暂未支持，不执行任何操作。
 
 ### 4. 路由确认
 
 - 将识别的操作类型、检测结果（是否 Git 仓库）与目标技能告知用户。
 - 若用户请求中已显式指定类型（如"git commit"），以用户指定为准，不再重复检测。
-- 路由完成后，将控制权移交给目标技能（如 `git-commit`），本技能不参与后续执行流程。
+- 路由完成后，将控制权移交给目标技能（如 `vcs-git-commit`），本技能不参与后续执行流程。
 
 ## VCS 写操作互斥锁（多会话防冲突）
 本技能目录下提供 VCS 写操作通用基础设施——互斥锁工具（`scripts/vcs_lock.py`），供 git-commit
@@ -122,7 +122,7 @@ ls -d .git 2>/dev/null
 - **用法**：`python .codebuddy/skills/vcs/vcs-router/scripts/vcs_lock.py acquire|release|status`。
 - **集成**：git-commit 在阶段七**逐笔加锁**——**获用户授权后获取锁**，锁内完成本笔
   `git add` → 暂存区校验 → `git commit`，提交完成**立即释放**（锁窗口不跨越用户交互）；
-  详见 `.codebuddy/skills/vcs/git-commit/references/vcs-lock.md`。
+  详见 `.codebuddy/skills/vcs/vcs-git-commit/references/vcs-lock.md`。
 
 ## 排除边界
 以下请求不路由到执行技能，直接拒绝或说明：

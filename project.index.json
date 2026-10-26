@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "_comment": "本项目在 .codebuddy 引擎与项目侧配置之间的唯一注册表，随引擎入库共享。路径基准为项目根（.codebuddy 的父目录）；全部为相对路径与占位值，对所有消费项目一致。files 的 template / rule_shells 的 template_outline 供 codebuddy-init 技能生成初始占位骨架。缺失、JSON 损坏或缺少必需键时，读取方必须报错退出（退出码 3），不回退内置默认值。迁移到新项目时，由 codebuddy-init 技能据此生成 .codebuddy.project/ 下的初始配置。",
+  "_comment": "本项目在 .codebuddy 引擎与项目侧配置之间的唯一注册表，随引擎入库共享。路径基准为项目根（.codebuddy 的父目录）；全部为相对路径与占位值，对所有消费项目一致。files 的 template / rule_shells 的 template_outline 供 core-init 技能生成初始占位骨架。缺失、JSON 损坏或缺少必需键时，读取方必须报错退出（退出码 3），不回退内置默认值。迁移到新项目时，由 core-init 技能据此生成 .codebuddy.project/ 下的初始配置。",
   "project_config_root": ".codebuddy.project",
   "artifacts": {
-    "_comment": "运行时产物目录（脚本执行过程中生成，不入库、不随引擎共享）。路径基准为项目根，由 codebuddy-init 在项目侧创建空目录；读取方经逻辑名定位（禁止绝对路径）。各产物目录由 .codebuddy.project/.gitignore 统一忽略。",
+    "_comment": "运行时产物目录（脚本执行过程中生成，不入库、不随引擎共享）。路径基准为项目根，由 core-init 在项目侧创建空目录；读取方经逻辑名定位（禁止绝对路径）。各产物目录由 .codebuddy.project/.gitignore 统一忽略。",
     "dirs": {
       "code_review.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-code-review/check_logs",
       "comment_checker.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-comment-checker/check_logs",
@@ -13,14 +13,14 @@
       "unity_pipeline.cache": ".codebuddy.project/caches/skills/unity-pipeline/unity-pipeline/.cache",
       "vcs_router.cache": ".codebuddy.project/caches/skills/vcs/vcs-router/.cache",
       "vcs_router.lock": ".codebuddy.project/caches/.vcs-lock",
-      "session_distill.reports": ".codebuddy.project/caches/skills/tool/session-lesson-distill/reports",
-      "engine_sync.reports": ".codebuddy.project/caches/skills/tool/engine-sync/reports",
+      "session_distill.reports": ".codebuddy.project/caches/skills/tool/tool-session-lesson-distill/reports",
+      "engine_sync.reports": ".codebuddy.project/caches/skills/tool/tool-engine-sync/reports",
       "python_code_review.check_logs": ".codebuddy.project/caches/skills/python/python-code-review/check_logs",
       "python_test_coverage.check_logs": ".codebuddy.project/caches/skills/python/python-test-coverage/check_logs"
     }
   },
   "root_symlinks": {
-    "_comment": "引擎根下需以软链接外置到项目侧的单个文件（与项目专有技能目录软链接同理，依据 CodeBuddy 会解引用符号链接读取的实测事实）。link 为引擎内链接路径，path 为项目侧源文件路径，均为相对项目根的相对路径（只允许相对路径）。codebuddy-init 据此生成项目侧源文件骨架并建立软链接；读取方（CodeBuddy 本体）直接经软链接读取，无需脚本解析。这些文件随项目入库（源码）与引擎入库（链接）。",
+    "_comment": "引擎根下需以软链接外置到项目侧的单个文件（与项目专有技能目录软链接同理，依据 CodeBuddy 会解引用符号链接读取的实测事实）。link 为引擎内链接路径，path 为项目侧源文件路径，均为相对项目根的相对路径（只允许相对路径）。core-init 据此生成项目侧源文件骨架并建立软链接；读取方（CodeBuddy 本体）直接经软链接读取，无需脚本解析。这些文件随项目入库（源码）与引擎入库（链接）。",
     "entries": {
       "codebuddy.settings": {
         "link": ".codebuddy/settings.json",
@@ -104,7 +104,7 @@
       }
     },
     "git_commit.config": {
-      "path": ".codebuddy.project/configs/skills/vcs/git-commit/config.json",
+      "path": ".codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json",
       "format": "json",
       "template": {
         "version": 1,
@@ -129,7 +129,7 @@
       }
     },
     "git_commit.project_config": {
-      "path": ".codebuddy.project/configs/skills/vcs/git-commit/project-config.md",
+      "path": ".codebuddy.project/configs/skills/vcs/vcs-git-commit/project-config.md",
       "format": "markdown",
       "template_outline": [
         "# 版本控制项目配置（project-config）",
@@ -329,8 +329,8 @@
     }
   },
   "rule_shells": {
-    "rules/core/project-guide/RULE.mdc": {
-      "path": ".codebuddy.project/configs/rules/core/project-guide/RULE.mdc",
+    "rules/core/core-project-guide/RULE.mdc": {
+      "path": ".codebuddy.project/configs/rules/core/core-project-guide/RULE.mdc",
       "format": "markdown",
       "template_outline": [
         "# 项目指导",
@@ -341,8 +341,8 @@
         "## 加载机制说明"
       ]
     },
-    "rules/core/project-guide/architecture.mdc": {
-      "path": ".codebuddy.project/configs/rules/core/project-guide/architecture.mdc",
+    "rules/core/core-project-guide/architecture.mdc": {
+      "path": ".codebuddy.project/configs/rules/core/core-project-guide/architecture.mdc",
       "format": "markdown",
       "template_outline": [
         "# 架构细则",
@@ -355,8 +355,8 @@
         "## 第三方工具链"
       ]
     },
-    "rules/core/project-guide/commands.mdc": {
-      "path": ".codebuddy.project/configs/rules/core/project-guide/commands.mdc",
+    "rules/core/core-project-guide/commands.mdc": {
+      "path": ".codebuddy.project/configs/rules/core/core-project-guide/commands.mdc",
       "format": "markdown",
       "template_outline": [
         "# 常用命令",
@@ -366,8 +366,8 @@
         "## 发布与分发"
       ]
     },
-    "rules/core/project-guide/dependencies.mdc": {
-      "path": ".codebuddy.project/configs/rules/core/project-guide/dependencies.mdc",
+    "rules/core/core-project-guide/dependencies.mdc": {
+      "path": ".codebuddy.project/configs/rules/core/core-project-guide/dependencies.mdc",
       "format": "markdown",
       "template_outline": [
         "# 第三方依赖",
@@ -376,8 +376,8 @@
         "## 手动安装依赖"
       ]
     },
-    "rules/core/project-guide/git-ignore.mdc": {
-      "path": ".codebuddy.project/configs/rules/core/project-guide/git-ignore.mdc",
+    "rules/core/core-project-guide/git-ignore.mdc": {
+      "path": ".codebuddy.project/configs/rules/core/core-project-guide/git-ignore.mdc",
       "format": "markdown",
       "template_outline": [
         "# Git 忽略内容清单",
@@ -386,8 +386,8 @@
         "## 未被忽略规则覆盖的生成目录"
       ]
     },
-    "rules/core/project-guide/testing.mdc": {
-      "path": ".codebuddy.project/configs/rules/core/project-guide/testing.mdc",
+    "rules/core/core-project-guide/testing.mdc": {
+      "path": ".codebuddy.project/configs/rules/core/core-project-guide/testing.mdc",
       "format": "markdown",
       "template_outline": [
         "# 测试约束",

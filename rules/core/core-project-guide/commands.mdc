@@ -1,0 +1,18 @@
+---
+description: 项目常用命令子规则 —— 启动与运行、构建、测试、发布与分发。需要执行项目构建/测试/发布命令时按需加载。项目事实正文已外置。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-08-19T00:00:00.000Z
+provider:
+---
+
+# 常用命令
+
+> **本子规则的项目事实正文已外置**：见 `.codebuddy/project.index.json` 的
+> `rule_shells["rules/core/core-project-guide/commands.mdc"].path` 指向的项目侧文件。
+> 涉及本主题时必须先读取该正文，不得凭经验假设。
+
+## 强制条款（始终生效，不可外置）
+
+- 本主题的项目事实（路径、包名、模块名、端口、命令、依赖版本等）**一律以项目侧正文为准**。
+- 执行本主题相关操作前，**必须先读取**索引 `rule_shells` 指向的对应项目侧文件。

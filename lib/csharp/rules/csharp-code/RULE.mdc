@@ -50,7 +50,7 @@ provider:
 忽略清单由 `csharp-format-checker/config.json` 的 `exclude_dirs` 显式声明（三重保护：配置声明 + dotnet format 内置 auto-generated 识别 + 路径范围限定）。新增三方插件或生成目录时，在该配置追加即可。
 
 > **同一口径覆盖全部审查维度**：上表虽是「格式维度」的范围，但**门禁审查目标收集**
-> （`git-commit` 阶段五调用 `csharp-code-review/scripts/collect_review_targets.py`）也采用**同一份排除清单**
+> （`vcs-git-commit` 阶段五调用 `csharp-code-review/scripts/collect_review_targets.py`）也采用**同一份排除清单**
 > ——上表四类内容（范围外目录、三方库、生成代码及其标记）均不进入审查目标。
 > 两处配置声明须保持一致：`csharp-format-checker/config.json` 的 `exclude_dirs`
 > 与 `csharp-code-review/config.json` 的 `exclude_patterns`；新增排除项时**两处一并更新**，避免口径漂移。

@@ -30,7 +30,7 @@
 | SN-01 | 审查这次未提交的 C# 变更 | `csharp-code-review` |
 | SN-02 | 为 GameLoader.cs 补全注释 | `csharp-comment-generator` |
 | SN-03 | 检查这个 .cs 文件的注释是否合规 | `csharp-comment-checker` |
-| SN-04 | 把 C# 变更提交到 git | `vcs-router` → `git-commit` |
+| SN-04 | 把 C# 变更提交到 git | `vcs-router` → `vcs-git-commit` |
 | SN-05 | 帮我跳转到某方法定义 | `csharp-lsp` |
 
 ## 三、相近邻居（Near Neighbor）

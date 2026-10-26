@@ -1,14 +1,14 @@
 # 提交门禁集成（h1-integration）
 
 > **归属**：本文件属于 `csharp-format-checker` 技能（`csharp` 包），说明本技能如何接入
-> `vcs` 包 `git-commit` 技能的 **H1 暂存前**钩子。
+> `vcs` 包 `vcs-git-commit` 技能的 **H1 暂存前**钩子。
 > **依赖方向**：`csharp` → `vcs`（`csharp.requires` 含 `vcs`），合法；
 > `vcs` 包**不反向引用**本文件，也不含任何 C# / dotnet 相关内容。
 
 ## 1. 在 H1 中的位置
 
-`git-commit` 的 H1 步骤完全由**项目侧配置**声明（引擎侧机制见
-`.codebuddy/skills/vcs/git-commit/references/project-config.md` §3 / §3.1）。
+`vcs-git-commit` 的 H1 步骤完全由**项目侧配置**声明（引擎侧机制见
+`.codebuddy/skills/vcs/vcs-git-commit/references/project-config.md` §3 / §3.1）。
 本技能对应的步骤行由项目侧 `project-config.md` §4 给出，典型形如：
 
 ```
@@ -48,7 +48,7 @@ python .codebuddy/skills/csharp/csharp-format-checker/scripts/dotnet_format.py c
 
 - **修复动作会改写源码文件**（`dotnet_format.py fix`）。置于暂存前时，修复结果随后
   随正常暂存流程进入提交，**无需「fix 后重新 `git add` 并重跑 `verify_staged.py`」的补偿流程**；
-  置于暂存后则会破坏 `git-commit` 阶段七的暂存区一致性保证。
+  置于暂存后则会破坏 `vcs-git-commit` 阶段七的暂存区一致性保证。
 - 格式检查置于暂存前即落在 **VCS 锁窗口之外**，不占用互斥锁。
 
 ## 5. 检查范围口径
@@ -77,7 +77,7 @@ python .codebuddy/skills/csharp/csharp-format-checker/scripts/dotnet_format.py c
 
 | 环节 | 维度 | 判定方式 |
 |---|---|---|
-| `git-commit` §2 审查门禁 | 代码质量 / Bug / 架构等**语义**维度 | Agent 参与，按 `blocking_level` 阻塞 |
+| `vcs-git-commit` §2 审查门禁 | 代码质量 / Bug / 架构等**语义**维度 | Agent 参与，按 `blocking_level` 阻塞 |
 | 本技能 H1 步骤 | 格式**合规**（确定性） | 命令退出码 |
 
 两者并行，互不替代：格式合规不代表语义无问题，语义审查也不检查行尾、缩进等格式项。

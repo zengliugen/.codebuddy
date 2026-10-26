@@ -12,8 +12,8 @@
 
 最容易被误路由的边界场景：
 
-1. **commit 操作**: "提交代码"应触发并路由到 `git-commit` 技能。
-2. **merge 操作（占位技能）**: "合并分支"/"git merge"应触发并识别为 merge，路由到占位技能 `git-merge`，由目标技能返回"未实现占位"提示。
+1. **commit 操作**: "提交代码"应触发并路由到 `vcs-git-commit` 技能。
+2. **merge 操作（占位技能）**: "合并分支"/"git merge"应触发并识别为 merge，路由到占位技能 `vcs-git-merge`，由目标技能返回"未实现占位"提示。
 3. **其他独立操作**: "amend/rebase/cherry-pick/revert/stash/分支"暂不纳入路由，不应触发。
 4. **提交 vs 推送**: "git push"不应触发（推送属于 git-commit 技能执行流程中的独立授权环节）。
 5. **非代码上下文**: "提交表单"/"提交报告"不应触发。

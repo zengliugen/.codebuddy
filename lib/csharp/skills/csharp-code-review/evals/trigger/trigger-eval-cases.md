@@ -29,7 +29,7 @@
 | SN-03 | 检查这个 .cs 文件的注释是否合规 | `csharp-comment-checker` |
 | SN-04 | 帮我跳转到 GameEntrance.Start() 的定义处 | `csharp-lsp` |
 | SN-05 | 修改代码后重新编译并检查编译错误 | `unity-pipeline` |
-| SN-06 | 把 C# 变更提交到 git | `vcs-router` → `git-commit` |
+| SN-06 | 把 C# 变更提交到 git | `vcs-router` → `vcs-git-commit` |
 | SN-07 | 这段 Lua 代码有什么问题 | 非 C#，不触发 |
 
 ## 三、相近邻居（Near Neighbor）

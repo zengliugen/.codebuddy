@@ -15,7 +15,7 @@ provider:
 1. **技能工程动作必须通过 `yao-meta-skill` 技能执行**，禁止直接手写 `SKILL.md`、手工创建技能目录、或凭记忆拼装技能结构。
 2. **判定先于动手**：收到与技能相关的请求时，先按「覆盖场景」判定归属；属于则调用技能，不得先写文件再补流程。
 3. **兜底条款**：即使 `yao-meta-skill` 未被自动触发（其 `description` 未命中），只要动作落入覆盖场景，也须主动调用。该技能内含目标路径确认、证据留痕、触发评测等前置环节，跳过即等于跳过这些环节。
-4. **产出后按引擎规范登记**：技能落到引擎后，登记与一致性维护按 `rules/core/codebuddy-engine/` 执行（`lib/packs.json` 登记、README 同步、校验脚本）。
+4. **产出后按引擎规范登记**：技能落到引擎后，登记与一致性维护按 `rules/core/core-engine/` 执行（`lib/packs.json` 登记、README 同步、校验脚本）。
 5. **生成骨架必须中文化并读回校验**：`yao.py init` 用**英文硬编码模板**生成 `SKILL.md`、`README.md`、`agents/interface.yaml`、`reports/output-risk-profile.md` 四个文件（模板常量见 `scripts/init_skill.py` 的 `SKILL_TEMPLATE` / `README_TEMPLATE` / `INTERFACE_TEMPLATE`）。**这四个文件必须逐个用 Write 重写为简体中文**，且每次写完**立即读回文件校验**（`wc -c` 与 `grep` 英文特征词），不得仅凭 Write 返回成功就认为已落盘——实测出现过 Write 返回成功但文件 mtime 与大小未变的情形。
    `security_trust_report.{md,json}` 由 `yao.py trust` 自动生成，属工具产出，保持英文即可（与同类技能一致）。
 
@@ -56,17 +56,17 @@ wc -c <文件> && grep -c 'Workflow\|What It Does\|How To Use\|Honest Boundaries
 
 - **一次性提示词、头脑风暴、纯大纲**：不构成可复用技能，`yao-meta-skill` 自身也排除此类。
 - **纯文案校对、错别字修订、仅调格式**：无技能结构变更。
-- **规则文件的拆分与合并**：走 `rule-consolidation`。
-- **会话经验沉淀**：走 `session-lesson-distill`；若其结论是「新建技能」，转本规则。
-- **项目侧配置初始化**：走 `codebuddy-init`。
+- **规则文件的拆分与合并**：走 `tool-rule-consolidation`。
+- **会话经验沉淀**：走 `tool-session-lesson-distill`；若其结论是「新建技能」，转本规则。
+- **项目侧配置初始化**：走 `core-init`。
 
 ## 与相邻约定的分工
 
 | 约定 | 管什么 |
 |---|---|
 | 本规则 | 技能工程**必须走哪个技能** |
-| `rules/core/codebuddy-engine/` | 技能落盘后**还要同步哪些登记点**，以及技能内的项目相关内容**怎么写**（外置与索引登记） |
-| `session-lesson-distill` / `rule-consolidation` | 各自承接非技能工程的相邻职责，遇技能创建须让路 |
+| `rules/core/core-engine/` | 技能落盘后**还要同步哪些登记点**，以及技能内的项目相关内容**怎么写**（外置与索引登记） |
+| `tool-session-lesson-distill` / `tool-rule-consolidation` | 各自承接非技能工程的相邻职责，遇技能创建须让路 |
 
 ## 加载机制说明
 
