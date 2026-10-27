@@ -60,8 +60,13 @@ def main() -> None:
             adapter_targets = []
         if not activation.get("mode"):
             failures.append("Missing compatibility.activation.mode")
-        if activation.get("mode") == "path_scoped" and not activation.get("paths"):
-            failures.append("path_scoped activation requires compatibility.activation.paths")
+        if activation.get("mode") == "path_scoped":
+            failures.append(
+                "path_scoped activation is forbidden: use mode \"manual\" with triggers")
+        if activation.get("paths"):
+            failures.append(
+                "compatibility.activation.paths must be empty "
+                "(skills are activated by description and triggers, not by file path)")
         if execution.get("context") not in VALID_EXECUTION_CONTEXTS:
             failures.append("Invalid compatibility.execution.context")
         if execution.get("shell") not in VALID_SHELLS:

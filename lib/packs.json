@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_comment": "引擎包注册表，随引擎入库共享。comps 只写组件名，实际路径由 location 推导：engine → .codebuddy/<类型>/<pack>/<名>；lib → .codebuddy/lib/<pack>/<类型>/<名>；project → .codebuddy.project/project/<类型>/<名>（agents 均加 .md 后缀）。",
+  "_comment": "引擎包注册表，随引擎入库共享。comps 只写组件名，实际路径由 location 推导：engine → .codebuddy/<类型>/<pack>/<名>；lib → .codebuddy/lib/<pack>/<类型>/<名>；project → .codebuddy.project/<类型>/<pack>/<名>（agents 均加 .md 后缀；规则入口形态为 <名>.entry/ 目录）。",
   "packs": {
     "core": {
       "category": "基础",

@@ -46,9 +46,12 @@ provider:
 2. **修改已有文件**：若目标文件为其他编码（如 GBK、带 BOM），在修改时一并转换为 UTF-8 无 BOM，转换后须检查中文内容无乱码。
 3. **禁止引入新编码**：不得新建 GBK、UTF-16 等编码文件；不得手动为文件添加 BOM。
 4. **特殊情况**：若文件因外部工具链限制必须使用其他编码（如某些旧版 Windows 批处理脚本），须在文件内或注释中说明，并尽量避免中文与编码冲突。
-5. **行尾与 CRLF 归一化**：本仓库 `core.autocrlf=true` 且无 `.gitattributes`，`Write` 工具新建文件与就地改写均保持 CRLF。
-   因此 `git add` 时出现的 `LF will be replaced by CRLF` 提示属**正常的行尾归一化**（非错误，无需处理），
-   不要将其当作编码问题反复排查。
+5. **行尾由 `.gitattributes` 钉死，不依赖机器级配置**：引擎根 `.gitattributes` 声明
+   `* text=auto eol=lf`，故 `.md` / `.mdc` / `.py` / `.json` 等文本文件在工作区与入库均为 **LF**；
+   `*.cmd` / `*.bat` / `*.ps1` 强制 **CRLF**（CMD 解析器依赖 CRLF，LF 会把 `setlocal` 截成 `ocal`）。
+   该策略与 `core.autocrlf` 无关，因此 `git add` 时**不应**出现 `LF will be replaced by CRLF` 提示；
+   若出现，说明文件命中了未声明的路径，应先补 `.gitattributes` 而不是逐次处理提示。
+   **禁止**手工改动行尾去「消除」差异——行尾由属性决定，改动只会引入无意义抖动。
 
 ## 与其他规则的关系
 

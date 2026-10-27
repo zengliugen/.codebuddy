@@ -50,12 +50,18 @@
 │   └── yao-meta-skill/         #   包 yao-meta-skill（rules/ skills/：技能工程强制入口）
 │
 ├── rules/                      # 规则扫描根：默认包真实目录 + 可选包链接
-│   ├── core/                   #   默认包：language/ project-guide/
+│   ├── core/                   #   默认包（6 条）：core-language/ core-project-guide/
 │   │                           #            core-tooling/（始终生效：命令形状 + 结果校验）
 │   │                           #            core-engine/（.codebuddy/**：内容隔离 + 登记同步）
-│   ├── vcs/                    #   默认包：vcs-router/ vcs-engine-commit/（.codebuddy/**：引擎仓库提交）
-│   ├── tool/                   #   默认包：本包已无规则（原 5 条已按触发面迁移至 core / vcs）
-│   │                           #            规则整合判断记录见 skills/tool/tool-rule-consolidation/
+│   │                           #            core-rule-governance/（规则命名与分类元规则）
+│   │                           #            core-init.entry/（初始化强制入口）
+│   ├── vcs/                    #   默认包（4 条）：vcs-router/（+ vcs-router.entry/ 强制入口）
+│   │                           #            vcs-engine-commit/（.codebuddy/**：引擎仓库提交）
+│   │                           #            vcs-git-commit/ vcs-git-merge/（提交与合并执行）
+│   ├── tool/                   #   默认包（5 条，均为 .entry/ 入口形态）：
+│   │                           #            tool-cmd-script-writing/ tool-engine-sync/
+│   │                           #            tool-export-zipped-dir/ tool-rule-consolidation/
+│   │                           #            tool-session-lesson-distill/
 │   ├── project ──链接──▶ 项目侧 #   项目专有规则（.codebuddy.project/rules/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
@@ -287,9 +293,13 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 
 | 类型 | 文件名 | 触发方式 | 职责 |
 |---|---|---|---|
-| **入口规则** | `<技能名>.entry.mdc` | `alwaysApply` 或 `paths` | 只定义「必须经该技能执行」 |
+| **入口规则** | `<技能名>.entry.mdc` | `alwaysApply: true` | 只定义「必须经该技能执行」 |
 | **规范规则** | `RULE.mdc` | `alwaysApply: false` | 具体规范，由技能加载 |
-| **底线规范** | `RULE.mdc`（无对应技能） | 允许 `alwaysApply: true` | 无条件适用的底线（语言、项目结构、工具纪律） |
+| **底线规范** | `RULE.mdc`（无对应技能） | `alwaysApply: true` | 无条件适用的底线（语言、项目结构、工具纪律） |
+
+**任何规则都不得写 `paths`**：`paths` 是「文件命中该路径后」才注入的事后触发，赶不上
+「还没动手就该走技能」的决策点。技能侧同规——`activation.mode` 不得为 `path_scoped`，
+`activation.paths` 必须为空。判据见 `rules/core/core-rule-governance/`。
 
 规范命名：**单技能使用 → 与技能同名；多技能共用 → 取共同前缀**。
 被其他技能拉起的技能**不建入口规则**（链路已固定，再加会造成两个入口）。

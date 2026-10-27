@@ -22,3 +22,15 @@
 | 新增 | 模块级 `_acquire_lock()` / `_release_lock()`，把平台差异收敛到一处；`publish_lock()` 改为调用二者 |
 | 验证 | `python scripts/yao.py --help` 正常输出全部子命令；`import evidence_store` 通过 |
 | 升级注意 | 上游若自行加入跨平台锁，直接采用上游实现并删除本补丁 |
+
+## 2026-10-27 校验语义反转：禁止 path_scoped 激活
+
+| 项 | 内容 |
+|----|------|
+| 文件 | `scripts/validate_skill.py`（第 63—69 行） |
+| 问题 | 原逻辑为「`activation.mode == path_scoped` 时**要求** `paths` 非空」，即**鼓励**路径触发并强制配路径。本项目已全库弃用路径触发（`paths` 是文件命中后才注入的事后触发，赶不上「未动手就该走技能」的决策点），原逻辑方向相反，且会产出被引擎侧清单校验判为非法的技能，形成两个校验脚本互相矛盾 |
+| 补丁 | 删除原「path_scoped 需 paths 非空」判定；改为两条独立拒绝：`mode == path_scoped` 报错并提示改用 `manual` + `triggers`；`paths` 非空报错。`paths: []` 与字段缺省均放行（模板默认值即此形态） |
+| 边界 | 只改这一处判定，`mode` 缺失的既有检查与其余字段校验均未动；错误文案不含任何他包组件路径（本包 `requires` 为空，不得引用包外组件） |
+| 验证 | 跑自身目录 `ok: true`、退出码 0；两个反例（`path_scoped` + 非空 `paths`、`manual` + 非空 `paths`）均 `ok: false`、退出码 2；引擎侧清单校验与包状态校验均退出码 0 |
+| 文档未同步（已知差异） | `references/platform-capability-matrix.md` 的 Portable Semantics 仍写「activation mode and optional path filters」，那是上游原文，本补丁**未改正文**；实际行为已收紧为「路径过滤器必须为空」。升级比对时以本表为准，勿按该句恢复路径触发 |
+| 升级注意 | 上游若已自行禁止 `path_scoped`，直接采用上游实现并删除本补丁；若上游仍要求「path_scoped 必须带 paths」，需保留本补丁（否则与本项目触发策略冲突） |
