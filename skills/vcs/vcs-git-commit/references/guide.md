@@ -62,9 +62,9 @@ scope 的具体取值以 `references/project-config.md` §1 中的项目配置�
 
 ### 阶段四：生成提交摘要
 
-按 `<type>(<scope>): <subject>` 格式生成。**type 定义、subject 规范、授权确认方式遵循 `.codebuddy/rules/vcs/vcs-git-commit/commit-spec.mdc` 与 `common-submission-safety-spec.mdc` 公共子规则**，近似 type 的详细区分规则见 `references/commit-spec.md`。
+按 `<type>(<scope>): <subject>` 格式生成。**type 定义、subject 规范、授权确认方式遵循 `.codebuddy/rules/vcs/vcs-git-commit/commit-spec.mdc` 与 `submission-safety-spec.mdc` 公共子规则**，近似 type 的详细区分规则见 `references/commit-spec.md`。
 
-默认 type 枚举（读取自项目侧 `skills/git-commit/config.json`，索引逻辑名 `git_commit.config`，目标项目可调整）：
+默认 type 枚举（读取自项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`，索引逻辑名 `git_commit.config`，目标项目可调整）：
 
 | 类型 | 说明 | 类型 | 说明 |
 |------|------|------|------|
@@ -74,7 +74,7 @@ scope 的具体取值以 `references/project-config.md` §1 中的项目配置�
 | `test` | 测试 | `chore` | 构建/工具链 |
 | `ci` | CI/CD | `revert` | 回退提交 |
 
-**生成后自动化校验**：每条提交摘要生成后，运行格式校验脚本确认合规。type 枚举、subject 长度上限、scope 长度上限、subject 语言均读取项目侧 `skills/git-commit/config.json`（索引逻辑名 `git_commit.config`，配置为唯一来源，缺失或字段非法时脚本报错退出码 3），无句号结尾为通用约定：
+**生成后自动化校验**：每条提交摘要生成后，运行格式校验脚本确认合规。type 枚举、subject 长度上限、scope 长度上限、subject 语言均读取项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`（索引逻辑名 `git_commit.config`，配置为唯一来源，缺失或字段非法时脚本报错退出码 3），无句号结尾为通用约定：
 
 ```bash
 python .codebuddy/skills/vcs/vcs-git-commit/scripts/validate_commit_subject.py "<type>(<scope>): <subject>"
@@ -102,7 +102,7 @@ H1 钩子步骤由**项目侧配置**声明（经索引 `git_commit.project_conf
 
 ### 阶段六：安全检查
 
-执行 `.gitignore` 交叉比对（详见 `references/submission-safety.md` 与公共子规则 `common-submission-safety-spec.mdc` 中的敏感信息检查）：
+执行 `.gitignore` 交叉比对（详见 `references/submission-safety.md` 与公共子规则 `submission-safety-spec.mdc` 中的敏感信息检查）：
 
 ```bash
 cat .gitignore                                    # 读取当前忽略规则
@@ -127,7 +127,7 @@ git rm --cached <file>    # 仅从暂存区移除，保留本地文件
 git status --short    # 全仓核对，逐一确认是否属于本次提交计划
 ```
 
-边界情况（空提交、合并冲突、hook 失败、detached HEAD、submodule、大文件、未配置用户信息、文件名大小写变更）的处理参见 `rules/vcs-router/git-commit-spec.mdc`「Git 边界情况」。
+边界情况（空提交、合并冲突、hook 失败、detached HEAD、submodule、大文件、未配置用户信息、文件名大小写变更）的处理参见 `rules/vcs/vcs-git-commit/git-commit-spec.mdc`「Git 边界情况」。
 
 ### 阶段七：执行提交（含多会话互斥锁）
 
@@ -148,7 +148,7 @@ git status --short    # 全仓核对，逐一确认是否属于本次提交计�
 **逐笔执行以下步骤（每笔提交重复 1~7；多笔提交时无需在锁内连续完成）：**
 
 1. 展示提交计划（**全部笔数**的摘要与文件范围，以及审查报告路径/问题摘要）——
-   多笔提交须在**一次**授权询问中给出完整计划（详见 `common-submission-safety-spec.mdc`）。
+   多笔提交须在**一次**授权询问中给出完整计划（详见 `submission-safety-spec.mdc`）。
 2. 通过 `AskUserQuestion` 工具发起确认询问，**一次性获得全部笔数的明确授权**。
 3. **获取 VCS 锁**（**授权之后、暂存之前**）：
    ```bash
@@ -208,7 +208,7 @@ git status --short    # 全仓核对，逐一确认是否属于本次提交计�
 - [ ] H1 其余 `blocking=true` 步骤（项目侧配置）是否均已执行且通过？失败时是否已修复或获得用户授权忽略？
 - [ ] 提交/推送前是否通过 `AskUserQuestion` 获得明确授权？
 - [ ] 提交摘要格式是否正确（type + scope + subject）？
-- [ ] subject 是否符合项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）配置（语言/长度）、无句号结尾？
+- [ ] subject 是否符合项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`（索引 `git_commit.config`）配置（语言/长度）、无句号结尾？
 - [ ] 一次提交是否仅包含一个逻辑功能？
 - [ ] 是否已读取 `.gitignore` 并交叉比对暂存区？
 - [ ] 暂存区是否包含临时文件或备份文件？

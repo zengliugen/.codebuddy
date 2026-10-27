@@ -10,8 +10,8 @@ metadata:
 
 # C# LSP（csharp-lsp）技能
 
-本技能封装 `csharp-lsp@codebuddy-plugins-official` 插件的完整使用流程。触发约束见规则
-`.codebuddy/lib/csharp/rules/csharp-lsp/RULE.mdc`（按需加载，操作 `.cs` 文件时注入）。
+本技能封装 `csharp-lsp@codebuddy-plugins-official` 插件的完整使用流程。强制入口见规则
+`.codebuddy/lib/csharp/rules/csharp-lsp.entry/csharp-lsp.entry.mdc`（`alwaysApply: true`，操作 C# 代码时约束必须走本技能）。
 
 ## 1. 环境检查（使用前执行，含本地缓存）
 

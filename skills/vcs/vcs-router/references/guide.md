@@ -8,8 +8,8 @@
 
 ## 通用基础技能说明
 本技能为**通用基础技能**，无项目特定配置，迁移到其他项目后无需修改本文件（路由检测、缓存、互斥锁逻辑均通用）。项目可配置项位于：
-- 提交摘要确定性参数（type/长度/语言）：项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）
-- 流程级配置（scope 规则、审查门禁参数、钩子步骤取值）：项目侧 `skills/git-commit/project-config.md`（索引 `git_commit.project_config`）；机制见 `.codebuddy/skills/vcs/vcs-git-commit/references/project-config.md`
+- 提交摘要确定性参数（type/长度/语言）：项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`（索引 `git_commit.config`）
+- 流程级配置（scope 规则、审查门禁参数、钩子步骤取值）：项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/project-config.md`（索引 `git_commit.project_config`）；机制见 `.codebuddy/skills/vcs/vcs-git-commit/references/project-config.md`
 
 ## 路由规则
 路由采用**双维度**设计：`操作类型（operation）` + `版本控制类型（vcs type）`，组合出目标技能 `git-<op>`。commit 与 merge 操作已纳入路由，未来扩展新操作（如 revert、stash、branch）时沿用统一入口。

@@ -88,7 +88,7 @@ unity command "script eval" --code "return UnityEngine.TestTools.Coverage.enable
 镜像命中率不足时回退「命名空间 + 类型名」匹配。**仅按文件名全局匹配会误判**（例如 `Managed/Foo.cs` 会被 `Unmanaged/FooTests.cs` 误判为有测试），故不可用。
 
 ## 骨架生成规则
-按 `rules/csharp-test/naming-layout.mdc` 硬约束：
+按 `rules/csharp/csharp-test/naming-layout.mdc` 硬约束：
 
 1. **落地方式判定**：
    - 对应 `XxxTests.cs` **已存在** → 生成 `<测试类名>.<主题>.cs` 且类为 `partial`；**禁止**另起 fixture 名（如应为 `QueueTests.Peek.cs`，而非 `QueuePeekTests.cs`）。

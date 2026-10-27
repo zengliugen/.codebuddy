@@ -45,17 +45,18 @@ safety_constraints:
   - 提交/推送发起权按项目配置（commit_initiation/push_initiation，user_only 或 llm_allowed）；user_only 时禁止 LLM 自动发起，llm_allowed 时放开授权但仍须提交推送分离
   - 获得用户授权后、暂存前必须获取 VCS 写操作锁（vcs-router/scripts/vcs_lock.py），锁内完成 add→暂存区校验→commit，提交后必须立即释放（含中止/失败路径）；逐笔加锁，锁窗口不跨越用户交互
   - 提交前必须校验暂存区文件列表与提交计划完全一致（防多会话暂存区污染）
-  - 提交规范（摘要格式/授权/安全/Git 特定约束）遵循 rules/vcs-router/RULE.mdc（入口）及同目录子规则；审查门禁机制见 references/project-config.md §2（参数见项目侧 project-config.md）
+  - 提交规范（摘要格式/授权/安全/Git 特定约束）遵循 rules/vcs/vcs-git-commit/ 下的分项规范（commit-spec / submission-safety-spec / git-commit-spec）；入口约束在 rules/vcs/vcs-router.entry/；审查门禁机制见 references/project-config.md §2（参数见项目侧 project-config.md）
 references:
   - commit-spec: references/commit-spec.md
   - submission-safety: references/submission-safety.md
   - project-config: references/project-config.md（引擎侧机制）+ 项目侧 .codebuddy.project/configs/skills/vcs/vcs-git-commit/project-config.md（索引 git_commit.project_config）
   - vcs-config: 项目侧 .codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json（索引 git_commit.config）
   - vcs-lock: references/vcs-lock.md
-  - vcs-entry-rules: ../../../../rules/vcs/vcs-router/RULE.mdc
+  - vcs-entry-rules: ../../../../rules/vcs/vcs-router.entry/vcs-router.entry.mdc
+  - vcs-router-spec: ../../../../rules/vcs/vcs-router/RULE.mdc
   - vcs-commit-spec: ../../../../rules/vcs/vcs-git-commit/commit-spec.mdc
   - vcs-safety-spec: ../../../../rules/vcs/vcs-git-commit/submission-safety-spec.mdc
-  - vcs-git-spec: ../../../../rules/vcs/vcs-router/git-commit-spec.mdc
+  - vcs-git-spec: ../../../../rules/vcs/vcs-git-commit/git-commit-spec.mdc
 evaluation:
   trigger_evals: evals/trigger/
   output_risk_profile: reports/output-risk-profile.md

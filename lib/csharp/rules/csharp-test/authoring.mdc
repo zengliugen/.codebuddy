@@ -108,7 +108,7 @@ public void TestSortRangeKeepsOutsideElementsUnchanged()
 ## 5. 不得掩盖断言日志
 
 - `LogTool.Assert` **只输出日志不抛异常**，但 Unity Test Runner 会把测试期间产生的 Assert 级日志视为**失败**。
-  因此：**不要用 `Assert` 作为运行时守卫**（详见 `project-guide/testing.mdc`）。
+  因此：**不要用 `Assert` 作为运行时守卫**（详见 `core-project-guide/testing.mdc`）。
 - 用例若触发了断言日志，说明**用例构造有误**（如人为制造了非法状态） → **修正用例**，不得用 `LogAssert.Expect` 掩盖。
 - 确实需要触发断言日志的用例，必须在 `<remarks>` 说明「为什么必须走该路径」，并按 `LogAssert` 显式声明预期日志。
 

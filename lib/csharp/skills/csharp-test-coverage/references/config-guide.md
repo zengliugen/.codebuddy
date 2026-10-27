@@ -181,7 +181,7 @@
 | **运行时配置**（驱动脚本行为） | `tools/CSharpTestCoverage/coverage_config.json`（本文件） |
 | **测试命名与用例规范**（人类规范） | `rules/csharp-test/` |
 
-> **注意**：修改 `rules/csharp-test/naming-layout.mdc` 的镜像规则后，需同步更新本配置的 `matching` 节（尤其是 `runtimeRootName` 与 `testRootNames`）。
+> **注意**：修改 `rules/csharp/csharp-test/naming-layout.mdc` 的镜像规则后，需同步更新本配置的 `matching` 节（尤其是 `runtimeRootName` 与 `testRootNames`）。
 
 ---
 

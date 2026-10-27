@@ -1,5 +1,5 @@
 ---
-description: 测试代码规范入口（始终生效）。约束测试文件的目录镜像、文件与类命名、命名空间、专项拆分，以及用例编写与验证要求；测试环境约束见 project-guide/testing.mdc，注释细则见 csharp-comment/，编译与运行经 unity-pipeline（已安装该可选包时强制，未安装降级 dotnet build/test）。
+description: 测试代码规范入口（始终生效）。约束测试文件的目录镜像、文件与类命名、命名空间、专项拆分，以及用例编写与验证要求；测试环境约束见 core-project-guide/testing.mdc，注释细则见 csharp-comment/，编译与运行经 unity-pipeline（已安装该可选包时强制，未安装降级 dotnet build/test）。
 alwaysApply: true
 enabled: true
 updatedAt: 2026-09-15T00:00:00.000Z
@@ -52,11 +52,11 @@ provider:
 
 | 主题 | 归属规则 |
 |------|---------|
-| 测试环境硬约束（`allowUnsafeCode: false` 反射限制、`LogTool.Assert` 在 Test Runner 中的表现、池化内存不清零、`MemoryArray.Resize` 只增不减） | `project-guide/testing.mdc` |
+| 测试环境硬约束（`allowUnsafeCode: false` 反射限制、`LogTool.Assert` 在 Test Runner 中的表现、池化内存不清零、`MemoryArray.Resize` 只增不减） | `core-project-guide/testing.mdc` |
 | 注释规范与 checker→generator→checker 链路 | `csharp-comment/RULE.mdc` |
 | 编译、运行测试、异步轮询、编辑器焦点（**仅在已安装 `unity-pipeline` 时**） | `unity-pipeline/RULE.mdc` |
-| 中文与 UTF-8 无 BOM 编码 | `language/RULE.mdc` |
-| 提交前 C# 审查门禁 | `csharp-code/RULE.mdc`、`vcs-router/RULE.mdc` |
+| 中文与 UTF-8 无 BOM 编码 | `core-language/RULE.mdc` |
+| 提交前 C# 审查门禁 | `csharp-code-review/RULE.mdc`、`vcs-git-commit/RULE.mdc` |
 
 ## 加载机制说明
 

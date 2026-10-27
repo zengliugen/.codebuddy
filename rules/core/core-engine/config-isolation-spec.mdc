@@ -65,7 +65,7 @@ provider:
 ├── models.json / settings.local.json        # 机器级/本机级（绑定本机，git 忽略，不外置）
 ├── lib/<pack>/                             # 引擎可选组件池（按包分层）
 └── skills/
-    ├── <pack>/                             # 默认包真实目录 / 可选包链接（按 packs.json）
+    ├── <pack>/                             # location=engine 真实目录 / lib 与 project 为链接
     └── project -> ../../.codebuddy.project/skills/project  # 项目专有包软链接（入库）
 <项目根>/.codebuddy.project/                  # 项目侧（具体项目）
 ├── configs/                                  # 配置（入库）
@@ -147,7 +147,7 @@ provider:
 |------|------|
 | **配置缺失即报错** | 读取失败、文件缺失或缺必需字段时**报错退出**（非 0 退出码 + 可操作的错误消息），不得回退内置默认值 |
 | **不内置任何默认值** | 脚本不得为配置字段提供默认值（通用的也不行）；配置是唯一事实来源 |
-| **报错信息可操作** | 错误消息须指明缺失的配置路径/字段名，并给出补齐位置（如配置指南文档、`codebuddy-init` 技能） |
+| **报错信息可操作** | 错误消息须指明缺失的配置路径/字段名，并给出补齐位置（如配置指南文档、`core-init` 技能） |
 | **路径可覆盖** | 提供命令行参数（如 `--config`）允许显式指定配置路径 |
 | **定位须用锚点 + 索引** | 推导项目根时向上查找**锚点标志**（`.git`、`.codebuddy`、`.editorconfig`）而非硬编码向上层数；再由 `.codebuddy/project.index.json` 按**逻辑名**取项目侧配置路径。索引内**禁止绝对路径**（跨项目共享前提），脚本须校验并拒绝绝对路径 |
 | **分层合并** | 分层配置（引擎通用 + 项目侧）读取时**深度合并**：字典递归覆盖、数组取并集、标量项目侧优先 |
@@ -185,7 +185,7 @@ provider:
 ### 3.6 配置注册表登记（引擎侧唯一索引）
 
 引擎侧新增/修改**需项目配置**的技能配置时，必须在 `.codebuddy/project.index.json` 登记，
-使 `codebuddy-init` 技能能据此生成项目侧骨架、各脚本能据此定位配置。
+使 `core-init` 技能能据此生成项目侧骨架、各脚本能据此定位配置。
 
 | 场景 | 操作 |
 |------|------|
@@ -210,7 +210,7 @@ provider:
 | 项目仓库（项目专有技能/脚本） | **不登记** | `Path(__file__)` 相对推算 | 项目自有清单、项目技能的参数文件 |
 
 原因：索引的存在理由是**跨项目共享**——引擎里有一份技能，各项目要读不同取值，需要一张表指路。
-项目专有内容本来就不跨项目，路径是它自己的事。把它登进索引，其他项目运行 `codebuddy-init`
+项目专有内容本来就不跨项目，路径是它自己的事。把它登进索引，其他项目运行 `core-init`
 会被生成一份用不上的骨架。
 
 配套自查：
@@ -218,11 +218,11 @@ provider:
 1. 新增内容落在 `.codebuddy.project/{rules,skills,agents}/project/` → **一律不碰索引**
    （三条线机制相同：经目录软链接加载，见 §3.7）。
 2. 只有**同时改了引擎侧技能**、且该技能需要读项目值 → 才登记 `files`。
-3. 登记后问一句：其他项目跑 `codebuddy-init` 会不会生成它们用不上的骨架？会 → 登错了。
+3. 登记后问一句：其他项目跑 `core-init` 会不会生成它们用不上的骨架？会 → 登错了。
 
 `check_manifest.py` 会校验此约束：索引项若指向项目专有包路径，报告不一致。
 
-注册表 schema 与逻辑名约定详见 `skills/codebuddy-init/references/index-spec.md`。
+注册表 schema 与逻辑名约定详见 `skills/core/core-init/references/index-spec.md`。
 
 ## 4. 文档示例的泛化
 
@@ -259,7 +259,7 @@ provider:
 
 ### 5.1 标注形式
 
-**整文件**（如项目侧 `rules/project-guide/` 各文件）——在正文开头加统一标注块：
+**整文件**（如项目侧 `rules/core/core-project-guide/` 各文件）——在正文开头加统一标注块：
 
 ```markdown
 > **本规则记录的是本项目的实际事实**（目录结构、包依赖、测试约束等）。
@@ -339,27 +339,28 @@ provider:
 - [ ] 脚本定位是否用**锚点 + 索引**（而非固定层数回溯）？是否校验并拒绝索引中的绝对路径？
 - [ ] 文档示例是否已泛化（无项目专有命名）？
 - [ ] 项目事实是否已外置到项目侧（规则薄壳引用），或已加标注且未破坏 Markdown 结构？
-- [ ] 运行 `codebuddy-init` 脚本能否在本项目正确生成/补齐骨架？
+- [ ] 运行 `core-init` 脚本能否在本项目正确生成/补齐骨架？
 
 ### 检测命令
 
-> **路径须先核对**：以下命令基于本仓库的目录结构（项目技能位于 `.codebuddy/skills/<技能名>/`）。
-> 使用前先确认路径存在，避免通配符不匹配导致**假阴性**（命令无输出被误判为「通过」）。
+> **路径须先核对**：以下命令基于当前目录结构——默认包在 `.codebuddy/{rules,skills}/<pack>/`，
+> 可选包源在 `.codebuddy/lib/<pack>/{rules,skills}/`。使用前先确认路径存在，避免通配符不匹配导致
+> **假阴性**（命令无输出被误判为「通过」）。
 >
-> **扫描范围说明**：`skills/*/` 通配符只匹配一级子目录，**天然跳过 `skills/third-party/`**（三方内容按上游原样维护，
-> 不纳入项目硬编码整改范围）。这是刻意为之：三方技能中的上游名称不属「未标注的项目事实」。
+> **扫描范围说明**：`lib/` 下的 `yao-meta-skill` 与 `grilling` 中，前者为只读 vendor（正文保留上游原语言），
+> 不纳入项目硬编码整改范围；后者已本地维护，纳入范围。
 
 **扫描脚本中的项目专属硬编码**（按目标项目替换关键词）：
 
 ```bash
-# 1) Python 脚本
-grep -rn "LittleBaby\|com\.littlebaby\|Battle\|Game\|Assets/Game\|Assets/Battle\|Client\.slnx\|Program/Client" \
-  .codebuddy/skills/*/scripts/*.py \
+# 1) Python 脚本（覆盖默认包与可选包两个源）
+grep -rn "LittleBaby\|com\.littlebaby\|Assets/Game\|Assets/Battle\|Client\.slnx\|Program/Client" \
+  .codebuddy/skills/*/*/scripts/*.py .codebuddy/lib/*/skills/*/scripts/*.py \
   | grep -v "check_logs\|__pycache__\|^\s*#"
 
-# 2) C# 工具源码（注意 tools 位于 skills/<技能>/tools/<工具>/）
+# 2) C# 工具源码（tools 位于 skills/<pack>/<技能>/tools/<工具>/）
 grep -rn "LittleBaby\|com\.littlebaby\|Assets/Game\|Assets/Battle\|Client\.slnx\|Program/Client" \
-  --include="*.cs" .codebuddy/skills/*/tools/ \
+  --include="*.cs" .codebuddy/skills/*/*/tools/ .codebuddy/lib/*/skills/*/tools/ \
   | grep -v "/bin/\|/obj/"
 ```
 
@@ -370,8 +371,9 @@ grep -rn "LittleBaby\|com\.littlebaby\|Assets/Game\|Assets/Battle\|Client\.slnx\
 
 ```bash
 grep -rn "com\.littlebaby\|LittleBaby\.Framework\|Packages/com\.littlebaby" \
-  .codebuddy/rules .codebuddy/skills/*/SKILL.md .codebuddy/skills/*/references \
-  .codebuddy/agents \
+  .codebuddy/rules .codebuddy/lib/*/rules \
+  .codebuddy/skills/*/*/SKILL.md .codebuddy/skills/*/*/references \
+  .codebuddy/lib/*/skills/*/SKILL.md .codebuddy/lib/*/skills/*/references \
   | grep -v "check_logs\|/reports/\|evals/"
 ```
 
@@ -400,7 +402,7 @@ ls .codebuddy/skills/*/tools/*/*.cs        # 应列出工具源码（若无输�
      exclusions = config["exclude_dirs"]   # 不提供默认值
   4. 文档示例用占位符：
      python scripts/foo.py --path <目标目录>
-  5. 运行 codebuddy-init 脚本验证骨架可生成
+  5. 运行 core-init 脚本验证骨架可生成
 ```
 
 ```
@@ -454,7 +456,7 @@ ls .codebuddy/skills/*/tools/*/*.cs        # 应列出工具源码（若无输�
 | 配置外置 | 各技能的项目配置外置为独立文件（当时位于技能目录内） |
 | C# 工具默认值通用化 | `CoverageConfig.cs`、`RuntimeMemberCollector.cs`、`CommentRules.cs` 的项目专属默认值与硬编码判断改为读配置 |
 | 示例泛化 | 各规则的代码/路径/命令示例改用 Unity 通用命名或占位符 |
-| 项目事实标注 | `project-guide/` 6 文件、`naming-layout.mdc` 存量表、`architecture-spec.mdc` 依赖顺序、agent 格式口径等 |
+| 项目事实标注 | `core-project-guide/` 6 文件、`csharp-test/naming-layout.mdc` 存量表、`csharp-code-review/architecture-spec.mdc` 依赖顺序、agent 格式口径等 |
 
 **第二阶段（2026-10）**：引擎/配置解耦，`.codebuddy` 转为**可任意迁移、可跨项目共享的纯引擎**：
 
@@ -462,9 +464,9 @@ ls .codebuddy/skills/*/tools/*/*.cs        # 应列出工具源码（若无输�
 |--------|------|
 | 项目配置外置 | 5 个 `config.json` + `project-config.md` + 项目专属数据文件迁至项目根 `.codebuddy.project/` |
 | 分层配置拆分 | `coverage_config` / `comment_config` 按「通用留引擎、项目值外置」拆分，读取时深度合并 |
-| 规则薄壳化 | `project-guide/**`、`csharp-code/architecture-spec.mdc`、`csharp-lsp/RULE.mdc`、`csharp-test/naming-layout.mdc` 的项目事实正文外置，引擎侧保留薄壳 |
+| 规则薄壳化 | `core-project-guide/**`、`csharp-code-review/architecture-spec.mdc`、`csharp-lsp.entry/`、`csharp-test/naming-layout.mdc` 的项目事实正文外置，引擎侧保留薄壳 |
 | 配置注册表 | 新增 `.codebuddy/project.index.json`（入库，路径 + 骨架），各脚本经逻辑名定位 |
-| 初始化技能 | 新增 `codebuddy-init`，依据索引为新项目生成项目侧配置骨架 |
+| 初始化技能 | 新增 `core-init`，依据索引为新项目生成项目侧配置骨架 |
 | 迁移机制废除 | 删除 `MIGRATION.md` / `INVENTORY.md` / `codebuddy-migration-sync` 规则 / 导出 zip + patch 体系（改由 submodule 版本化分发） |
 
 **后续维护**：新增技能或修改既有技能时按本规则执行；发现存量遗漏时按上述方式修正并更新本节。

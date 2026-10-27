@@ -36,7 +36,7 @@ provider:
 
 ## 代码风格指引
 
-代码风格与命名规范**以项目侧实际约定为准**（探测线索：`.editorconfig`、语言格式化工具配置、既有代码风格）。本项目如安装了对应语言包，其风格规则（如 `rules/csharp-code/quality-spec.mdc`、`rules/csharp-comment/`）会在该语言文件上自动生效，本规则不重复维护。
+代码风格与命名规范**以项目侧实际约定为准**（探测线索：`.editorconfig`、语言格式化工具配置、既有代码风格）。本项目如安装了对应语言包，其风格规则（如 `rules/csharp/csharp-code-review/quality-spec.mdc`、`rules/csharp/csharp-comment/`）会在该语言文件上自动生效，本规则不重复维护。
 
 ## 加载机制说明
 

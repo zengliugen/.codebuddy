@@ -46,7 +46,7 @@
 
 > **语义保证**：忽略目录内的文件不会出现在检查结果中，修复模式也绝不会改写其中任何文件。
 
-**检查范围口径**：仅覆盖 `Assets/` 与 `Packages/` 下的自研代码（`Assets/Game`、`Assets/Battle`、`Packages/com.littlebaby.framework.*`），`Assets/`、`Packages/` 之外的目录（如 `.codebuddy/`）不在检查范围内。该口径同时体现在 `rules/csharp-code/RULE.mdc` 的范围声明中，**新增排除项时两处一并更新**。
+**检查范围口径**：仅覆盖 `Assets/` 与 `Packages/` 下的自研代码（`Assets/Game`、`Assets/Battle`、`Packages/com.littlebaby.framework.*`），`Assets/`、`Packages/` 之外的目录（如 `.codebuddy/`）不在检查范围内。该口径同时体现在 `csharp-code-review/RULE.mdc` 的范围声明中，**新增排除项时两处一并更新**。
 
 本项目当前默认值（生成目录逐一显式声明，形成配置声明 + auto-generated 识别 + 范围限定的三重保护）：
 

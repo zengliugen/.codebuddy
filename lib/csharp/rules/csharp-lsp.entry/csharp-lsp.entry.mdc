@@ -50,7 +50,7 @@ LSP 环境检查与工具调用的执行细节由技能承担。
 
 - **Grep 与 LSP 查询必须同时覆盖业务代码目录与框架包目录**：业务代码与框架包各自承载不同代码，只搜其一会漏掉跨目录引用。
   > **本项目实际的搜索目录**（迁移时按目标项目目录结构改写）：见 `.codebuddy/project.index.json` 的
-  > `rule_shells["rules/csharp/csharp-lsp/RULE.mdc"].path` 指向的项目侧文件。
+  > `rule_shells["rules/csharp/csharp-lsp.entry/csharp-lsp.entry.mdc"].path` 指向的项目侧文件。
 - Grep 搜索命令须显式指定两个目录，禁止省略框架包目录（如 `grep -rn "符号" Assets Packages --include="*.cs"`）。
 - LSP 的 workspace 索引若未覆盖框架包目录或部分程序集（**受影响程序集见项目侧正文**），须以 Grep 结果为准，并注明索引局限。
 - 非 C# 文件中的引用（`.unity` 场景、`.asmdef`、`.meta` 等）LSP 不覆盖；确需检索时由 Grep 显式扩展 `--include`。

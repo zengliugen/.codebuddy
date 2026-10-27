@@ -18,15 +18,16 @@
 
 | 逻辑名 | 项目侧文件 | 填写指导 | 探测线索 |
 |--------|-----------|---------|---------|
-| `format_checker.config` | `skills/csharp-format-checker/config.json` | `.codebuddy/lib/csharp/skills/csharp-format-checker/references/config-guide.md` | 解决方案/工程文件（`.slnx`/`.sln`/`.csproj`）；三方库与生成代码目录（`Assets/Plugins`、`Library/PackageCache`、各 `Gen/`、`Generated/`）；项目根 `.editorconfig` 必须存在 |
-| `code_review.config` | `skills/csharp-code-review/config.json` | 该技能 `SKILL.md` 与 `references/` | 纳入审查的文件模式（默认 `*.cs`）；排除清单（生成目录、三方库、审查范围外目录）；**口径须与 format-checker 的 `exclude_dirs` 一致** |
-| `git_commit.config` | `skills/git-commit/config.json` | `.codebuddy/skills/vcs/vcs-git-commit/references/project-config.md` §0 | 团队提交 type 枚举、subject/scope 长度上限、subject 语言 |
-| `git_commit.project_config` | `skills/git-commit/project-config.md` | 该文件自身的章节骨架 + 引擎侧 `references/project-config.md` §1.5/§2 | 项目目录结构 → scope 映射；**提交/推送发起权**（`commit_initiation`/`push_initiation`：`user_only` 或 `llm_allowed`）；审查门禁参数（`enabled`/`include_patterns`/`exclude_patterns`/`blocking_level`）；H1 钩子步骤 |
-| `coverage.project_config` | `skills/csharp-test-coverage/tools/CSharpTestCoverage/coverage_config.project.json` | `.codebuddy/lib/csharp/skills/csharp-test-coverage/references/config-guide.md` | 运行时源码根、扫描范围、UPM 包名前缀 → 命名空间映射、真实采集程序集前缀、覆盖率产物目录 |
-| `comment.project_config` | `skills/csharp-comment-checker/tools/CSharpCommentChecker/comment_config.project.json` | `.codebuddy/lib/csharp/skills/csharp-comment-checker/references/config-guide.md` | 排除目录（三方库、生成代码）；保留英文的项目术语（自研库名、选用库名）；`rules` 通用规则在引擎侧，无需填写 |
-| `coverage.golden_samples` | `skills/csharp-test-coverage/scripts/golden_samples.json` | 该技能 `SKILL.md` | 项目已知正确的覆盖率样本（目标路径 + 期望）；新项目可先留空 `samples: []`，后续按需补充 |
-| `coverage.trigger_cases` | `skills/csharp-test-coverage/scripts/trigger_cases.json` | `skills/csharp-test-coverage/references/` | 触发评估用例（应/不应触发样例）；含项目路径的用例仅为举例，可替换 |
-| `format_checker.trigger_cases` | `skills/csharp-format-checker/evals/trigger/trigger_cases.json` | `skills/csharp-format-checker/references/` | 同上 |
+| `format_checker.config` | `.codebuddy.project/configs/skills/csharp/csharp-format-checker/config.json` | `.codebuddy/lib/csharp/skills/csharp-format-checker/references/config-guide.md` | 解决方案/工程文件（`.slnx`/`.sln`/`.csproj`）；三方库与生成代码目录（`Assets/Plugins`、`Library/PackageCache`、各 `Gen/`、`Generated/`）；项目根 `.editorconfig` 必须存在 |
+| `code_review.config` | `.codebuddy.project/configs/skills/csharp/csharp-code-review/config.json` | 该技能 `SKILL.md` 与 `references/` | 纳入审查的文件模式（默认 `*.cs`）；排除清单（生成目录、三方库、审查范围外目录）；**口径须与 format-checker 的 `exclude_dirs` 一致** |
+| `git_commit.config` | `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json` | `.codebuddy/skills/vcs/vcs-git-commit/references/project-config.md` §0 | 团队提交 type 枚举、subject/scope 长度上限、subject 语言 |
+| `git_commit.project_config` | `.codebuddy.project/configs/skills/vcs/vcs-git-commit/project-config.md` | 该文件自身的章节骨架 + 引擎侧 `references/project-config.md` §1.5/§2 | 项目目录结构 → scope 映射；**提交/推送发起权**（`commit_initiation`/`push_initiation`：`user_only` 或 `llm_allowed`）；审查门禁参数（`enabled`/`include_patterns`/`exclude_patterns`/`blocking_level`）；H1 钩子步骤 |
+| `coverage.project_config` | `.codebuddy.project/configs/skills/csharp/csharp-test-coverage/tools/CSharpTestCoverage/coverage_config.project.json` | `.codebuddy/lib/csharp/skills/csharp-test-coverage/references/config-guide.md` | 运行时源码根、扫描范围、UPM 包名前缀 → 命名空间映射、真实采集程序集前缀、覆盖率产物目录 |
+| `comment.project_config` | `.codebuddy.project/configs/skills/csharp/csharp-comment-checker/tools/CSharpCommentChecker/comment_config.project.json` | `.codebuddy/lib/csharp/skills/csharp-comment-checker/references/config-guide.md` | 排除目录（三方库、生成代码）；保留英文的项目术语（自研库名、选用库名）；`rules` 通用规则在引擎侧，无需填写 |
+| `coverage.golden_samples` | `.codebuddy.project/configs/skills/csharp/csharp-test-coverage/scripts/golden_samples.json` | 该技能 `SKILL.md` | 项目已知正确的覆盖率样本（目标路径 + 期望）；新项目可先留空 `samples: []`，后续按需补充 |
+| `coverage.trigger_cases` | `.codebuddy.project/configs/skills/csharp/csharp-test-coverage/scripts/trigger_cases.json` | 该技能 `references/` | 触发评估用例（应/不应触发样例）；含项目路径的用例仅为举例，可替换 |
+| `format_checker.trigger_cases` | `.codebuddy.project/configs/skills/csharp/csharp-format-checker/evals/trigger/trigger_cases.json` | 该技能 `references/` | 同上 |
+| `comment_checker.trigger_cases` | `.codebuddy.project/configs/skills/csharp/csharp-comment-checker/scripts/trigger_cases.json` | 该技能 `references/` | 触发评估用例（应/不应触发样例）；含项目路径与术语的用例仅为举例，可替换 |
 | `codebuddy.settings`（根级软链接外置） | `settings.json`（项目根 `.codebuddy.project/configs/settings.json`） | 本节下方「根级软链接外置文件」 | `language`（界面/回复语言）；`env`（会话环境变量，含 `CODEBUDDY_REPL_NESTED_TIMEOUT_MS` 嵌套交互超时）；`permissions`/`enabledPlugins` 按团队约定；**`memory.teamMemory.userId` 不写**（由使用者本机自动推导，见下方说明）；**不含凭据**（凭据在引擎根 `models.json`/`settings.local.json`，不外置） |
 | `rule_shells.*`（规则项目事实正文） | `rules/**` | 各技能 `references/` 与 `rules/` 薄壳内的强制条款 | 项目目录结构、依赖关系、启动流程、第三方依赖、测试目录现状等**项目事实**；须实测核对（依赖方向读构建清单、版本读依赖锁定文件、忽略范围用 `git check-ignore` 验证） |
 

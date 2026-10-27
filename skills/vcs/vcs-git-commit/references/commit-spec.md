@@ -13,7 +13,7 @@
 其中：
 - **type**：提交类型（必填）。
 - **scope**：影响范围（可选，建议填写）。
-- **subject**：简短描述（必填，不超过项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）的 `subject_max_len`（默认 50）字符）。
+- **subject**：简短描述（必填，不超过项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`（索引 `git_commit.config`）的 `subject_max_len`（默认 50）字符）。
 
 ## 提交类型（type）
 
@@ -65,10 +65,10 @@
 
 ## 主题（subject）规范
 
-- 按项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）的 `subject_language` 撰写（默认简体中文）。
+- 按项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`（索引 `git_commit.config`）的 `subject_language` 撰写（默认简体中文）。
 - 以动词开头，描述本次提交做了什么。
 - 不使用句号结尾。
-- 控制在项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）的 `subject_max_len`（默认 50）字符以内。
+- 控制在项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`（索引 `git_commit.config`）的 `subject_max_len`（默认 50）字符以内。
 
 ### ✅ 正确示例
 

@@ -89,7 +89,7 @@ provider:
 | 2 | `location` 变更意味着物理位置变更 → 按「搬迁」流程走 |
 | 3 | `default` 变更会影响所有项目 → 在 README 包表标注，并在 `refactor-sync.mdc` 记录影响面 |
 | 4 | 检查**引用边界**：新增 `requires` 后，原本「跨包引用违规」的正文是否已合规；删除 `requires` 后，是否有正文变成违规 |
-| 5 | 跑 `check_manifest.py`（校验默认包为真实目录、可选包为链接、跨包引用边界） |
+| 5 | 跑 `check_manifest.py`（按 `location` 校验扫描根形态：`engine` 为真实目录、`lib` 与 `project` 为链接；另查跨包引用边界） |
 
 ## 三、判定「是否漏改」的三条通用方法
 

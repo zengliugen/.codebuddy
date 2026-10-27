@@ -1,5 +1,5 @@
 ---
-description: Git 提交执行规范索引 —— 提交摘要格式、授权与安全检查、Git 特定约束的规范入口。本文件是规范规则（不是入口规则）：不定义「必须走哪个技能」，由 vcs-git-commit 技能按需加载同目录的分项规范。入口约束见同目录 vcs-git-commit.entry.mdc。
+description: Git 提交执行规范索引 —— 提交摘要格式、授权与安全检查、Git 特定约束的规范入口。本文件是规范规则（不是入口规则）：不定义「必须走哪个技能」，由 vcs-git-commit 技能按需加载同目录的分项规范。入口约束见同包 vcs-router.entry/。
 alwaysApply: false
 enabled: true
 updatedAt: 2026-10-26T00:00:00.000Z
