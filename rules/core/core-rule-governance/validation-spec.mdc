@@ -14,7 +14,13 @@ provider:
 
 1. **入口规则必须独占目录**：`<规则名>.entry/<规则名>.entry.mdc`，目录名与文件主干一致。
 
-2. **有对应技能的规范规则必须 `alwaysApply: false`**；无技能的底线规范允许 `alwaysApply: true`（见 §1 例外）。
+2. **`alwaysApply` 按类型唯一取值，`paths` 一律禁止**：入口规则 `alwaysApply: true`；规范规则
+   `alwaysApply: false`；无技能的底线规范 `alwaysApply: true`。任何规则都不得出现 `paths`
+   （判据与理由见 `classification-spec.mdc` §1 与 §1.1）。
+
+2.1 **技能侧同规**：`agents/interface.yaml` 的 `compatibility.activation.mode` 不得为
+   `path_scoped`，`activation.paths` 必须为空。规则与技能是两处独立触发面，只清规则侧
+   会让同一问题从技能侧重新长出来（见 `classification-spec.mdc` §1.2）。
 
 3. **规范名必须是使用它的所有技能名的共同前缀**。单技能时同名；多技能时取共同前缀。
 
@@ -27,6 +33,14 @@ provider:
 5.1 **`RULE.mdc` 按角色写，不得错位**（见 `classification-spec.mdc` §三）：索引型只做路由，底线型必须自带
    完整判据。把索引型写成细则堆砌、或把底线型写成只有路由的空壳，都属违规。
 
+5.2 **底线型常驻必须同步压缩正文**（见 `classification-spec.mdc` §3.1）：由按需切换为常驻时，
+   论证、命令样例、目录树、历史踩坑一律下移子规则，RULE 只留判据、操作要求、失败形态与路由表。
+   未压缩即视为把细则转嫁为每轮常驻成本。
+
+5.3 **正文与 frontmatter 必须一致**：`alwaysApply: true` 的规则不得在正文写「按路径触发」
+   「不产生常驻成本」「仅在操作 X 时注入」；`alwaysApply: false` 的规则不得在正文宣称常驻。
+   `description` 同理——它是最先被读到的一句，说错会直接误导加载判断。
+
 6. **改名必须同步五处**：目录名、`packs.json`（引擎侧）、`project.index.json`（若登记）、
    规则全景表、所有正文引用。漏任一处即形成悬空引用。
 
@@ -35,13 +49,16 @@ provider:
 
 ## 二、校验
 
-`check_manifest.py` 现已覆盖三条：
+`check_manifest.py` 现已覆盖四条：
 
 | 校验项 | 内容 |
 |---|---|
 | 项 8 | 组件名必须为 `<包名>-` 开头，或等于包名（命名约定） |
-| 项 9 | ① 入口目录 `<名>.entry/` 内必须有同名 `<名>.entry.mdc`；② 入口规则必须有对应技能（或为其共同前缀）；③ `RULE.mdc` 若 `alwaysApply: true` 则不得有同名技能（底线规范例外） |
+| 项 9 | ① 入口目录 `<名>.entry/` 内必须有同名 `<名>.entry.mdc`；② 入口规则必须有对应技能（或为其共同前缀）；③ 入口规则必须 `alwaysApply: true`；④ `RULE.mdc` 若 `alwaysApply: true` 则不得有同名技能（底线规范例外） |
 | 项 10 | 项目侧 `.codebuddy.project/rules/project/` 与 `.codebuddy.project/skills/project/` 同样适用项 8 与项 9 的命名与落位规则 |
+| 项 11 | 触发字段：全库（引擎侧 + 项目侧）任何 `*.mdc` 的 frontmatter 均不得出现 `paths` 键；入口规则必须声明 frontmatter 且 `alwaysApply: true`；子规则不得 `alwaysApply: true`。只检查 frontmatter，正文引述 `paths` 字样不误报；`alwaysApply: true  # 注释` 与 `"true"` 写法均视为合规 |
+| 项 12 | 技能激活：`agents/interface.yaml` 的 `activation.mode` 不得为 `path_scoped`，`activation.paths` 必须为空。引擎侧与项目侧技能同规；`evals/`、`reports/`、`examples/`、`.previews/`、`tests/fixtures/` 下的样例不参与 |
 
-校验未覆盖的部分（命名是否为共同前缀、技能是否被拉起）须**人工判定**，
-在新增/改名时按 `classification-spec.mdc` §2.2 与 §2.3 执行。
+校验未覆盖的部分（命名是否为共同前缀、技能是否被拉起、底线型正文是否已压缩、正文与 frontmatter
+是否一致）须**人工判定**，在新增/改名时按 `classification-spec.mdc` §2.2、§2.3、§3.1 与
+本文件 §5.2、§5.3 执行。

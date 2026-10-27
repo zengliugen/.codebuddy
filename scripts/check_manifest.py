@@ -22,6 +22,14 @@
      允许项：本包自身组件、依赖闭包内包组件、同行命中 `BENIGN_CONTEXT` 的叙述性引用
      （「走 X」「不替代 X」等分流/关系说明）、`evals/` 与 `reports/` 目录（不参与运行时）、
      显式标注 `pack-ref-ok` 的行。
+  8. 组件命名必须为 `<包名>-` 开头，或等于包名。
+  9. 规则分类与落位：入口规则独占 `<名>.entry/` 目录且有同名文件与对应技能；入口规则
+     必须 `alwaysApply: true`；有同名技能的 `RULE.mdc` 不得 `alwaysApply: true`。
+  10. 项目专有包（`.codebuddy.project/<类型>/project/`）同样适用 8 与 9 的命名与落位约定。
+  11. 触发字段：全库 `*.mdc` 不得出现 `paths`；入口规则必须 `alwaysApply: true`（缺 frontmatter
+      即违规）；子规则不得 `alwaysApply: true`。
+  12. 技能激活：`agents/interface.yaml` 的 `activation.mode` 不得为 `path_scoped`，
+      `activation.paths` 必须为空——技能的唤起靠 `description` 与 `activation.triggers`。
 
 退出码：
   0 —— 一致
@@ -247,6 +255,90 @@ def pack_of_file(codebuddy_dir, path):
     return None
 
 
+def read_yaml_block(path, key):
+    """按缩进提取 YAML 中某个顶层键的值块（不引入 PyYAML 依赖）。
+
+    只服务「读 activation 段」这一种需求：先定位 `key:` 行，再收集其后
+    缩进更深的所有行，遇到缩进不深于 `key` 的行即结束。
+
+    参数：
+        path：YAML 文件路径。
+        key：目标顶层键名。
+
+    返回：
+        (块内行列表, key 行的缩进)；文件不存在或找不到该键时返回 (None, None)。
+    """
+    try:
+        with open(path, "r", encoding="utf-8-sig") as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return None, None
+    pattern = re.compile(r"^(\s*)%s\s*:\s*$" % re.escape(key))
+    for index, line in enumerate(lines):
+        match = pattern.match(line)
+        if not match:
+            continue
+        indent = len(match.group(1))
+        block = []
+        for follow in lines[index + 1:]:
+            if not follow.strip():
+                block.append(follow)
+                continue
+            if len(follow) - len(follow.lstrip()) <= indent:
+                break
+            block.append(follow)
+        return block, indent
+    return None, None
+
+
+# 不参与技能触发校验的目录（示例、评测夹具、预览产物，均非真实生效的技能）
+SKILL_SCAN_SKIP_DIRS = ("evals", "reports", "caches", "__pycache__", ".previews",
+                        "examples", "fixtures")
+
+
+def check_skill_activation(codebuddy_dir, project_root):
+    """校验技能不得使用路径触发（校验项 12）。
+
+    约定（见 rules/core/core-rule-governance/ 与技能工程规范）：
+      1. `agents/interface.yaml` 的 `compatibility.activation.mode` 不得为 `path_scoped`；
+      2. `activation.paths` 必须为空（`[]` 或缺省）——技能的唤起靠 `description` 与
+         `activation.triggers`，路径条件会在「文件已改」之后才命中，赶不上决策点。
+
+    为什么要覆盖这条：规则侧的 `paths` 已全库清除，但技能是**另一处触发面**——
+    `interface.yaml` 里如果写了 `mode: path_scoped` + `paths`，同一个「事后触发」
+    问题会从技能侧重新长出来，而规则校验完全看不到它。
+
+    返回：
+        缺口列表
+    """
+    problems = []
+    roots = [codebuddy_dir, os.path.join(project_root, ".codebuddy.project")]
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d not in SKILL_SCAN_SKIP_DIRS]
+            if "interface.yaml" not in filenames:
+                continue
+            if os.path.basename(dirpath) != "agents":
+                continue
+            full = os.path.join(dirpath, "interface.yaml")
+            rel = os.path.relpath(full, project_root).replace("\\", "/")
+            block, _indent = read_yaml_block(full, "activation")
+            if block is None:
+                continue
+            text = "\n".join(block)
+            mode = re.search(r"(?m)^\s*mode\s*:\s*[\"']?([A-Za-z_]+)[\"']?", text)
+            if mode and mode.group(1) == "path_scoped":
+                problems.append(
+                    "技能不得使用 path_scoped 激活（改为 manual + triggers）：%s" % rel)
+            if re.search(r"(?m)^\s*paths\s*:", text) and not re.search(
+                    r"(?m)^\s*paths\s*:\s*\[\s*\]\s*$", text):
+                problems.append(
+                    "技能 activation.paths 必须为空（技能靠 description 与 triggers 唤起）：%s" % rel)
+    return problems
+
+
 def check_component_naming(packs):
     """校验组件命名是否符合「包前缀」约定（校验项 8）。
 
@@ -349,6 +441,95 @@ def check_rule_classification(codebuddy_dir, packs):
                 problems.append(
                     "规范规则不应 alwaysApply: true：%s（该包存在同名技能 %s，规范应由其按需加载）"
                     % (os.path.relpath(rf, codebuddy_dir).replace("\\", "/"), rule))
+    return problems
+
+
+def read_frontmatter(path):
+    """读取 *.mdc 的 frontmatter 头。
+
+    返回：
+        frontmatter 文本；文件不以 `---` 开头时返回 None（视为没有触发字段声明）。
+    """
+    try:
+        with open(path, "r", encoding="utf-8-sig") as handle:
+            text = handle.read()
+    except OSError:
+        return None
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    return text[:end] if end != -1 else text
+
+
+def has_true_flag(head, key):
+    """判断 frontmatter 中某个键是否为真值。
+
+    兼容三类合法写法，避免把 `true  # 常驻` 误判为不合规：
+      - `alwaysApply: true`
+      - `alwaysApply: true  # 注释`（YAML 行尾注释）
+      - `alwaysApply: "true"` / `'true'`
+
+    参数：
+        head：frontmatter 文本。
+        key：字段名。
+
+    返回：
+        是否声明为真值。
+    """
+    pattern = r"(?m)^%s\s*:\s*[\"']?true[\"']?\s*(?:#.*)?$" % re.escape(key)
+    return re.search(pattern, head) is not None
+
+
+def check_trigger_fields(codebuddy_dir, project_root):
+    """校验 alwaysApply 与 paths 的取值（校验项 11）。
+
+    约定（见 rules/core/core-rule-governance/classification-spec.mdc §1 与 §1.1）：
+      1. 任何规则都不得出现 `paths`——触发语义只保留「常驻」与「被显式读取」两种；
+         常见崩溃形态是「文件已写坏规则才到场」与「路径模式与实际目录不符导致永不生效」；
+      2. 入口规则必须 `alwaysApply: true`，且必须声明 frontmatter；
+      3. 非入口规则（规范规则与子规则）不得 `alwaysApply: true`——它们只能被入口或技能
+         显式读取，常驻会形成双份注入。例外是无对应技能的底线型 `RULE.mdc`：这类规则
+         没有加载方，必须常驻，其判定与 `check_rule_classification` 项 9 保持一致。
+
+    背景：判定条件全部只看 frontmatter。正文里出现 `paths:` 字样（如引述历史配置、
+    说明为什么弃用）不构成触发配置，不应误报。
+
+    返回：
+        缺口列表
+    """
+    problems = []
+    project_root = os.path.abspath(project_root)
+    roots = [codebuddy_dir, os.path.join(project_root, ".codebuddy.project")]
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for dirpath, _dirnames, filenames in os.walk(root):
+            for name in sorted(filenames):
+                if not name.endswith(".mdc"):
+                    continue
+                full = os.path.join(dirpath, name)
+                rel = os.path.relpath(full, project_root).replace("\\", "/")
+                is_entry = dirpath.endswith(".entry") and name.endswith(".entry.mdc")
+                head = read_frontmatter(full)
+                if head is None:
+                    if is_entry:
+                        problems.append(
+                            "入口规则缺少 frontmatter（须 alwaysApply: true）：%s" % rel)
+                    continue
+                if re.search(r"(?m)^paths\s*:", head):
+                    problems.append(
+                        "规则不得使用 paths（改为常驻，或由入口/技能显式加载）：%s" % rel)
+                    continue
+                if is_entry:
+                    if not has_true_flag(head, "alwaysApply"):
+                        problems.append("入口规则必须 alwaysApply: true：%s" % rel)
+                    continue
+                # 非入口规则：只允许「无技能的底线型 RULE.mdc」常驻，其余必须为 false。
+                # 是否属底线型由 check_rule_classification 依据 packs.json 的 comps.skills 判定，
+                # 此处只拦「子规则」（非 RULE.mdc）误写常驻这类明确违规。
+                if name != "RULE.mdc" and has_true_flag(head, "alwaysApply"):
+                    problems.append(
+                        "子规则不得 alwaysApply: true（由入口或技能按需加载）：%s" % rel)
     return problems
 
 
@@ -536,6 +717,10 @@ def main():
         problems.extend(check_rule_classification(codebuddy_dir, packs))
         # 10. 项目专有包组件的命名与落位（project- 前缀、入口目录、技能同名）
         problems.extend(check_project_components(os.path.dirname(codebuddy_dir)))
+        # 11. alwaysApply 取值与 paths 禁用（入口常驻、规范不常驻、全库无 paths）
+        problems.extend(check_trigger_fields(codebuddy_dir, os.path.dirname(codebuddy_dir)))
+        # 12. 技能激活方式（不得 path_scoped，activation.paths 必须为空）
+        problems.extend(check_skill_activation(codebuddy_dir, os.path.dirname(codebuddy_dir)))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")

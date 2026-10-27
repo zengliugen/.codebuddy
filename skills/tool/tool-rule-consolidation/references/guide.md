@@ -33,7 +33,7 @@
    - 拆分未减少注入量，反而增加路由表/加载说明等元信息开销。
    - 子规则数量过多造成碎片化（如同一规则下 5+ 个小子规则，且多数 <30 行）。
 
-3. **模式合规检查**：对照 `references/pattern-spec.md`，确认入口 frontmatter（`alwaysApply`/`paths`）、子规则 frontmatter（`alwaysApply: false`）、路由表、加载机制说明是否符合项目统一模式。
+3. **模式合规检查**：对照 `references/pattern-spec.md`，确认入口 frontmatter（`alwaysApply: true`、无 `paths`）、子规则 frontmatter（`alwaysApply: false`、无 `paths`）、路由表、加载机制说明是否符合项目统一模式。
 
 ### 阶段三：制定重组方案
 
@@ -63,7 +63,8 @@
 ### 阶段五：验证
 
 - [ ] 目录结构符合项目模式（入口 + 子规则）？
-- [ ] 入口 frontmatter 保留 `alwaysApply`（或 `paths`）且值正确？
+- [ ] 入口 frontmatter 为 `alwaysApply: true` 且**不含 `paths`**？
+- [ ] 全库检索确认无残留 `paths` 键（`grep -rn '^paths:' --include='*.mdc'`）？
 - [ ] 子规则 frontmatter 均为 `alwaysApply: false`？
 - [ ] 入口含子规则路由表与加载机制说明？
 - [ ] 无残留引用旧路径（`grep` 验证，历史日志除外）？

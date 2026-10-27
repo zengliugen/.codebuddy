@@ -1,7 +1,6 @@
 ---
 description: python-comment 技能强制入口 —— 需要该技能的场景必须经 python-comment 执行，禁止绕过技能手工完成。本文件只定义强制入口，执行规范由技能按需加载。
-alwaysApply: false
-paths: "**/*.py"
+alwaysApply: true
 enabled: true
 updatedAt: 2026-10-26T00:00:00.000Z
 provider:

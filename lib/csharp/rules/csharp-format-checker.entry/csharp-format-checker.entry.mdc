@@ -1,7 +1,6 @@
 ---
 description: csharp-format-checker 技能强制入口 —— 需要检查或修复 C# 代码格式时必须经该技能执行（dotnet format + 项目根 .editorconfig）。禁止凭人工判断代码格式，也禁止在审查流程外自行格式化。本文件是入口规则，执行规范由技能按需加载。
-alwaysApply: false
-paths: "**/*.cs"
+alwaysApply: true
 enabled: true
 updatedAt: 2026-10-26T00:00:00.000Z
 provider:

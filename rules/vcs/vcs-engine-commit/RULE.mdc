@@ -1,7 +1,6 @@
 ---
-description: 引擎仓库提交规范入口（只管 .codebuddy 引擎仓库）—— .codebuddy 自身是独立 Git 仓库，可能以 git submodule 挂入 Git 项目，也可能作为独立 git 检出放在 SVN 等非 Git 项目目录内。两种形态下「引擎改动如何提交、是否要更新父侧指针」不同。本规则不治理宿主仓库的提交（那属 vcs-router 与项目规范）。改动或提交 .codebuddy 内文件时注入。
-alwaysApply: false
-paths: "**/.codebuddy/**"
+description: 引擎仓库提交规范入口（只管 .codebuddy 引擎仓库）—— .codebuddy 自身是独立 Git 仓库，可能以 git submodule 挂入 Git 项目，也可能作为独立 git 检出放在 SVN 等非 Git 项目目录内。两种形态下「引擎改动如何提交、是否要更新父侧指针」不同。本规则不治理宿主仓库的提交（那属 vcs-router 与项目规范）。本规则始终生效（alwaysApply: true）。
+alwaysApply: true
 enabled: true
 updatedAt: 2026-10-26T00:00:00.000Z
 provider:
@@ -26,20 +25,12 @@ provider:
 
 ## 背景
 
-`.codebuddy/` **自身总是一个独立的 Git 仓库**，但它挂进消费项目的方式有两种，不能混同：
+`.codebuddy/` **自身总是一个独立的 Git 仓库**，挂进消费项目有两种形态：**A. git submodule**
+（父仓记录 `160000 <commit>` 指针，提交后必须补指针）与 **B. 独立 git 检出**（置于 SVN 或其他
+非 Git 项目目录内，无指针步骤）。两种形态下 `.codebuddy/` 内的文件**都不属于宿主仓库**，
+改动必须在引擎仓库内提交。
 
-| 形态 | 挂载方式 | 父侧是否记录指针 | 提交后还需做什么 |
-|---|---|---|---|
-| **A. git submodule** | 作为 Git 项目的子模块 | 是（`160000 <commit>` 一行） | 推送引擎后，**必须**在父仓提交指针更新 |
-| **B. 独立 git 检出** | 直接检出在 SVN 或其他非 Git 项目目录内 | 否（宿主不认 Git 提交） | 推送引擎即完成，**没有**指针步骤 |
-
-**关键**：两种形态下，`.codebuddy/` 内的文件**都不属于宿主仓库**——形态 A 里父仓只记录一个 commit 号，
-形态 B 里宿主最多存一份与引擎 Git 历史脱钩的文件快照。改动它们必须在**引擎仓库**内提交。
-
-若不加区分，会出现两类典型错误：
-- **混仓提交**：在项目根（或 SVN 工作副本根）执行 `git commit` / `svn commit` 提交引擎改动——
-  既提交不到引擎仓库，还会把 submodule 指针或文件快照误当普通变更。
-- **错配流程**：形态 B 下仍去找「父仓指针」、或以为需要 `git submodule update`——那套动作在形态 B 不存在。
+形态判别命令、两形态的完整对照、混提交后果与典型正反例见子规则 `engine-commit-spec.mdc` §1—§4。
 
 ## 强制入口规则
 
@@ -79,7 +70,7 @@ provider:
 ## 加载机制说明
 
 - 子规则 `engine-commit-spec.mdc` 为**按需加载**（`alwaysApply: false`），在需要判定引擎提交目标仓库时主动读取。
-- 强制入口规则（本文件内 8 条）随本入口生效；触发条件为 `.codebuddy/**` 路径，不产生常驻成本。
+- 强制入口规则（本文件内 8 条）**始终生效**（`alwaysApply: true`），不设 `paths`。
 - 子规则位于本文件同目录（`rules/vcs/vcs-engine-commit/`）。
 
 ## 与相邻规则的分工
@@ -91,5 +82,4 @@ provider:
 | `core-engine` | core | 引擎内容**怎么写**（项目专有值外置）与**改完还要同步哪些登记点** |
 
 `vcs-router` 与 `vcs-engine-commit` 同属 `vcs` 包：前者管「用什么流程提交」，后者管
-「引擎改动归哪个仓库、要不要补父侧指针」。主题相邻但触发面不同（前者始终生效、后者仅 `.codebuddy/**`），
-职责互不重叠，**不得合并**。
+「引擎改动归哪个仓库、要不要补父侧指针」。两者职责互不重叠，**不得合并**。

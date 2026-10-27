@@ -1,7 +1,6 @@
 ---
 description: csharp-lsp 技能强制入口 —— 需要该技能的场景必须经 csharp-lsp 执行，禁止绕过技能手工完成。本文件是入口规则（只定义「必须走该技能」），执行规范由技能按需加载。
-alwaysApply: false
-paths: "**/*.cs"
+alwaysApply: true
 enabled: true
 updatedAt: 2026-10-26T00:00:00.000Z
 provider:

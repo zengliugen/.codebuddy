@@ -1,7 +1,6 @@
 ---
-description: Python 注释与 docstring 书写规范（操作 .py 文件时注入）—— 三条核心底线：全中文、全角标点、google 风格且说「为什么」。各段完整写法与样本见 docstring-spec.mdc，由 python-comment 技能按需加载。
+description: Python 注释与 docstring 书写规范（始终生效）—— 三条核心底线：全中文、全角标点、google 风格且说「为什么」。各段完整写法与样本见 docstring-spec.mdc，由 python-comment 技能按需加载。
 alwaysApply: false
-paths: "**/*.py"
 enabled: true
 updatedAt: 2026-10-27T00:00:00.000Z
 provider:

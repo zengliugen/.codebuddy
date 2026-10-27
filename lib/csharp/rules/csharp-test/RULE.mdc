@@ -1,7 +1,6 @@
 ---
-description: 测试代码规范入口（操作 `Tests/` 目录下文件时注入）。约束测试文件的目录镜像、文件与类命名、命名空间、专项拆分，以及用例编写与验证要求；测试环境约束见 project-guide/testing.mdc，注释细则见 csharp-comment/，编译与运行经 unity-pipeline（已安装该可选包时强制，未安装降级 dotnet build/test）。
-alwaysApply: false
-paths: "**/Tests/**"
+description: 测试代码规范入口（始终生效）。约束测试文件的目录镜像、文件与类命名、命名空间、专项拆分，以及用例编写与验证要求；测试环境约束见 project-guide/testing.mdc，注释细则见 csharp-comment/，编译与运行经 unity-pipeline（已安装该可选包时强制，未安装降级 dotnet build/test）。
+alwaysApply: true
 enabled: true
 updatedAt: 2026-09-15T00:00:00.000Z
 provider:
@@ -12,7 +11,7 @@ provider:
 <!-- pack-ref-ok: unity-pipeline —— 所有引用均标注了「已安装时强制 / 未安装降级」两分支，
 不构成硬依赖（详见 verification.mdc §1）。 -->
 
-本文件是测试代码规范的**入口规则**，**按路径注入**（`paths: "**/Tests/**"`），仅在操作测试目录下的文件时生效。
+本文件是测试代码规范的**入口规则**，**始终生效**（`alwaysApply: true`）。
 其中「核心底线」是本入口的强制条款，不依赖子规则是否加载。
 
 ## 适用范围与存量约定
@@ -61,7 +60,7 @@ provider:
 
 ## 加载机制说明
 
-- 本文件 `alwaysApply: false` + `paths: "**/Tests/**"`，仅在操作测试目录下文件时注入。
+- 本文件**始终生效**（`alwaysApply: true`），不设 `paths`：测试命名与用例口径必须在写文件之前生效。
 - 3 个子规则均为**按需加载**（`alwaysApply: false`，**不带 `paths`**），由上方路由表按场景主动读取。
 - **为什么子规则不再挂 `paths`**：三者合计 14.6 KB，与 RULE 同挂 `**/Tests/**` 会让每次触碰测试文件
   都注入全部内容。按场景读取才能只在需要时付出成本。

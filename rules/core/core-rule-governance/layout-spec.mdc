@@ -38,11 +38,14 @@ rules/<pack>/
 1. **判定类型**：这条规则是入口（管「必须走哪个技能」）还是规范（管「具体怎么做」）？
 2. **判定命名**：按 `classification-spec.mdc` §2.2 确定名称——单技能同名、多技能取共同前缀。
 3. **建文件**：
-   - 入口规则 → 目录 `<规则名>.entry/` 下建 `<规则名>.entry.mdc`，frontmatter 按触发场景取
-     `alwaysApply` 或 `paths`
-   - 规范规则 → 目录 `<规则名>/` 下建 `RULE.mdc` 或 `<主题>.mdc`，必须 `alwaysApply: false`
+   - 入口规则 → 目录 `<规则名>.entry/` 下建 `<规则名>.entry.mdc`，frontmatter 固定
+     `alwaysApply: true`，**不写 `paths`**
+   - 规范规则 → 目录 `<规则名>/` 下建 `RULE.mdc` 或 `<主题>.mdc`，固定 `alwaysApply: false`，
+     **不写 `paths`**；无技能的底线型则 `alwaysApply: true`，同样不写 `paths`
    - 项目侧组件 → 路径基准换成 `.codebuddy.project/rules/project/`，名称加 `project-` 前缀
 4. **登记**：引擎侧在 `lib/packs.json` 对应包的 `comps.rules` 追加规则名；
    项目侧因该包内容由项目自行管理，只按 `classification-spec.mdc` §2.4 命名，不登记 `packs.json`。
 5. **同步引用**：全库检索旧名，改掉技能文档、README、规则全景表、项目索引中的引用。
 6. **校验**：`python .codebuddy/scripts/check_manifest.py` 必须退出码 0。
+   脚本会拦下三类非法配置：入口规则缺 `alwaysApply: true`、任何规则出现 `paths`、
+   有技能的规范规则 `alwaysApply: true`。

@@ -1,7 +1,6 @@
 ---
 description: csharp-test-coverage 技能强制入口 —— 需要该技能的场景必须经 csharp-test-coverage 执行，禁止绕过技能手工完成。本文件是入口规则（只定义「必须走该技能」），执行规范由技能按需加载。
-alwaysApply: false
-paths: "**/Tests/**"
+alwaysApply: true
 enabled: true
 updatedAt: 2026-10-26T00:00:00.000Z
 provider:
@@ -9,8 +8,8 @@ provider:
 
 # csharp-test-coverage 强制入口
 
-本文件是 `csharp-test-coverage` 技能的**强制入口规则**，按测试目录触发
-（`paths: "**/Tests/**"`）。它只规定「什么时候必须经该技能」。
+本文件是 `csharp-test-coverage` 技能的**强制入口规则**，始终生效（`alwaysApply: true`）。
+它只规定「什么时候必须经该技能」。
 
 ## 为什么需要这条规则
 
@@ -40,7 +39,7 @@ C# 覆盖率有两条路且需要合并：**静态分析为主**（Roslyn 解析
 
 ## 加载机制说明
 
-- 本规则**按测试目录触发**（`**/Tests/**`），不产生常驻成本。
+- 本规则**始终生效**（`alwaysApply: true`），不设 `paths`。
 - 无子规则：两路采集细节、配置项、分歧项处理属技能 `SKILL.md` 与 `references/`。
 
 ## 与其他规则的关系

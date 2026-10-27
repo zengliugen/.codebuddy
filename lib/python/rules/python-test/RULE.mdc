@@ -1,7 +1,6 @@
 ---
-description: Python 测试规范入口（paths: 测试文件）。定义双测试根的职责边界、命名约定、断言书写与运行方式；上游基线测试与项目扩展测试的结论不可混用。
-alwaysApply: false
-paths: "**/tests/**/*.py, **/extensions_tests/**/*.py"
+description: Python 测试规范入口。定义双测试根的职责边界、命名约定、断言书写与运行方式；上游基线测试与项目扩展测试的结论不可混用。
+alwaysApply: true
 enabled: true
 updatedAt: 2026-10-24T00:00:00.000Z
 provider:
@@ -54,7 +53,7 @@ provider:
 
 ## 加载机制说明
 
-- 本文件 `alwaysApply: false` + `paths: "**/tests/**/*.py, **/extensions_tests/**/*.py"`，
-  仅在操作测试文件时注入。
+- 本文件**始终生效**（`alwaysApply: true`），不设 `paths`：双测试根的结论互不互换属判断口径，
+  必须在写测试之前就生效。
 - 两条子规则均为**按需加载**（`alwaysApply: false` 且无 `paths`），由上表按场景读取。
 - 子规则位于本文件同目录（`rules/python-test/`）。

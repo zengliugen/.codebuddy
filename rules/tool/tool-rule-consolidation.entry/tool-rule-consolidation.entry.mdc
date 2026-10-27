@@ -1,7 +1,6 @@
 ---
 description: tool-rule-consolidation 技能强制入口 —— 需要该技能的场景必须经 tool-rule-consolidation 执行，禁止绕过技能手工完成。本文件是入口规则（只定义「必须走该技能」），执行规范由技能按需加载。
-alwaysApply: false
-paths: "**/.codebuddy/**"
+alwaysApply: true
 enabled: true
 updatedAt: 2026-10-26T00:00:00.000Z
 provider:
@@ -9,8 +8,8 @@ provider:
 
 # tool-rule-consolidation 强制入口
 
-本文件是 `tool-rule-consolidation` 技能的**强制入口规则**，按路径触发
-（`paths: "**/.codebuddy/**"`）。它只规定「什么时候必须经该技能」。
+本文件是 `tool-rule-consolidation` 技能的**强制入口规则**，始终生效（`alwaysApply: true`）。
+它只规定「什么时候必须经该技能」。
 
 ## 管辖边界（先读这一节）
 
@@ -52,7 +51,7 @@ provider:
 
 ## 加载机制说明
 
-- 本规则**按路径触发**（`.codebuddy/**`），不产生常驻成本。
+- 本规则**始终生效**（`alwaysApply: true`），不设 `paths`。
 - 无子规则：拆分与合并的判据属技能 `references/split-criteria.md` 与 `merge-criteria.md`。
 
 ## 与其他规则的关系

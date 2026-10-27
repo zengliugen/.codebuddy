@@ -79,7 +79,7 @@ python .codebuddy/scripts/pack_install.py install <pack>
 ### 包内新增技能 / 规则
 
 - 无需文件操作，仅**提示用户**：已装该包则重开会话后可用。
-- 若新增的是规则（`.mdc`），说明其触发方式（`alwaysApply` 或 `paths`），便于用户预期。
+- 若新增的是规则（`.mdc`），说明其触发方式（入口与底线规范 `alwaysApply: true`，规范规则 `alwaysApply: false`；全库不用 `paths`），便于用户预期。
 
 ## 五、根级软链接变更
 

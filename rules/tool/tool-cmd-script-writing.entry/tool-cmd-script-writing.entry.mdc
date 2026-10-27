@@ -1,7 +1,6 @@
 ---
 description: tool-cmd-script-writing 技能强制入口 —— 需要该技能的场景必须经 tool-cmd-script-writing 执行，禁止绕过技能手工完成。本文件是入口规则（只定义「必须走该技能」），执行规范由技能按需加载。
-alwaysApply: false
-paths: "**/*.{cmd,bat}"
+alwaysApply: true
 enabled: true
 updatedAt: 2026-10-26T00:00:00.000Z
 provider:
@@ -9,8 +8,8 @@ provider:
 
 # tool-cmd-script-writing 强制入口
 
-本文件是 `tool-cmd-script-writing` 技能的**强制入口规则**，按文件类型触发
-（`paths: "**/*.{cmd,bat}"`）。它只规定「什么时候必须经该技能」。
+本文件是 `tool-cmd-script-writing` 技能的**强制入口规则**，始终生效（`alwaysApply: true`）。
+它只规定「什么时候必须经该技能」。
 
 ## 为什么需要这条规则
 
@@ -51,7 +50,7 @@ CMD 的三个坑都有共同特征：**脚本能跑完、退出码是 0、但你
 
 ## 加载机制说明
 
-- 本规则**按文件类型触发**（`.cmd` / `.bat`），不产生常驻成本。
+- 本规则**始终生效**（`alwaysApply: true`），不设 `paths`。
 - 无子规则：三条铁律已在技能 `SKILL.md` 的「关键铁律」章节详述。
 
 ## 与其他规则的关系
