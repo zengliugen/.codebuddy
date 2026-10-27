@@ -15,9 +15,8 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
         {
           "include_patterns": ["*.cs"],
           "exclude_patterns": [
-            "**/Generated/**", "**/Gen/**", "**/HybridCLRData/**", "*auto-generated*",
-            "**/Assets/Plugins/**", "**/Library/PackageCache/**",
-            "**/Packages/TouchSocket.*/**", "**/ThreadLib/**", "**/.codebuddy/**"
+            "**/Generated/**", "**/Gen/**", "*auto-generated*",
+            "**/<三方库目录>/**", "**/.codebuddy/**", "**/.codebuddy.project/**"
           ]
         }
 
@@ -36,12 +35,12 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
     因此黑名单模式不会把 `.json` / `.md` / 子模块指针等非源码变更纳入审查。
 
     `include_patterns` / `exclude_patterns` 的语义是**目录/文件模式的匹配清单**，一律按
-    **项目根相对路径**书写（如 `Assets/Game/**/*.cs`）。脚本内部会把 `git status` 给出的
+    **项目根相对路径**书写（如 `src/module/**/*.cs`）。脚本内部会把 `git status` 给出的
     仓库相对路径换算为项目根相对路径后再匹配，因此**无需为了抵销仓库前缀而补 `**/`**：
-    `Assets/Game/**` 与 `**/Assets/Game/**` 都能命中，按语义选更精确的那种即可——
+    `src/module/**` 与 `**/src/module/**` 都能命中，按语义选更精确的那种即可——
     要锚定在项目根下就用不带前缀的写法，要匹配任意层级的同名目录才用 `**/` 开头。
 
-    该清单与 `csharp-format-checker/config.json` 的 `exclude_dirs`、`rules/csharp-code/RULE.mdc`
+    该清单与 `format_checker.config` 的 `exclude_dirs`、`rules/csharp/csharp-code-review/RULE.mdc`
     的范围声明应保持同一口径，新增排除项时一并同步。
 
 用法：
@@ -199,7 +198,7 @@ def get_git_toplevel(workdir):
     """返回 git 仓库顶层目录（绝对路径）；非 git 环境返回 None。
 
     `git status` 输出的路径以**仓库顶层**为基准，而配置中的模式以**项目根**为基准；
-    二者在有仓库前缀（如 `Program/Client/...`）时并不相同，需显式换算。
+    二者在有仓库前缀（如 `<子目录>/...`）时并不相同，需显式换算。
     """
     result = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
@@ -219,7 +218,7 @@ def to_project_rel(repo_rel, git_root, project_root):
     """把「仓库相对路径」换算为「项目根相对路径」；不在项目根内则返回 None。
 
     配置模式（include/exclude）一律按项目根相对路径书写，因此匹配前必须先换算——
-    否则 `Assets/Game/**` 这类不带上层前缀的模式会因 `Program/Client/` 前缀失配，
+    否则 `src/module/**` 这类不带上层前缀的模式会因仓库子目录前缀失配，
     迫使用户为所有目录模式补 `**/` 前缀（把路径语义问题转嫁给配置书写者）。
     """
     if os.path.isabs(repo_rel):

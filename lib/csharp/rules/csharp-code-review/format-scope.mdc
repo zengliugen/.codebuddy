@@ -21,8 +21,8 @@ provider:
 1. **判定审查范围前必须先读项目侧正文**。`csharp-code-review` Agent 执行审查、
    或 `vcs-git-commit` 的审查门禁收集目标时，均须先读取上述路径，不得跳过。
 
-2. **清单与配置必须三处一致**：项目侧正文、`csharp-format-checker/config.json` 的
-   `exclude_dirs`、`csharp-code-review/config.json` 的 `exclude_patterns`（及
+2. **清单与配置必须三处一致**：项目侧正文、`format_checker.config` 的
+   `exclude_dirs`、`code_review.config` 的 `exclude_patterns`（及
    `include_patterns`）。新增排除项时三处一并更新，否则口径漂移会导致该审的漏审、
    或不该改的被改。
 

@@ -24,7 +24,7 @@
 |------|------|------|------|
 | `max_projects` | int | 3 | 可串行检查的工程数上限。每个工程需独立重载一次工作区（固定开销数十秒，本项目实测约 40 秒/工程），超过该值即**回退整仓**（此时串行耗时已不低于整仓，无收益） |
 
-**取值建议**：上限的临界点 = `整仓耗时 ÷ 单工程耗时`。本项目实测 162 秒 ÷ 41 秒 ≈ 3.9，故取 **3**
+**取值建议**：上限的临界点 = `整仓耗时 ÷ 单工程耗时`。按目标项目实测两个耗时后相除取整，即为合理上限
 （3 个工程约 124 秒，仍有约 24% 收益）；设为 4 时约 165 秒，已与整仓持平。目标项目须按自身工程数
 与单工程耗时重新测算后调整。可用命令行 `--max-projects <N>` 临时覆盖，便于调试。
 
@@ -33,48 +33,42 @@
 
 ## 忽略目录配置（三方插件保护）
 
-`exclude_dirs` 是本技能保护"不应被格式化代码"的唯一边界（脚本不内置任何排除项），请把以下内容加入：
+`exclude_dirs` 是本技能保护「不应被格式化代码」的唯一边界（脚本不内置任何排除项）。按目标项目的
+实际情况，把以下**类别**对应的具体目录填进去：
 
-- **三方插件源码目录**：如 `Assets/Plugins`（本项目包含 DOTween、Sirenix/Odin、XLua、Proxima、HybridCLR、TextMeshPro、StompyRobot 等插件源码）。
-- **Package 缓存**：`Library/PackageCache`（Unity 官方与社区包源码，不归项目维护）。
-- **生成代码目录**：如 `HybridCLRData`、各种 `Gen/` 与 `Generated/` 目录等。
-- **自研包内嵌的三方代码**：如 `Packages/com.littlebaby.framework.core/Runtime/ThreadLib/UnityHook`（命名空间为 `MonoHook`，属三方挂钩库，虽位于自研包内仍需排除）。
-- **审查范围外的配置目录**：`.codebuddy`（技能自带工具与测试夹具的 `.cs`，不属于项目源码）、`.codebuddy.project`（项目侧配置与物化包，其中的技能工具 `.cs` 同样不属于项目源码）。
+| 类别 | 说明 |
+|---|---|
+| 三方插件源码目录 | 放在 `Assets/Plugins` 等位置、由外部维护的插件源码 |
+| Package 缓存 | `Library/PackageCache`（Unity 官方与社区包源码，不归项目维护） |
+| 生成代码目录 | 代码生成器产出目录（如 `Gen/`、`Generated/`、`HybridCLRData` 等） |
+| 自研包内嵌的三方代码 | 位于自研包内、但实为三方的代码（如挂钩库、序列化库） |
+| 审查范围外的配置目录 | `.codebuddy`（技能自带工具与测试夹具的 `.cs`）、`.codebuddy.project`（项目侧配置与物化包） |
 
 > **两者必须分别声明**：`exclude_dirs` 走前缀匹配（`lowered == base or lowered.startswith(base + "/")`），
 > `.codebuddy.project/x` 不以 `.codebuddy/` 开头，只写 `.codebuddy` 无法覆盖它。
 
 > **语义保证**：忽略目录内的文件不会出现在检查结果中，修复模式也绝不会改写其中任何文件。
 
-**检查范围口径**：仅覆盖 `Assets/` 与 `Packages/` 下的自研代码（`Assets/Game`、`Assets/Battle`、`Packages/com.littlebaby.framework.*`），`Assets/`、`Packages/` 之外的目录（如 `.codebuddy/`）不在检查范围内。该口径同时体现在 `csharp-code-review/RULE.mdc` 的范围声明中，**新增排除项时两处一并更新**。
+> **检查范围口径不在本文件声明**：具体覆盖哪些根目录、排除哪些三方库，是**项目事实**，
+> 以项目侧配置与规则薄壳指向的项目正文为准（见 `csharp-code-review/format-scope.mdc`）。
+> 本文件只描述配置的**结构与类别**，不提供任何项目的实际取值。
 
-本项目当前默认值（生成目录逐一显式声明，形成配置声明 + auto-generated 识别 + 范围限定的三重保护）：
+填写形态（生成目录逐一显式声明，形成「配置声明 + auto-generated 识别 + 范围限定」三重保护）：
 
 ```json
 "exclude_dirs": [
-  "Assets/Plugins",
+  "<三方插件目录，如 Assets/Plugins>",
   "Library/PackageCache",
-  "HybridCLRData",
+  "<生成代码目录，如 Assets/<领域>/Generated>",
   ".codebuddy",
   ".codebuddy.project",
-  "Assets/Battle/Runtime/Battle.Data/Generated",
-  "Assets/Battle/Runtime/Battle.Logic/Generated",
-  "Assets/Game/Runtime/Game/Gen",
-  "Assets/Game/Runtime/Game/Generated",
-  "Packages/com.littlebaby.framework.assetbundle/Runtime/Generated",
-  "Packages/com.littlebaby.framework.core/Runtime/Generated",
-  "Packages/com.littlebaby.framework.core/Tests/Runtime/Generated",
-  "Packages/com.littlebaby.framework.fixedmathematics/Runtime/Gen",
-  "Packages/com.littlebaby.framework.fixedmathematics/Tests/Editor/Gen",
-  "Packages/com.littlebaby.framework.core/Runtime/ThreadLib/UnityHook"
+  "<自研包内嵌的三方代码目录>"
 ]
 ```
 
-自研代码（`Assets/Game`、`Assets/Battle`、`Packages/com.littlebaby.framework.*`）不在排除之列，正常参与检查。
-
 ## 迁移到目标项目
 
-1. 复制技能目录与 `csharp-format-checker/config.json`。
+1. 安装 csharp 包（技能随包分发），并在目标项目运行 `core-init` 生成项目侧配置骨架。
 2. 将 `workspace` 改为目标项目的解决方案/工程文件，或留空让其自动探测。
 3. 将 `exclude_dirs` 改为目标项目的三方插件/生成代码目录清单。
 4. 目标项目根目录必须存在 `.editorconfig`（技能的唯一格式标准，不属于技能本体）。
