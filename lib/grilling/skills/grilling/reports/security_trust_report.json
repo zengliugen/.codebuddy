@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\grilling\\skills\\grilling",
+  "skill_dir": ".codebuddy/lib/grilling/skills/grilling",
   "summary": {
     "scanned_files": 16,
     "script_count": 0,
@@ -79,7 +79,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\grilling\\skills\\grilling\\reports\\security_trust_report.json",
-    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\grilling\\skills\\grilling\\reports\\security_trust_report.md"
+    "json": ".codebuddy/lib/grilling/skills/grilling/reports/security_trust_report.json",
+    "markdown": ".codebuddy/lib/grilling/skills/grilling/reports/security_trust_report.md"
   }
 }

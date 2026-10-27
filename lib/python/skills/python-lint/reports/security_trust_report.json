@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-lint",
+  "skill_dir": ".codebuddy/lib/python/skills/python-lint",
   "summary": {
     "scanned_files": 10,
     "script_count": 2,
@@ -146,7 +146,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-lint\\reports\\security_trust_report.json",
-    "markdown": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-lint\\reports\\security_trust_report.md"
+    "json": ".codebuddy/lib/python/skills/python-lint/reports/security_trust_report.json",
+    "markdown": ".codebuddy/lib/python/skills/python-lint/reports/security_trust_report.md"
   }
 }

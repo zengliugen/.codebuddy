@@ -62,4 +62,4 @@
 1. **对话上下文可能不完整**：对话摘要可能遗漏部分修改，导致 scope 推断偏差。
 2. **Git diff 推断意图可能不准确**：仅通过 diff 内容推断提交类型和 scope 存在误判风险。
 3. **Scope 提取规则覆盖不全**：项目结构新增路径时可能无法精确匹配。
-4. **subject 自动化校验以配置为唯一来源**：`scripts/validate_commit_subject.py` 读取项目侧 `skills/git-commit/config.json`（索引 `git_commit.config`）校验 type 枚举、subject/scope 长度、subject 语言、无句号结尾；配置缺失、损坏或字段非法时报错退出（退出码 3），不回退默认值——避免「配置改了却不生效」被掩盖。scope 的业务准确性（模块名是否正确）仍需人工判断。
+4. **subject 自动化校验以配置为唯一来源**：`scripts/validate_commit_subject.py` 读取项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`（索引 `git_commit.config`）校验 type 枚举、subject/scope 长度、subject 语言、无句号结尾；配置缺失、损坏或字段非法时报错退出（退出码 3），不回退默认值——避免「配置改了却不生效」被掩盖。scope 的业务准确性（模块名是否正确）仍需人工判断。

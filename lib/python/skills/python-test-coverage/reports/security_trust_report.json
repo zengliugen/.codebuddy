@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-test-coverage",
+  "skill_dir": ".codebuddy/lib/python/skills/python-test-coverage",
   "summary": {
     "scanned_files": 9,
     "script_count": 1,
@@ -121,7 +121,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-test-coverage\\reports\\security_trust_report.json",
-    "markdown": "G:\\Git\\zengliugen\\ok-script-app-pro\\.codebuddy\\lib\\python\\skills\\python-test-coverage\\reports\\security_trust_report.md"
+    "json": ".codebuddy/lib/python/skills/python-test-coverage/reports/security_trust_report.json",
+    "markdown": ".codebuddy/lib/python/skills/python-test-coverage/reports/security_trust_report.md"
   }
 }

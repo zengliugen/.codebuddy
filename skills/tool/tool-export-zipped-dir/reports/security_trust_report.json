@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\export-zipped-dir",
+  "skill_dir": ".codebuddy/skills/tool/export-zipped-dir",
   "summary": {
     "scanned_files": 6,
     "script_count": 1,
@@ -133,7 +133,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
-    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\export-zipped-dir\\reports\\security_trust_report.md"
+    "json": ".codebuddy.project/caches/_t.json",
+    "markdown": ".codebuddy/skills/tool/export-zipped-dir/reports/security_trust_report.md"
   }
 }

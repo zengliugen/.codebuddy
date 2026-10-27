@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\vcs\\git-commit",
+  "skill_dir": ".codebuddy/skills/vcs/git-commit",
   "summary": {
     "scanned_files": 17,
     "script_count": 2,
@@ -155,7 +155,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
-    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\vcs\\git-commit\\reports\\security_trust_report.md"
+    "json": ".codebuddy.project/caches/_t.json",
+    "markdown": ".codebuddy/skills/vcs/git-commit/reports/security_trust_report.md"
   }
 }

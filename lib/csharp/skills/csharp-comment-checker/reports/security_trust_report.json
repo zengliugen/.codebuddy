@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\csharp\\skills\\csharp-comment-checker",
+  "skill_dir": ".codebuddy/lib/csharp/skills/csharp-comment-checker",
   "summary": {
     "scanned_files": 13,
     "script_count": 4,
@@ -206,7 +206,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
-    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\csharp\\skills\\csharp-comment-checker\\reports\\security_trust_report.md"
+    "json": ".codebuddy.project/caches/_t.json",
+    "markdown": ".codebuddy/lib/csharp/skills/csharp-comment-checker/reports/security_trust_report.md"
   }
 }

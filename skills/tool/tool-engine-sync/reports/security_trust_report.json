@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\engine-sync",
+  "skill_dir": ".codebuddy/skills/tool/engine-sync",
   "summary": {
     "scanned_files": 13,
     "script_count": 1,
@@ -133,7 +133,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\engine-sync\\reports\\security_trust_report.json",
-    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\engine-sync\\reports\\security_trust_report.md"
+    "json": ".codebuddy/skills/tool/engine-sync/reports/security_trust_report.json",
+    "markdown": ".codebuddy/skills/tool/engine-sync/reports/security_trust_report.md"
   }
 }

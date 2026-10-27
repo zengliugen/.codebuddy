@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\unity-pipeline\\skills\\unity-pipeline",
+  "skill_dir": ".codebuddy/lib/unity-pipeline/skills/unity-pipeline",
   "summary": {
     "scanned_files": 14,
     "script_count": 4,
@@ -219,7 +219,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
-    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\unity-pipeline\\skills\\unity-pipeline\\reports\\security_trust_report.md"
+    "json": ".codebuddy.project/caches/_t.json",
+    "markdown": ".codebuddy/lib/unity-pipeline/skills/unity-pipeline/reports/security_trust_report.md"
   }
 }

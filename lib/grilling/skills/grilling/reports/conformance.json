@@ -48,7 +48,7 @@
     "fail_count": 0
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\grilling\\skills\\grilling\\reports\\conformance.json",
-    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\lib\\grilling\\skills\\grilling\\reports\\conformance.md"
+    "json": ".codebuddy/lib/grilling/skills/grilling/reports/conformance.json",
+    "markdown": ".codebuddy/lib/grilling/skills/grilling/reports/conformance.md"
   }
 }

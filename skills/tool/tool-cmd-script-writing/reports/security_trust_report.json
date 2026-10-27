@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "skill_dir": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\cmd-script-writing",
+  "skill_dir": ".codebuddy/skills/tool/cmd-script-writing",
   "summary": {
     "scanned_files": 11,
     "script_count": 1,
@@ -121,7 +121,7 @@
     "remote_metadata_policy": "allow-metadata-only"
   },
   "artifacts": {
-    "json": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy.project\\caches\\_t.json",
-    "markdown": "G:\\Git\\zengliugen\\LittleBaby.Framework\\Program\\Client\\.codebuddy\\skills\\tool\\cmd-script-writing\\reports\\security_trust_report.md"
+    "json": ".codebuddy.project/caches/_t.json",
+    "markdown": ".codebuddy/skills/tool/cmd-script-writing/reports/security_trust_report.md"
   }
 }
