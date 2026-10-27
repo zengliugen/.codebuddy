@@ -79,7 +79,7 @@ provider:
 | 检查项 | 说明 | 级别 |
 |--------|------|------|
 | 旧全名残留 | 普通 `using`、`using static`、全限定名仍指向旧命名空间，而调用方未引用新命名空间 | `error` |
-| 序列化类型全名未同步 | 序列化配置中保存的类型全名字符串仍指向已迁移类型，解析失败后**静默回退**（如 `Assets/Settings/ApplicationBuilder/ApplicationBuilderSetting.json` 的 `ProcessorTypeFullName`） | `error` |
+| 序列化类型全名未同步 | 序列化配置中保存的类型全名字符串仍指向已迁移类型，解析失败后**静默回退**（如某序列化配置文件中的 `ProcessorTypeFullName` 字段） | `error` |
 | 次要与嵌套类型名未检索 | 仅按主类型名检索引用，遗漏同一文件内的次要类型（如 `*Tool`）与嵌套类型 | `warning` |
 | 旧命名空间残留 | 迁移完成后目标程序集内仍存在旧命名空间声明 | `warning` |
 

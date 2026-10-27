@@ -17,7 +17,7 @@ provider:
 |------|---------|---------|
 | 代码质量与规范 | `quality-spec.mdc` | 命名、可读性、复杂度、项目代码风格 |
 | 注释合规 | `comment-spec.mdc` | 文档注释（`///`）、行内注释（`//`）合规性 |
-| 格式合规 | 无独立规则文件，**以工具结果为准** | 由 `csharp-format-checker` 技能（`dotnet format` + 项目根 `.editorconfig`）做确定性检查；**检查范围仅限 `Assets/` 与 `Packages/` 下的自研代码**（详见下方「格式维度的检查范围」）；常见项参考 `quality-spec.mdc` §2 |
+| 格式合规 | 无独立规则文件，**以工具结果为准** | 由 `csharp-format-checker` 技能（`dotnet format` + 项目根 `.editorconfig`）做确定性检查；**检查范围以项目侧配置的排除清单为准**（详见下方「格式维度的检查范围」，不得按目录名臆断）；常见项参考 `quality-spec.mdc` §2 |
 | 潜在 Bug 与边界 | `bug-boundary-spec.mdc` | 空引用、资源泄漏、异常处理、并发安全 |
 | 架构与性能 | `architecture-spec.mdc` | 模块依赖、对象池/缓存、GC 压力、热更新边界 |
 | 格式检查范围（项目事实） | `format-scope.mdc`（薄壳） | 忽略目录、三方库、生成代码、白名单模式；正文在项目侧 |

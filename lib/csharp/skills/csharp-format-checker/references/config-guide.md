@@ -57,9 +57,9 @@
 
 ```json
 "exclude_dirs": [
-  "<三方插件目录，如 Assets/Plugins>",
-  "Library/PackageCache",
-  "<生成代码目录，如 Assets/<领域>/Generated>",
+  "<三方插件目录>",
+  "<包缓存目录>",
+  "<生成代码目录>",
   ".codebuddy",
   ".codebuddy.project",
   "<自研包内嵌的三方代码目录>"

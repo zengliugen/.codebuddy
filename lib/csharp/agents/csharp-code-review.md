@@ -236,7 +236,7 @@ git diff --cached   # 若需含暂存区
 ```
 === C# 代码审查摘要 ===
 报告文件：check_logs/2026年08月06日_10时30分15秒_csharp-code_目标名称_e3w12i8_a1b2c3d4.md
-审查目标：Assets/Modules/Example/
+审查目标：<目标目录>/
 文件数：5
 问题总数：23（error: 3, warning: 12, info: 8）
 

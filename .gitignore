@@ -53,6 +53,42 @@ plans/
 **/coverage_config.merged.json
 **/comment_config.merged.json
 
+# --- yao-meta-skill：内容强制保留，不得忽略 -------------------------------
+#   该包是只读 vendor，包内组件内容（SKILL.md、references/、scripts/、agents/、
+#   evals/、reports/、.previews/、skill-ir/、examples/、tests/、security/ 等）
+#   都是技能**自带内容**，不是引擎运行产物：
+#     - manifest.json 的 factory_components 明确列出 reports 等为自带组件；
+#     - scripts/evidence_consistency_*.py 把 reports/ 下大量文件作为
+#       REQUIRED_REPORTS 逐项校验，缺任一项即判定证据链不完整；
+#     - reports/ 与 .previews/ 是其打包、审计、渲染链的输入，删或忽略都会
+#       让该包自身的审查链失败。
+#
+#   本规则的作用：
+#     1. 抵消上方 `**/check_logs/`、`**/.cache/` 等可能命中的同类规则；
+#     2. 防止后来者把目录级忽略规则（如 `**/reports/`、`.*`）扩大到此处时
+#       静默排除包内文件——`.previews` 以点开头，最易被 `.*` 误伤。
+#
+#   **不做整包 `!/lib/yao-meta-skill/` 放行**：那会把包自带 `.gitignore` 有意
+#   排除的临时产物一并放行（该文件明确排除 dist/、tests/tmp*/、.yao/、
+#   reports/release_snapshots/、reports/telemetry_events.jsonl、
+#   evidence/world_class/submissions/ 等）。包内 `.gitignore` 是上游作者的有意
+#   设计，本仓库不覆盖它。
+!/lib/yao-meta-skill/lib/
+!/lib/yao-meta-skill/rules/
+!/lib/yao-meta-skill/skills/
+!/lib/yao-meta-skill/skills/yao-meta-skill/
+!/lib/yao-meta-skill/skills/yao-meta-skill/**
+# `.previews` 以点开头，`**` 通配放行不到点目录层级，需单独显式放行
+!/lib/yao-meta-skill/skills/yao-meta-skill/.previews/
+!/lib/yao-meta-skill/skills/yao-meta-skill/.previews/**
+# 上面 `**` 会连带放行包内 `.gitignore` 的排除项，故对真正的临时产物重新排除
+/lib/yao-meta-skill/skills/yao-meta-skill/dist/
+/lib/yao-meta-skill/skills/yao-meta-skill/.yao/
+/lib/yao-meta-skill/skills/yao-meta-skill/**/__pycache__/
+/lib/yao-meta-skill/skills/yao-meta-skill/tests/tmp*/
+/lib/yao-meta-skill/skills/yao-meta-skill/evidence/world_class/submissions/
+/lib/yao-meta-skill/skills/yao-meta-skill/evidence/world_class/submission-kit/
+
 # --- .NET 工具构建产物 ---
 **/bin/
 **/obj/

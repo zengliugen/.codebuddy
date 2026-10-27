@@ -15,7 +15,7 @@ metadata:
 ## 快速上手
 ```bash
 # 静态分析（默认，不写任何文件到 Tests/）
-python scripts/check_coverage.py Packages/<框架包>
+python scripts/check_coverage.py <框架包目录>
 
 # 全仓扫描（框架包 + 各业务领域目录，按配置 scanScopes.all）
 python scripts/check_coverage.py --scope all
