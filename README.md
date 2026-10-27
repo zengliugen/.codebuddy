@@ -51,11 +51,12 @@
 ├── lib/                        # 可选组件池：按包（pack）分层
 │   ├── packs.json              #   包注册表（唯一事实源）：组件清单、依赖、默认标记
 │   ├── csharp/                 #   包 csharp：rules/ skills/ agents/
+│   ├── python/                 #   包 python：rules/ skills/ agents/ envs/（ruff 工具环境定义）
 │   ├── unity-pipeline/         #   包 unity-pipeline（本地维护：Unity 实例驱动）
 │   ├── grilling/               #   包 grilling（本地维护：设计树逐轮诘问）
 │   └── yao-meta-skill/         #   包 yao-meta-skill（rules/ skills/：技能工程强制入口）
 │
-├── rules/                      # 规则扫描根：默认包真实目录 + 可选包链接
+├── rules/                      # 规则扫描根：engine 包真实目录 + 其余包链接
 │   ├── core/                   #   默认包（6 条）：core-language/ core-project-guide/
 │   │                           #            core-tooling/（始终生效：命令形状 + 结果校验）
 │   │                           #            core-engine/（.codebuddy/**：内容隔离 + 登记同步）
@@ -71,7 +72,7 @@
 │   ├── project ──链接──▶ 项目侧 #   项目专有规则（.codebuddy.project/rules/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
-├── skills/                     # 技能扫描根：默认包真实目录 + 可选包链接
+├── skills/                     # 技能扫描根：engine 包真实目录 + 其余包链接
 │   ├── core/ core-init/
 │   ├── vcs/                    #   vcs-router/ git-commit/ git-merge/
 │   ├── tool/                   #   cmd-script-writing/ engine-sync/ export-zipped-dir/ rule-consolidation/ session-lesson-distill/
@@ -96,8 +97,12 @@
     └── update_repo.py          #   仓库更新（含包链接重建）
 ```
 
-> **检出即可用**：默认包 `core`、`vcs`、`tool` 的组件是引擎内的**真实目录**，克隆本仓库即有完整基础能力，
-> 无需先跑 setup。可选包（`csharp`、`unity-pipeline`、`grilling`、`yao-meta-skill`）需显式安装。
+> **检出即可用**：`location=engine` 的默认包 `core`、`vcs`、`tool` 的组件是引擎内的**真实目录**，
+> 克隆本仓库即有完整基础能力，无需先跑 setup。可选包（`csharp`、`python`、`unity-pipeline`、
+> `grilling`、`yao-meta-skill`）需显式安装。
+>
+> `project` 也标 `default: true`，但它的 `location` 是 `project`（内容在项目侧），扫描根下是**链接**——
+> 「默认包」与「真实目录」不是一回事，判定只看 `location`。
 
 > **检出位置约定**：本仓库应检出为消费项目的 **`.codebuddy/`**（如 `Program/Client/.codebuddy/`）。
 > 引擎内所有相对路径推导均以「`.codebuddy` 的父目录 = 项目根」为基准，故检出路径名必须是 `.codebuddy`。
@@ -273,7 +278,7 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 | `tool` | 基础 | ✅ | rules: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-rule-consolidation、tool-session-lesson-distill；skills: 同名 5 个 |
 | `csharp` | C# | ❌ | rules: csharp-code-review、csharp-comment、csharp-lsp、csharp-test、csharp-test-coverage、csharp-format-checker；skills: csharp-code-review、csharp-comment-checker、csharp-comment-generator、csharp-format-checker、csharp-lsp、csharp-test-coverage；agents: 2 个 |
 | `unity-pipeline` | 领域（本地维护） | ❌ | rules: unity-pipeline；skills: unity-pipeline |
-| `python` | Python | ❌ | rules: python-code-review、python-comment、python-test、python-env、python-lint、python-test-coverage；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 2 个 |
+| `python` | Python | ❌ | rules: python-code-review、python-comment、python-test、python-env、python-lint、python-test-coverage；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 1 个 |
 | `grilling` | third-party（本地维护） | ❌ | skills: grilling |
 | `yao-meta-skill` | third-party | ❌ | rules: yao-meta-skill；skills: yao-meta-skill |
 
