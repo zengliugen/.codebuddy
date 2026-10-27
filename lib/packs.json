@@ -117,8 +117,8 @@
       }
     },
     "unity-pipeline": {
-      "category": "领域",
-      "description": "Unity 实例打开、编译、测试、热重载",
+      "category": "领域（本地维护）",
+      "description": "Unity 实例打开、编译、测试、热重载；源出上游 com.unity.pipeline，正文已中文化",
       "default": false,
       "location": "lib",
       "requires": [
@@ -135,8 +135,8 @@
       }
     },
     "grilling": {
-      "category": "third-party",
-      "description": "诘问式方案压测：设计树逐轮追问，把方案中的未定项显式化",
+      "category": "third-party（本地维护）",
+      "description": "诘问式方案压测：设计树逐轮追问，把方案中的未定项显式化；源出上游 grilling，正文已中文化",
       "default": false,
       "location": "lib",
       "requires": [],

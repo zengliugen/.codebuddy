@@ -9,27 +9,33 @@
 
 ## 第三方来源组件（vendor）
 
-`lib/` 下部分包并非本项目原创，而是随引擎分发的上游组件。对这类包统一采用 **「保留原文 + 来源标记 + 不可改边界」** 策略，
-**不做中文翻译、不调整目录布局**：
+`lib/` 下部分包并非本项目原创，而是随引擎分发的上游组件。这类包分两档：
+**只读 vendor**（保留原文 + 来源标记 + 不可改边界）与 **本地维护分支**（正文已中文化、允许本地改造）。
+两档均**不调整目录布局**：
 
-| 组件 | 来源 | 版本 | 可否修改 |
-|------|------|------|---------|
-| `lib/yao-meta-skill/` | 上游 yao-meta-skill（skill 工程化工具链） | 2.1.0 | 仅允许最小可行性补丁，须记录在 `references/cli-changelog.md` |
-| `lib/unity-pipeline/` | `com.unity.pipeline` 0.9.0-exp.1 | 2.0 | 允许本地补丁，须在 SKILL.md 注释块与 `references/cli-changelog.md` 记录 |
-| `lib/grilling/` | 源出上游 grilling（方案拷问），**已转本地维护** | 2.0 | 允许本地改造：正文、参考文档、评测与治理产物均归本仓库维护 |
+| 组件 | 来源 | 版本 | 维护档位 | 可否修改 |
+|------|------|------|---------|---------|
+| `lib/yao-meta-skill/` | 上游 yao-meta-skill（skill 工程化工具链） | 2.1.0 | 只读 vendor | 仅允许最小可行性补丁，须记录在 `references/cli-changelog.md` |
+| `lib/unity-pipeline/` | `com.unity.pipeline` 0.9.0-exp.1 | 2.0 | **本地维护** | 允许本地改造：正文已中文化，补丁记录在 `references/cli-changelog.md` |
+| `lib/grilling/` | 源出上游 grilling（方案拷问） | 2.0 | **本地维护** | 允许本地改造：正文、参考文档、评测与治理产物均归本仓库维护 |
 
-**为什么不做中文转换**：`yao-meta-skill` 的触发评估与回归测试依赖原文措辞（`evals/semantic_config.json` 的
+**为什么 `yao-meta-skill` 不做中文转换**：它的触发评估与回归测试依赖原文措辞（`evals/semantic_config.json` 的
 中英短语权重、`tests/` 快照），翻译会使工具链失效并导致上游 `git pull` 永久冲突。
 
 **为什么不做目录布局调整**：`lib/<pack>/` 已是正式的 vendor 边界——`lib/packs.json` 据此推导路径，
 `scripts/pack_install.py` 据此建桥接链接；再套一层 `vendor/` 会打断这两个脚本。
 
-**语言规则豁免**：`yao-meta-skill` 与 `unity-pipeline` 的正文文档保留上游原语言，不受 `rules/core/core-language/`
+**语言规则豁免**：仅 `yao-meta-skill` 的正文文档保留上游原语言，不受 `rules/core/core-language/`
 「人类可读文本一律中文」约束；但**本仓库新增的元数据**（`agents/interface.yaml`）与外层说明仍须中文。
 
-**`grilling` 为例外**：该包已从「只读 vendor」转为**本地维护分支**，其正文与参考文档均已中文化，受语言规则约束。
-转向本地维护的原因：上游正文为英文与本项目「人类可读文本一律中文」的底线直接冲突，且该技能不产出代码、
-只产出认知结论，语义忠实度可由本地评测（`evals/`）保障，无需依赖上游原文措辞。
+**`unity-pipeline` 与 `grilling` 为本地维护分支**：两包正文（`SKILL.md`、规则、`references/`）均已中文化，
+**受语言规则约束**。转向本地维护的共同原因：上游正文为英文，与本项目「人类可读文本一律中文」的底线直接冲突。
+两者都不产出需与上游逐字比对的评测快照，语义忠实度可由本地评测（`evals/`）保障。
+`reports/` 下为脚本生成产物，标题随生成脚本输出为英文，不计入正文语言范围——需要中文报告时
+改生成器而非手改产物（手改会被下次生成覆盖）。
+
+判据来源：`agents/interface.yaml` 的 `source.origin` 为 `local` 且 `editable` 为 `full` 即本地维护分支；
+`origin` 为 `third-party` 则受上表「只读 vendor」约束。
 
 ## 目录结构
 
@@ -45,7 +51,7 @@
 ├── lib/                        # 可选组件池：按包（pack）分层
 │   ├── packs.json              #   包注册表（唯一事实源）：组件清单、依赖、默认标记
 │   ├── csharp/                 #   包 csharp：rules/ skills/ agents/
-│   ├── unity-pipeline/         #   包 unity-pipeline
+│   ├── unity-pipeline/         #   包 unity-pipeline（本地维护：Unity 实例驱动）
 │   ├── grilling/               #   包 grilling（本地维护：设计树逐轮诘问）
 │   └── yao-meta-skill/         #   包 yao-meta-skill（rules/ skills/：技能工程强制入口）
 │
@@ -266,7 +272,7 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 | `vcs` | 基础 | ✅ | rules: vcs-router、vcs-engine-commit、vcs-git-commit、vcs-git-merge；skills: vcs-router、vcs-git-commit、vcs-git-merge |
 | `tool` | 基础 | ✅ | rules: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-rule-consolidation、tool-session-lesson-distill；skills: 同名 5 个 |
 | `csharp` | C# | ❌ | rules: csharp-code-review、csharp-comment、csharp-lsp、csharp-test、csharp-test-coverage、csharp-format-checker；skills: csharp-code-review、csharp-comment-checker、csharp-comment-generator、csharp-format-checker、csharp-lsp、csharp-test-coverage；agents: 2 个 |
-| `unity-pipeline` | 领域 | ❌ | rules: unity-pipeline；skills: unity-pipeline |
+| `unity-pipeline` | 领域（本地维护） | ❌ | rules: unity-pipeline；skills: unity-pipeline |
 | `python` | Python | ❌ | rules: python-code-review、python-comment、python-test、python-env、python-lint、python-test-coverage；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 2 个 |
 | `grilling` | third-party（本地维护） | ❌ | skills: grilling |
 | `yao-meta-skill` | third-party | ❌ | rules: yao-meta-skill；skills: yao-meta-skill |
@@ -280,9 +286,9 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 | 一般组件 | `<包名>-<语义名>` | `core-tooling`、`vcs-git-commit`、`tool-engine-sync` |
 | **组件名等于包名**（可选包自名组件） | **豁免**，保持与包名一致 | `unity-pipeline`、`grilling`、`yao-meta-skill` |
 
-豁免的第二个情形来自 vendor 约束：`unity-pipeline` 与 `yao-meta-skill` 是上游组件，
-改名会让上游 `git pull` 永久冲突；`grilling` 虽已转本地维护，但组件名与包名相同，
-加前缀会得到 `grilling-grilling` 这类无信息量的名字。
+豁免的第二个情形来自 vendor 约束：`yao-meta-skill` 仍是只读 vendor，改名会让上游 `git pull` 永久冲突；
+`unity-pipeline` 与 `grilling` 虽已转本地维护，但组件名与包名相同，加前缀会得到
+`unity-pipeline-unity-pipeline` 这类无信息量的名字。
 
 校验由 `check_manifest.py` 执行（校验项 8）：组件名不以 `<包名>-` 开头且不等于包名时报错。
 新建组件时照着命名即可，漏改会在提交前的 `pre-commit` 钩子被拦下。

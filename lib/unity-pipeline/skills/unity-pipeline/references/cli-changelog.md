@@ -37,3 +37,19 @@
     9. 样例迁到独立包 `com.unity.pipeline.samples`。
   之后若再升级包，以 `Library/PackageCache/com.unity.pipeline@<hash>/Documentation~/` 与
   `Runtime/Common/CommandNames.cs` 为准重放本同步。
+
+  2026-10-27 转为本项目本地维护分支（正文已中文化）：
+    - `agents/interface.yaml` 的 `source`：`origin` 由 `third-party` 改为 `local`、
+      `editable` 由 `local-patches-documented` 改为 `full`，新增 `maintenance_note` 说明维护方式。
+    - 正文语言：`SKILL.md`、`rules/unity-pipeline/`、`rules/unity-pipeline.entry/`、
+      `references/` 已全部为简体中文，此后受 `rules/core/core-language/` 语言规则约束，
+      不再享有「保留上游原语言」的 vendor 豁免。
+    - 正文范围勘定：`reports/` 下（`security_trust_report.md`、`output-risk-profile.md`）为
+      脚本生成产物，标题与字段名随生成器输出为英文，**不计入正文语言范围**，也不手改
+      （手改会被下次生成覆盖）；确需中文报告时改生成器。
+    - 不译之物：frontmatter 键名（`name` / `license` / `mode` / `metadata`）、命令名、
+      JSON 字段名、路径——均为机器可读标识，翻译即失效。
+    - 与上游的关系：上游仍可能更新 `Documentation~/` 与 `CommandNames.cs`，升级时按上文重放
+      同步即可；因已转本地维护，正文措辞以本仓库为准，无需与上游逐字比对。
+    - 判据：`source.origin` 为 `local` 且 `editable` 为 `full` 即本地维护分支
+      （与 `lib/grilling/` 同一档位），引擎 `README.md` 的 vendor 表同步标注。
