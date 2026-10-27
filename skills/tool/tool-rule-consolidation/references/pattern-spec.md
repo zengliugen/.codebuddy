@@ -80,7 +80,7 @@ provider:
 | `core-language` | core | 底线规范 | `alwaysApply` | 1 |
 | `core-project-guide` | core | 底线规范 | `alwaysApply` | 5 |
 | `core-rule-governance` | core | 底线规范 | `alwaysApply` | 0 |
-| `core-tooling` | core | 底线规范 | `alwaysApply` | 4 |
+| `core-tooling` | core | 底线规范 | `alwaysApply` | 5 |
 | `csharp-code-review` | csharp | 入口 | `paths: **/*.cs` | 5 |
 | `csharp-comment` | csharp | 入口 | `alwaysApply` | 5 |
 | `csharp-format-checker` | csharp | 入口 | `paths: **/*.cs` | 0 |
@@ -127,7 +127,7 @@ provider:
 > 合计 4 条：入口 2、规范 2。项目侧内容由项目自行管理，不登记 `lib/packs.json` 的
 > `comps`（`project` 包的 `comps` 保持空），故项 8 与项 9 跳过它，由项 10 单独校验。
 
-> **注**：`core-tooling` 常驻（`alwaysApply: true`，入口约 2.5 KB）。它把「命令如何构造」与「结果如何判定」合到同一条规则下——两者共享同一前提（工具被拦下或做失败时都不抛异常，只改变返回值），且都必须在每次工具调用时生效。核心底线压进入口、分级细则与校验命令下沉子规则，是为让纪律在调用时真正生效的必要代价。
+> **注**：`core-tooling` 常驻（`alwaysApply: true`）。它把「命令如何构造」「结果如何判定」「该问用户时怎么问」合到同一条规则下——三者都以单个工具调用为粒度，都必须在每次调用时生效。其中第三部分（第 11—14 条）规定所有面向用户的提问必须经 `AskUserQuestion` 发起，并明确该工具超时属临时失败、不得据此放弃；细则见 `ask-question-spec.mdc`。核心底线压进入口、分级细则与校验命令下沉子规则，是为让纪律在调用时真正生效的必要代价。
 >
 > **注**：`core-engine`（core）与 `vcs-engine-commit`（vcs）触发面相同（均为 `.codebuddy/**`），但**分包存放**：
 > 前者管「内容如何写、改完同步哪里」，属内容维护；后者管「提交到哪个仓库」，与 `vcs-router` 同属版本控制主题。
