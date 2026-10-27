@@ -1,24 +1,19 @@
 ---
-description: python-lint 技能强制入口 —— 需要该技能的场景必须经 python-lint 执行，禁止绕过技能手工完成。本文件是入口规则（只定义「必须走该技能」），执行规范由技能按需加载。
+description: python-lint 技能强制入口 —— 所有 Python 静态检查必须经该技能，禁止裸跑 ruff。本文件是入口规则（只定义「必须走该技能」与退出码语义），执行规范由技能按需加载。
 alwaysApply: true
 enabled: true
-updatedAt: 2026-10-26T00:00:00.000Z
+updatedAt: 2026-10-27T00:00:00.000Z
 provider:
 ---
 
 # python-lint 强制入口
 
-本文件是 `python-lint` 技能的**强制入口规则**，始终生效（`alwaysApply: true`）。
-它只规定「什么时候必须经该技能」。
-
-## 为什么需要这条规则
-
+本文件只规定「什么时候必须经 `python-lint` 技能」。
 静态检查有**两套事实来源**的风险：规则集、行宽、docstring 风格、检查范围都由项目侧
-`python_lint.config` 声明。若裸跑 `ruff check`，用的是 ruff 默认规则与全目录范围，
+`python_lint.config` 声明。裸跑 `ruff check` 用的是 ruff 默认规则与全目录范围，
 与项目口径不一致——**同一份代码，技能判通过、裸跑判失败**（或反之），结论无法互信。
-
-检查范围的收集方式也有讲究：技能的 `collect_targets.py` 按 git 变更清单收集并做项目根
-相对路径换算，手写 `ruff check .` 会扫到依赖目录与生成代码。
+检查范围的收集也由技能的 `collect_targets.py` 按 git 变更清单做项目根相对路径换算，
+手写 `ruff check .` 会扫到依赖目录与生成代码。
 
 ## 强制条款
 
@@ -47,13 +42,6 @@ provider:
 
 ## 加载机制说明
 
-- 本规则**始终生效**（`alwaysApply: true`），不设 `paths`。
-- 无子规则：模式（check / fix / format）与参数拼接机制属技能 `references/guide.md`。
-
-## 与其他规则的关系
-
-| 规则 | 分工 |
-|---|---|
-| `python-lint`（本规则） | 用 ruff 做**确定性检查**（格式 + 规则） |
-| `python-code-review` 规则 | 做**语义审查**（命名、逻辑、边界），由 Agent 执行 |
-| `python-env` | 提供工具环境与应用解释器 |
+无子规则；模式（check / fix / format）与参数拼接机制位于
+`.codebuddy/lib/python/skills/python-lint/references/guide.md`，
+一律 `alwaysApply: false`，由技能读取，不自动注入。

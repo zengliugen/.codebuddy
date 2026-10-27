@@ -1,26 +1,20 @@
 ---
-description: python-test-coverage 技能强制入口 —— 需要该技能的场景必须经 python-test-coverage 执行，禁止绕过技能手工完成。本文件是入口规则（只定义「必须走该技能」），执行规范由技能按需加载。
+description: python-test-coverage 技能强制入口 —— 覆盖率采集必须经该技能，禁止直接跑 coverage。本文件是入口规则（只定义「必须走该技能」），执行规范由技能按需加载。
 alwaysApply: true
 enabled: true
-updatedAt: 2026-10-26T00:00:00.000Z
+updatedAt: 2026-10-27T00:00:00.000Z
 provider:
 ---
 
 # python-test-coverage 强制入口
 
-本文件是 `python-test-coverage` 技能的**强制入口规则**，始终生效（`alwaysApply: true`）。
-它只规定「什么时候必须经该技能」。
-
-## 为什么需要这条规则
-
+本文件只规定「什么时候必须经 `python-test-coverage` 技能」。
 覆盖率有一个**比报错更难发现的失效模式**：用错解释器时测试全部跳过，测试框架
 **仍返回成功**，coverage 报 0%——看起来像「代码确实没被覆盖」，实际是「测试根本没跑」。
-
-技能的关键设计就是断言**实际执行用例数 > 0**，把这种静默失败显式化。手工
-`coverage run -m pytest` 不会做这项校验。
-
-第二个坑是收集方式：`unittest discover` 只递归含 `__init__.py` 的包，缺
-`__init__.py` 的子目录会被静默跳过且仍返回退出码 0。技能用逐文件显式传路径避免漏测。
+技能的关键设计就是断言**实际执行用例数 > 0**，把这种静默失败显式化；
+手工 `coverage run -m pytest` 不会做这项校验。
+第二个坑是收集方式：`unittest discover` 只递归含 `__init__.py` 的包，
+缺 `__init__.py` 的子目录会被静默跳过且仍返回退出码 0，技能用逐文件显式传路径避免漏测。
 
 ## 强制条款
 
@@ -41,13 +35,6 @@ provider:
 
 ## 加载机制说明
 
-- 本规则**始终生效**（`alwaysApply: true`），不设 `paths`。
-- 无子规则：运行方式（逐文件传路径）与报告落盘位置属技能 `SKILL.md`。
-
-## 与其他规则的关系
-
-| 规则 | 分工 |
-|---|---|
-| `python-test-coverage`（本规则） | 采集**真实覆盖率**并校验测试确实跑过 |
-| `python-test` 规则 | 测试代码**怎么写**（命名、编排、验收） |
-| `python-env` | 提供工具环境与应用解释器 |
+无子规则；运行方式（逐文件传路径）与报告落盘位置位于
+`.codebuddy/lib/python/skills/python-test-coverage/SKILL.md`，
+一律 `alwaysApply: false`，由技能读取，不自动注入。

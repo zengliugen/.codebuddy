@@ -1,20 +1,22 @@
 ---
-description: python-code-review 技能强制入口 —— 需要该技能的场景必须经 python-code-review 执行，禁止绕过技能手工完成。本文件只定义强制入口，执行规范由技能按需加载。
+description: python-code-review 技能强制入口 —— 所有 Python 代码审查必须经该技能，禁止凭记忆直接审查。本文件是入口规则（只定义「必须走该技能」），审查规范由技能加载。
 alwaysApply: true
 enabled: true
-updatedAt: 2026-10-26T00:00:00.000Z
+updatedAt: 2026-10-27T00:00:00.000Z
 provider:
 ---
 
 # python-code-review 强制入口
 
-本文件是 `python-code-review` 技能的**入口规则**，只定义强制入口，不含执行规范。
+本文件只规定「什么时候必须经 `python-code-review` 技能」。
 
 ## 强制条款
 
-1. **所有 Python 代码审查必须通过 `python-code-review` 技能执行**：技能负责触发识别与 Agent 调度，实际审查逻辑由 Agent 承担。
+1. **所有 Python 代码审查必须通过 `python-code-review` 技能执行**：
+   技能负责触发识别与 Agent 调度，实际审查逻辑由 Agent 承担。
 
-2. **禁止**绕过技能直接在对话中凭记忆审查 Python 代码；**禁止**以纯文本方式给出无规则依据的审查结论。
+2. **禁止**绕过技能直接在对话中凭记忆审查 Python 代码；
+   **禁止**以纯文本方式给出无规则依据的审查结论。
 
 ## 规范在哪
 
@@ -22,12 +24,5 @@ provider:
 
 ## 加载机制说明
 
-- 本文件为**入口规则**：只定义强制入口，规范由技能读取，不自动注入。
-- 规范文件一律 `alwaysApply: false`，避免无谓的常驻成本。
-
-## 与其他规则的关系
-
-| 规则 | 管什么 |
-|---|---|
-| `python-code-review.entry`（本规则） | **必须走该技能** |
-| `python-code-review` 规范目录 | **执行细节** |
+无子规则；审查规范位于 `.codebuddy/lib/python/rules/python-code-review/`，
+一律 `alwaysApply: false`，由技能与 Agent 读取，不自动注入。
