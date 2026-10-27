@@ -1,5 +1,5 @@
 ---
-description: C# 代码审查规范。定义审查的强制入口路由：所有 C# 代码审查必须通过 csharp-code-review 技能执行，由技能调度 Agent 拉起审查。子规则（质量/注释/Bug/架构/报告）由 Agent 按需加载，不全局生效。
+description: C# 代码审查规范 —— 审查维度路由、规则加载方式、严重级别与审查原则。由 csharp-code-review Agent 执行审查时按需加载。强制入口不在本文件，见同级 csharp-code-review.entry/。
 alwaysApply: false
 enabled: true
 updatedAt: 2026-08-10T00:00:00.000Z
@@ -8,17 +8,8 @@ provider:
 
 # C# 代码审查规范
 
-本文件是 C# 代码审查的**规范规则**，由技能按需加载。其中「强制入口规则」是审查路由的兜底强制条款：无论技能自动触发机制是否生效，本规则都要求 C# 代码审查必须经 `csharp-code-review` 技能统一入口执行，禁止绕过技能直接审查。
-
-## 强制入口规则
-
-- **所有 C# 代码审查必须通过 `csharp-code-review` 技能执行**：技能负责触发识别与 Agent 调度，实际审查逻辑由 `csharp-code-review` Agent 承担。
-- 触发场景：用户要求审查 C# 代码（未提交的 Git 变更、单个 `.cs` 文件、目录/程序集、粘贴的代码片段），或用户要求修复审查发现的问题（Agent 进入修复模式）。
-- 禁止行为：
-  - **禁止**绕过技能直接在对话中凭记忆审查 C# 代码。
-  - **禁止**以纯文本方式"假装审查"后给出无规则依据的结论。
-  - **禁止**在未触发审查技能的情况下自行读取/修改被审查代码。
-- 审查规则由 Agent 按需加载（见下文「规则加载方式」），**子规则不全局生效**；本入口规则负责把审查请求正确路由到技能与 Agent。
+本文件是**规范规则**（`alwaysApply: false`），由 `csharp-code-review` Agent 执行审查时按需加载。
+「必须经该技能」的强制条款不在此处，由同级 `csharp-code-review.entry/` 承载。
 
 ## 1. 审查维度总览（子规则路由表）
 
@@ -29,6 +20,7 @@ provider:
 | 格式合规 | 无独立规则文件，**以工具结果为准** | 由 `csharp-format-checker` 技能（`dotnet format` + 项目根 `.editorconfig`）做确定性检查；**检查范围仅限 `Assets/` 与 `Packages/` 下的自研代码**（详见下方「格式维度的检查范围」）；常见项参考 `quality-spec.mdc` §2 |
 | 潜在 Bug 与边界 | `bug-boundary-spec.mdc` | 空引用、资源泄漏、异常处理、并发安全 |
 | 架构与性能 | `architecture-spec.mdc` | 模块依赖、对象池/缓存、GC 压力、热更新边界 |
+| 格式检查范围（项目事实） | `format-scope.mdc`（薄壳） | 忽略目录、三方库、生成代码、白名单模式；正文在项目侧 |
 
 以上子规则均为**按需加载**（`alwaysApply: false`），仅在 `csharp-code-review` Agent 执行审查时读取。
 
@@ -36,44 +28,9 @@ provider:
 
 ### 格式维度的检查范围（口径）
 
-格式合规维度的检查范围**限定为 `Assets/` 与 `Packages/` 下的自研代码**（`Assets/Game`、`Assets/Battle`、`Packages/com.littlebaby.framework.*`）。以下内容**一律忽略，不检查也不修改**：
-
-| 忽略类别 | 具体范围 |
-|---------|---------|
-| `Assets/`、`Packages/` 之外的目录 | `.codebuddy/`（技能自带工具的 `.cs` 源码）、`.codebuddy.project/`（项目侧配置与物化包，含技能工具的 `.cs` 源码）、根目录工具产物等，均不在检查范围内 |
-| 三方库 | `Assets/Plugins`（DOTween、Sirenix/Odin、XLua、Proxima、HybridCLR、TextMeshPro、StompyRobot 等）、`Library/PackageCache`、`Packages/TouchSocket.*`、自研包内的三方代码（如 `framework.core/Runtime/ThreadLib/UnityHook`，命名空间为 `MonoHook`） |
-| 生成代码 | `HybridCLRData`、各 `Gen/`、`Generated/` 目录，以及文件头含 auto-generated 标记的文件 |
-
-> **本表为项目专属口径**（具体目录/包名随项目变化）：迁移到其他项目时须按目标项目的目录结构改写本表，
-> 并同步更新 `csharp-format-checker/config.json` 的 `exclude_dirs`。
-
-忽略清单由 `csharp-format-checker/config.json` 的 `exclude_dirs` 显式声明（三重保护：配置声明 + dotnet format 内置 auto-generated 识别 + 路径范围限定）。新增三方插件或生成目录时，在该配置追加即可。
-
-> **同一口径覆盖全部审查维度**：上表虽是「格式维度」的范围，但**门禁审查目标收集**
-> （`vcs-git-commit` 阶段五调用 `csharp-code-review/scripts/collect_review_targets.py`）也采用**同一份排除清单**
-> ——上表四类内容（范围外目录、三方库、生成代码及其标记）均不进入审查目标。
-> 两处配置声明须保持一致：`csharp-format-checker/config.json` 的 `exclude_dirs`
-> 与 `csharp-code-review/config.json` 的 `exclude_patterns`；新增排除项时**两处一并更新**，避免口径漂移。
-> 两份脚本**均不内置排除项**，清单完全由上述配置声明。
-
-> **审查范围还有一层可选白名单**：`csharp-code-review/config.json` 的 `include_patterns` 决定走哪种模式——
-> 配了非空值即**默认拒绝**（只审白名单内的文件），缺失或为空则退回**默认放行**（仅按 `exclude_patterns` 排除）。
-> 本项目当前为白名单模式：`Assets/Battle/**/*.cs`、`Assets/Game/**/*.cs`、
-> `Packages/com.littlebaby.framework.*/**/*.cs`。
-> **白名单模式下新增业务目录必须同步补充白名单**，否则该目录下的代码会静默漏审；若不愿承担该维护成本，
-> 把 `include_patterns` 置空即退回黑名单模式（新目录自动纳入审查）。
-
-> **模式写法：一律按「项目根相对路径」书写**。`collect_review_targets.py` 会把 `git status` 给出的
-> **仓库相对路径**（如 `Program/Client/Assets/...`）换算为项目根相对路径（`Assets/...`）再匹配，因此
-> **不需要为了抵销仓库前缀而补 `**/`**：要锚定在项目根下的目录写 `Assets/Game/**` 即可，与
-> `**/Assets/Game/**` 等价命中。
->
-> 是否使用 `**/` 开头应按**语义**决定，而不是当成规避错配的变通：
-> - `Assets/Game/**`——锚定项目根下的这个目录（推荐，意图最明确）；
-> - `**/Generated/**`——匹配**任意层级**的同名目录（生成代码可能散落在多处时使用）。
->
-> 历史提示「必须带 `**/` 前缀」源于脚本早期直接用仓库相对路径匹配、未做换算的缺陷；该缺陷已修复，
-> 现在两种写法均有效，无需再强制加前缀。
+> **项目事实，已外置**：完整清单（忽略目录、三方库、生成代码、白名单模式要求）属项目专属，
+> 见同目录薄壳 `format-scope.mdc`（其正文经索引 `rule_shells` 指向项目侧）。
+> 判定审查范围前**必须读取** `format-scope.mdc`，不得凭经验假设目录结构。
 
 ## 2. 规则加载方式
 

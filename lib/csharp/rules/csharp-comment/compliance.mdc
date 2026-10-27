@@ -2,7 +2,6 @@
 description: C# 注释合规要求 —— 13 条禁止事项、生成代码注释豁免规则、25 项提交前检查清单。按需加载。
 alwaysApply: false
 enabled: true
-paths: "**/*.cs"
 updatedAt: 2026-08-06T00:00:00.000Z
 provider: 
 ---

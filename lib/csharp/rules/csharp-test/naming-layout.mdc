@@ -1,7 +1,6 @@
 ---
 description: 测试文件的目录镜像、文件与类命名、命名空间隔离、专项 partial 拆分、主题命名、成员查重与禁止项。新建/重命名/移动/拆分测试文件时加载。项目事实（各包测试目录存量现状）已外置。
 alwaysApply: false
-paths: "**/Tests/**"
 enabled: true
 updatedAt: 2026-10-16T00:00:00.000Z
 provider:

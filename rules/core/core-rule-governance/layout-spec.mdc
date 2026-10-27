@@ -1,0 +1,48 @@
+---
+description: 规则目录落位与变更流程 —— 入口规则独占目录的要求、引擎侧与项目侧的同构结构、新增或改名规则的六步流程。落盘规则文件前加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-27T00:00:00.000Z
+provider:
+---
+
+# 目录落位与变更流程
+
+本文件是 `core-rule-governance` 的细则之二，承载「文件放哪、改的时候要动哪些地方」。
+
+## 一、目录结构
+
+```
+rules/<pack>/
+├── <规则名>.entry/            # 入口规则独占目录（目录名 = 文件主干）
+│   └── <规则名>.entry.mdc
+└── <规则名>/                  # 规范目录（可与入口同名，互不干扰）
+    ├── RULE.mdc               # 规范索引
+    └── <主题>-spec.mdc        # 规范分项（alwaysApply: false）
+```
+
+引擎侧（`.codebuddy/rules/<pack>/`）与项目侧（`.codebuddy.project/rules/project/`）
+布局同构，差异只在项目侧的 `project-` 前缀（见 `classification-spec.mdc` §2.4）。
+
+**入口规则必须独占目录**，目录名与文件主干一致（`core-init.entry/core-init.entry.mdc`）。
+理由：入口与规范职责不同、加载方式不同，混在同一目录会让「哪些是入口、哪些是规范」
+只能靠文件名分辨；独占目录后一眼可辨，也便于脚本按目录识别。
+
+- **入口与规范可同名共存**：`core-init.entry/` 与 `core-init/` 是两条独立规则，
+  前者是入口、后者是规范。只有入口无规范时，规范目录可省略（如 `tool-*`）。
+- **`RULE.mdc` 不是必需的**：规则加载器扫描所有 `*.mdc`。
+  只有当一条规范需要「索引 + 多个分项」时才建 `RULE.mdc`。
+
+## 二、新增或改名规则的流程
+
+1. **判定类型**：这条规则是入口（管「必须走哪个技能」）还是规范（管「具体怎么做」）？
+2. **判定命名**：按 `classification-spec.mdc` §2.2 确定名称——单技能同名、多技能取共同前缀。
+3. **建文件**：
+   - 入口规则 → 目录 `<规则名>.entry/` 下建 `<规则名>.entry.mdc`，frontmatter 按触发场景取
+     `alwaysApply` 或 `paths`
+   - 规范规则 → 目录 `<规则名>/` 下建 `RULE.mdc` 或 `<主题>.mdc`，必须 `alwaysApply: false`
+   - 项目侧组件 → 路径基准换成 `.codebuddy.project/rules/project/`，名称加 `project-` 前缀
+4. **登记**：引擎侧在 `lib/packs.json` 对应包的 `comps.rules` 追加规则名；
+   项目侧因该包内容由项目自行管理，只按 `classification-spec.mdc` §2.4 命名，不登记 `packs.json`。
+5. **同步引用**：全库检索旧名，改掉技能文档、README、规则全景表、项目索引中的引用。
+6. **校验**：`python .codebuddy/scripts/check_manifest.py` 必须退出码 0。

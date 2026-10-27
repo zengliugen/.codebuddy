@@ -1,7 +1,6 @@
 ---
 description: 测试的编译与运行验证流程——已安装 unity-pipeline 技能时经其执行 script recompile 与异步 test run 并轮询终态、编辑器焦点排查；未安装时降级为 dotnet build/test。含定向过滤、注释 checker 链路、验收闭环与提交衔接。编译或运行测试、验收测试改动时加载。
 alwaysApply: false
-paths: "**/Tests/**"
 enabled: true
 updatedAt: 2026-09-15T00:00:00.000Z
 provider:

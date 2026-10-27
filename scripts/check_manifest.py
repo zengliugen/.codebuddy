@@ -311,6 +311,24 @@ def check_rule_classification(codebuddy_dir, packs):
                     "入口规则无对应技能：%s（期望技能 %s 或其前缀技能存在于包 %s）"
                     % (rel_dir, rule_name, pack))
 
+        # 规范规则内不得重复定义强制入口：已有 .entry/ 目录时，RULE.mdc 里再写「强制入口」
+        # 会造成两处定义，一旦不一致无法判断哪份为准（治理规则 §五第 5 条）。
+        entry_names = {d[: -len(".entry")] for d in os.listdir(base_dir)
+                       if d.endswith(".entry") and os.path.isdir(os.path.join(base_dir, d))}
+        for rule in sorted(entry_names):
+            rf = os.path.join(base_dir, rule, "RULE.mdc")
+            if not os.path.isfile(rf):
+                continue
+            try:
+                with open(rf, "r", encoding="utf-8") as handle:
+                    text = handle.read()
+            except OSError:
+                continue
+            if re.search(r"(?m)^##+ .*强制入口", text):
+                problems.append(
+                    "规范规则内重复定义强制入口：%s（已有 %s.entry/，强制入口只写在入口规则里）"
+                    % (os.path.relpath(rf, codebuddy_dir).replace("\\", "/"), rule))
+
         # 规范规则：有同名技能时不得 alwaysApply: true
         for rule in (meta.get("comps") or {}).get("rules") or []:
             d = os.path.join(base_dir, rule)

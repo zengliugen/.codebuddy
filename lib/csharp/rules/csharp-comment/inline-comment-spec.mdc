@@ -2,7 +2,6 @@
 description: C# 行内注释规范 —— 解释"为什么"而非"是什么"，触发场景、格式要求、生成流程与修正规则。按需加载。
 alwaysApply: false
 enabled: true
-paths: "**/*.cs"
 updatedAt: 2026-08-06T00:00:00.000Z
 provider: 
 ---

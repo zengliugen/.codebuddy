@@ -25,78 +25,36 @@ provider:
 
 该语义直接取自项目 `run_tests.ps1` 的注释，规则与脚本必须一致，否则排查时会先分辨「哪套生效」。
 
-## 2. 运行方式：逐文件显式传路径
+## 核心底线（强制）
 
-```powershell
-# 正确：逐文件传路径
-python -m unittest tests/TestMain.py
-python -m unittest extensions_tests/TestExtensions.py
+以下 3 条**不依赖子规则是否加载**，操作测试文件即适用。
 
-# 错误：不要用 discover
-python -m unittest discover -s extensions_tests
-```
+1. **双测试根的结论不可互换**。`tests/` 只证明上游行为未被破坏（**只新增，不得修改**）；
+   `extensions_tests/` 只证明扩展自身正常。前者通过不能证明扩展正常，后者通过不能证明上游完好
+   ——同步上游后**只能**用 `tests/` 判断。
+2. **逐文件显式传路径，禁用 `discover`**。`unittest discover` 只递归含 `__init__.py` 的包，
+   缺 `__init__.py` 的子目录会被静默跳过且**仍返回退出码 0**——测试没跑却报成功。
+3. **缺运行依赖时整类跳过并说明原因**，不让测试报错。代价是全部跳过时框架仍返回 0，
+   因此覆盖率采集必须额外断言「实际执行用例数 > 0」。
 
-**为什么不用 `discover`**：`unittest discover` 只递归含 `__init__.py` 的包。缺 `__init__.py` 的子目录会被静默跳过，
-且**仍返回退出码 0**——测试没跑却报成功，比跑失败更危险。
+## 子规则路由表
 
-项目 `run_tests.ps1` 已按此实现：用 `Get-ChildItem -Recurse -Filter Test*.py` 收集后逐个传路径。
+| 场景 | 子规则文件 | 内容 |
+|---|---|---|
+| 需确认两个测试根的职责边界与允许修改范围 | `dual-root-spec.mdc` | 双测试根对照表、「结论不可互换」的完整论证、与 `run_tests.ps1` 的一致性要求 |
+| 写测试或跑测试：运行方式、命名、断言、依赖缺失处理、覆盖范围 | `authoring-spec.mdc` | 逐文件传路径的理由与写法、文件/类/方法命名约定、断言书写要求、`skipIf` 写法与退出码陷阱、覆盖率分母范围 |
 
-## 3. 命名约定
-
-| 项 | 规范 | 说明 |
-|----|------|------|
-| 测试文件 | `Test*.py`（首字母大写） | 与项目既有测试一致；`pytest` 默认的 `test_*.py` 也可收集 |
-| 测试类 | `Test*` + 被测对象名 | 如 `TestExtensionOverrides` |
-| 测试方法 | `test_<行为>_<条件>` | 如 `test_apply_reports_all_missing_keys_at_once` |
-| 断言消息 | 复杂断言带中文说明 | `self.assertEqual(a, b, "覆写未生效")` |
-
-## 4. 断言书写
-
-| 规范 | 说明 |
-|------|------|
-| 用具体断言 | `assertEqual`/`assertIn`/`assertRaises`，不用裸 `assertTrue(x == y)` |
-| 异常断言带消息核对 | `with self.assertRaises(X) as ctx:` 然后断言 `str(ctx.exception)` 含关键信息 |
-| 一个测试一个行为 | 多个断言可共存，但应围绕同一行为的不同侧面 |
-| 不依赖执行顺序 | 每个测试独立可跑，不依赖前一个测试的副作用 |
-| 不依赖真实网络/外部服务 | 用假数据或跳过标记 |
-
-## 5. 环境依赖的处理
-
-扩展测试需要 `ok`/`PySide6` 等运行依赖。缺依赖时应当**整类跳过并说明原因**，
-而不是让测试报错：
-
-```python
-try:
-    from src.config import config
-    IMPORT_ERROR = None
-except ModuleNotFoundError as exc:
-    config = None
-    IMPORT_ERROR = str(exc)
-
-
-@unittest.skipIf(config is None, f"缺少运行依赖，跳过：{IMPORT_ERROR}")
-class TestExtensionOverrides(unittest.TestCase):
-    ...
-```
-
-**为什么这样写**：报错会掩盖真正的断言失败，也让无 GUI 的环境无法区分「环境没装」与「代码坏了」。
-
-> **代价必须知晓**：全部跳过时测试框架仍返回退出码 0。因此覆盖率采集必须额外断言
-> 「实际执行用例数 > 0」，否则会把「环境缺失」误读为「代码没被覆盖」。
-
-## 6. 测试范围
-
-| 目录 | 是否纳入 | 理由 |
-|------|---------|------|
-| `extensions/` | 是 | 覆盖率分母 |
-| `extensions_tests/` | 否 | 测试代码本身不计入覆盖率 |
-| `src/` | 否 | 上游模板，改它会被上游覆盖 |
-| `tests/` | 否 | 上游基线测试，不测本项目代码 |
-
-## 7. 与相邻约定
+## 与相邻约定
 
 | 约定 | 分工 |
-|------|------|
+|---|---|
 | `run_tests.ps1` | 执行入口；本规则描述的口径必须与其注释一致 |
 | `python-test-coverage` 技能 | 采集真实覆盖率并校验「用例实际执行数 > 0」 |
 | `python-code-review` | 审查测试代码的质量与缺陷（三维度同样适用） |
+
+## 加载机制说明
+
+- 本文件 `alwaysApply: false` + `paths: "**/tests/**/*.py, **/extensions_tests/**/*.py"`，
+  仅在操作测试文件时注入。
+- 两条子规则均为**按需加载**（`alwaysApply: false` 且无 `paths`），由上表按场景读取。
+- 子规则位于本文件同目录（`rules/python-test/`）。

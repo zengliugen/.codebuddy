@@ -2,7 +2,6 @@
 description: C# 注释修正规则 —— 19 种问题类型与修正方式、四维度质量检查（书写正确性/描述清晰度/描述完整性/语义一致性）、修正原则。按需加载。
 alwaysApply: false
 enabled: true
-paths: "**/*.cs"
 updatedAt: 2026-08-06T00:00:00.000Z
 provider: 
 ---

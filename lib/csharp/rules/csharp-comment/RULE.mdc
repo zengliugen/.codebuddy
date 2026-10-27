@@ -48,6 +48,10 @@ csharp-comment-checker（扫描检查）→ csharp-comment-generator（逐项修
 
 ## 3. 加载机制说明
 
-- 5 个子规则均为条件触发规则（`alwaysApply: false` + `paths: "**/*.cs"`），操作或引用 `.cs` 文件时自动注入上下文。
-- 若操作不涉及 `.cs` 文件但需要查阅注释规范，请主动 Read 对应子规则文件，或使用 `@compliance.mdc` 等方式手动引用。
+- 5 个子规则均为**按需加载**（`alwaysApply: false`，**不带 `paths`**），由 `csharp-comment-checker` /
+  `csharp-comment-generator` 技能在流程中读取；技能 SKILL.md 已声明「读取该目录下的全部规则文件」。
+- **为什么不再用 `paths`**：5 个子规则合计 16.7 KB，若都挂 `paths: "**/*.cs"`，则操作任何 `.cs` 文件
+  都会一次性注入全部注释细则——而其中大部分只在「扫描/修复注释」时才需要。技能已声明读取，
+  靠 `paths` 再注入一遍是重复机制，也是常驻成本的浪费。
+- 若操作不涉及 `.cs` 文件但需要查阅注释规范，请主动 Read 对应子规则文件。
 - 子规则位于本文件同目录（`rules/csharp-comment/`）。

@@ -79,7 +79,7 @@ provider:
 | `core-engine` | core | 底线规范 | `paths: **/.codebuddy/**` | 3 |
 | `core-language` | core | 底线规范 | `alwaysApply` | 1 |
 | `core-project-guide` | core | 底线规范 | `alwaysApply` | 5 |
-| `core-rule-governance` | core | 底线规范 | `alwaysApply` | 0 |
+| `core-rule-governance` | core | 底线规范 | `alwaysApply` | 3 |
 | `core-tooling` | core | 底线规范 | `alwaysApply` | 5 |
 | `csharp-code-review` | csharp | 入口 | `paths: **/*.cs` | 5 |
 | `csharp-comment` | csharp | 入口 | `alwaysApply` | 5 |
@@ -92,7 +92,7 @@ provider:
 | `python-env` | python | 入口 | `paths: **/.codebuddy/**` | 0 |
 | `python-lint` | python | 入口 | `paths: **/*.py` | 0 |
 | `python-test-coverage` | python | 入口 | `paths: **/tests/**` | 0 |
-| `python-test` | python | 底线规范 | `paths: **/tests/**/*.py, **/extensions_tests/**/*.py` | 0 |
+| `python-test` | python | 底线规范 | `paths: **/tests/**/*.py, **/extensions_tests/**/*.py` | 2 |
 | `tool-cmd-script-writing` | tool | 入口 | `paths: **/*.{cmd,bat}` | 0 |
 | `tool-engine-sync` | tool | 入口 | `paths: **/.codebuddy/**` | 0 |
 | `tool-export-zipped-dir` | tool | 入口 | `paths: **/.codebuddy/**` | 0 |
@@ -134,3 +134,17 @@ provider:
 > 分包而非合并的原因有两条：一是避免 `core.requires` 与 `vcs.requires` 形成环（`vcs` 已依赖 `core`），
 > 二是 `vcs-engine-commit` 需要引用 `vcs-router`（同包引用比跨包引用更稳）。评估规则结构时勿将两者合并，也勿把后者移回 core。
 > 项目侧文件的生成由 `core-init` 技能负责。
+
+
+> **注**：`RULE.mdc` 有两种角色，判据是「有没有技能负责加载它的子规则」（见
+> `core-rule-governance` 的 `classification-spec.mdc` §三）：
+>
+> | 角色 | 判据 | RULE 该写什么 |
+> |---|---|---|
+> | **索引型** | 包内有同名/前缀技能，技能会 Read 子规则 | 场景描述 + 路由表，**不写细则** |
+> | **底线型** | 无技能加载 | **完整自足的底线判据**，子规则只放分级细则与正反例 |
+>
+> 底线型的子规则没有 `paths`、也没有技能去 Read，若 RULE 只写「详见 xx-spec」，
+> 那份细则在实际运行中从不生效。评估规则结构时先判角色，再判该不该拆。
+> 子规则不要挂 `paths`：`csharp-comment` 5 个子规则曾同挂 `**/*.cs`，合计 16.7 KB
+> 在每次触碰 `.cs` 文件时全部注入，而其中大部分只在「扫描/修复注释」时才需要。

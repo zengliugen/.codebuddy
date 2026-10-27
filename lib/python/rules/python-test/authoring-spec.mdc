@@ -1,0 +1,80 @@
+---
+description: Python 测试的编写与运行 —— 逐文件传路径的理由与写法、文件与类的命名约定、断言书写要求、缺依赖时的跳过写法与退出码陷阱、覆盖率的统计范围。写测试或跑测试时加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-27T00:00:00.000Z
+provider:
+---
+
+# 测试编写与运行
+
+本文件是 `python-test` 的细则，承载「怎么写、怎么跑、怎么统计」。双测试根的职责边界见
+`dual-root-spec.mdc`。
+
+## 1. 运行方式：逐文件显式传路径
+
+```powershell
+# 正确：逐文件传路径
+python -m unittest tests/TestMain.py
+python -m unittest extensions_tests/TestExtensions.py
+
+# 错误：不要用 discover
+python -m unittest discover -s extensions_tests
+```
+
+**为什么不用 `discover`**：`unittest discover` 只递归含 `__init__.py` 的包。缺 `__init__.py` 的子目录会被静默跳过，
+且**仍返回退出码 0**——测试没跑却报成功，比跑失败更危险。
+
+项目 `run_tests.ps1` 已按此实现：用 `Get-ChildItem -Recurse -Filter Test*.py` 收集后逐个传路径。
+
+## 2. 命名约定
+
+| 项 | 规范 | 说明 |
+|----|------|------|
+| 测试文件 | `Test*.py`（首字母大写） | 与项目既有测试一致；`pytest` 默认的 `test_*.py` 也可收集 |
+| 测试类 | `Test*` + 被测对象名 | 如 `TestExtensionOverrides` |
+| 测试方法 | `test_<行为>_<条件>` | 如 `test_apply_reports_all_missing_keys_at_once` |
+| 断言消息 | 复杂断言带中文说明 | `self.assertEqual(a, b, "覆写未生效")` |
+
+## 3. 断言书写
+
+| 规范 | 说明 |
+|------|------|
+| 用具体断言 | `assertEqual`/`assertIn`/`assertRaises`，不用裸 `assertTrue(x == y)` |
+| 异常断言带消息核对 | `with self.assertRaises(X) as ctx:` 然后断言 `str(ctx.exception)` 含关键信息 |
+| 一个测试一个行为 | 多个断言可共存，但应围绕同一行为的不同侧面 |
+| 不依赖执行顺序 | 每个测试独立可跑，不依赖前一个测试的副作用 |
+| 不依赖真实网络/外部服务 | 用假数据或跳过标记 |
+
+## 4. 环境依赖的处理
+
+扩展测试需要 `ok`/`PySide6` 等运行依赖。缺依赖时应当**整类跳过并说明原因**，
+而不是让测试报错：
+
+```python
+try:
+    from src.config import config
+    IMPORT_ERROR = None
+except ModuleNotFoundError as exc:
+    config = None
+    IMPORT_ERROR = str(exc)
+
+
+@unittest.skipIf(config is None, f"缺少运行依赖，跳过：{IMPORT_ERROR}")
+class TestExtensionOverrides(unittest.TestCase):
+    ...
+```
+
+**为什么这样写**：报错会掩盖真正的断言失败，也让无 GUI 的环境无法区分「环境没装」与「代码坏了」。
+
+> **代价必须知晓**：全部跳过时测试框架仍返回退出码 0。因此覆盖率采集必须额外断言
+> 「实际执行用例数 > 0」，否则会把「环境缺失」误读为「代码没被覆盖」。
+
+## 5. 覆盖率统计范围
+
+| 目录 | 是否纳入 | 理由 |
+|------|---------|------|
+| `extensions/` | 是 | 覆盖率分母 |
+| `extensions_tests/` | 否 | 测试代码本身不计入覆盖率 |
+| `src/` | 否 | 上游模板，改它会被上游覆盖 |
+| `tests/` | 否 | 上游基线测试，不测本项目代码 |

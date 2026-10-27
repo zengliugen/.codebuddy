@@ -1,7 +1,6 @@
 ---
 description: 测试用例的编写要求——回归用例必须锁定缺陷（修复前必然失败）、覆盖设计、断言中文说明、测试注释与字面量行内注释、测试数据设计、辅助类复用、不得掩盖断言日志。编写或修改测试用例时加载。
 alwaysApply: false
-paths: "**/Tests/**"
 enabled: true
 updatedAt: 2026-09-15T00:00:00.000Z
 provider:

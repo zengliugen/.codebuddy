@@ -1,5 +1,5 @@
 ---
-description: Python 代码审查规范。定义审查的强制入口路由：所有 Python 代码审查必须通过 python-code-review 技能执行，由技能调度 Agent 拉起审查。子规则（质量/注释/Bug/报告）由 Agent 按需加载，不全局生效。
+description: Python 代码审查规范 —— 审查维度路由、审查范围、规则加载方式、严重级别与审查原则。由 python-code-review Agent 执行审查时按需加载。强制入口不在本文件，见同级 python-code-review.entry/。
 alwaysApply: false
 enabled: true
 updatedAt: 2026-10-24T00:00:00.000Z
@@ -8,17 +8,8 @@ provider:
 
 # Python 代码审查规范
 
-本文件是 Python 代码审查规范的**入口规则**，**始终生效**（`alwaysApply: true）。其中「强制入口规则」是审查路由的兜底强制条款：无论技能自动触发机制是否生效，本规则都要求 Python 代码审查必须经 `python-code-review` 技能统一入口执行，禁止绕过技能直接审查。
-
-## 强制入口规则
-
-- **所有 Python 代码审查必须通过 `python-code-review` 技能执行**：技能负责触发识别与 Agent 调度，实际审查逻辑由 `python-code-review` Agent 承担。
-- 触发场景：用户要求审查 Python 代码（未提交的 Git 变更、单个 `.py` 文件、目录、粘贴的代码片段），或用户要求修复审查发现的问题（Agent 进入修复模式）。
-- 禁止行为：
-  - **禁止**绕过技能直接在对话中凭记忆审查 Python 代码。
-  - **禁止**以纯文本方式「假装审查」后给出无规则依据的结论。
-  - **禁止**在未触发审查技能的情况下自行读取/修改被审查代码。
-- 审查规则由 Agent 按需加载（见下文「规则加载方式」），**子规则不全局生效**；本入口规则负责把审查请求正确路由到技能与 Agent。
+本文件是**规范规则**（`alwaysApply: false`），由 `python-code-review` Agent 执行审查时按需加载。
+「必须经该技能」的强制条款不在此处，由同级 `python-code-review.entry/` 承载。
 
 ## 1. 审查维度总览（子规则路由表）
 

@@ -1,0 +1,35 @@
+---
+description: C# 审查的格式检查范围 —— 薄壳。项目事实正文外置到项目侧，本文件只做引用与强制读取条款。判定审查范围前加载。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-27T00:00:00.000Z
+provider:
+---
+
+# 格式维度的检查范围（薄壳）
+
+> **本规则的项目事实正文已外置**：见 `.codebuddy/project.index.json` 的
+> `rule_shells["rules/csharp/csharp-code-review/format-scope.mdc"].path` 指向的
+> `.codebuddy.project/configs/rules/csharp/csharp-code-review/format-scope.mdc`。
+> 迁移到其他项目时改写项目侧文件，不改本薄壳。
+
+本文件只保留「必须读取项目侧正文」的强制条款，具体清单（忽略目录、三方库、生成代码、
+白名单模式要求）一律以项目侧为准，**不得凭经验假设目录结构**。
+
+## 强制条款
+
+1. **判定审查范围前必须先读项目侧正文**。`csharp-code-review` Agent 执行审查、
+   或 `vcs-git-commit` 的审查门禁收集目标时，均须先读取上述路径，不得跳过。
+
+2. **清单与配置必须三处一致**：项目侧正文、`csharp-format-checker/config.json` 的
+   `exclude_dirs`、`csharp-code-review/config.json` 的 `exclude_patterns`（及
+   `include_patterns`）。新增排除项时三处一并更新，否则口径漂移会导致该审的漏审、
+   或不该改的被改。
+
+3. **脚本不内置排除项**。两份收集脚本的清单完全来自上述配置，本规则与项目侧正文
+   都不提供默认值。
+
+## 加载机制说明
+
+- 本文件 `alwaysApply: false`，由 `csharp-code-review` 的技能或 Agent 在判定范围时读取。
+- 项目侧正文经索引 `rule_shells` 定位，路径基准为项目根。

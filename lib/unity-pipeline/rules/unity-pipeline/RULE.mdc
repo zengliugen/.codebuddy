@@ -1,5 +1,5 @@
 ---
-description: Unity 操作规范。所有 Unity 相关操作必须通过 unity-pipeline 技能执行，禁止绕过技能直接调用 unity CLI。覆盖场景、硬性约束、提交衔接细则见同目录子规则，按需加载。
+description: Unity 操作规范 —— 操作场景与执行细则的路由。定义各 Unity 操作的步骤、硬性约束与提交衔接口径，由 unity-pipeline 技能执行时按需加载。强制入口不在本文件，见同级 unity-pipeline.entry/。
 alwaysApply: false
 enabled: true
 updatedAt: 2026-08-18T00:00:00.000Z
@@ -8,12 +8,8 @@ provider:
 
 # Unity 操作规范
 
-本文件是 Unity 操作规范的**入口规则**，**始终生效**（`alwaysApply: true`）。其中「强制入口规则」是 Unity 操作的兜底强制条款：无论技能触发机制是否生效，本规则都要求 Unity 相关操作必须经 `unity-pipeline` 技能统一入口执行，禁止绕过技能直接调用 `unity` CLI 命令。
-
-## 强制入口规则
-
-- **所有 Unity 相关操作必须通过 `unity-pipeline` 技能执行**，禁止直接使用 Bash/PowerShell 工具调用 `unity` CLI 命令绕过技能。
-- 该技能封装了 Unity 实例控制的完整流程（打开项目 → 安装校验 → 保活 tick → 编译 → 测试 → 热重载 → C# 求值），跳过技能等于跳过关键前置检查与状态轮询。
+本文件是**规范规则**（`alwaysApply: false`），由 `unity-pipeline` 技能执行操作时按需加载。
+「必须经该技能」的强制条款不在此处，由同级 `unity-pipeline.entry/` 承载。
 
 ## 子规则路由表
 
@@ -23,6 +19,6 @@ provider:
 
 ## 加载机制说明
 
-- 子规则 `execution-spec.mdc` 为**按需加载**（`alwaysApply: false`），由 `unity-pipeline` 技能执行对应操作时读取。
-- 强制入口规则（本文件）始终生效；子规则仅提供操作步骤与约束细节。
+- 本文件与子规则均为**按需加载**（`alwaysApply: false`），由 `unity-pipeline` 技能在流程中读取。
+- 强制入口在同级 `unity-pipeline.entry/`，该文件始终生效（`alwaysApply: true`）。
 - 子规则位于本文件同目录（`rules/unity-pipeline/`）。

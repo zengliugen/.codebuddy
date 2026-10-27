@@ -2,7 +2,6 @@
 description: C# 代码修改时的注释同步规则 —— 修改 C# 代码时必须同步更新注释，覆盖新增/修改/删除三种场景。按需加载。
 alwaysApply: false
 enabled: true
-paths: "**/*.cs"
 updatedAt: 2026-08-06T00:00:00.000Z
 provider: 
 ---
