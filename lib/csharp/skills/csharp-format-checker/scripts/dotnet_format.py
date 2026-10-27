@@ -192,7 +192,7 @@ def normalize_repo_path(value):
 def to_project_rel_path(repo_rel_path, git_root, root):
     """仓库根相对路径 → 项目根相对路径；不在项目根下时返回 None。
 
-    git 返回的是**仓库根**相对路径（如 `Program/Client/Assets/...`），而本技能与 csproj
+    git 返回的是**仓库根**相对路径（如 `<子目录>/<路径>/...`），而本技能与 csproj
     都以**项目根**为基准（如 `Assets/...`）。若不做该转换，路径去匹配工程映射表会全部失配，
     进而静默回退整仓检查（提速失效且难以察觉），故必须在此剥掉仓库前缀。
     """
@@ -382,8 +382,8 @@ def _resolve_scope_entry(line, root, git_root):
     """把清单中的一行路径解析为「项目根相对路径」；无法定位到项目根下时返回 None。
 
     两种写法都要支持，且**必须优先按项目根解析**：
-      - 项目根相对（`Assets/Game/.../A.cs`）——H1 清单的常见形式；
-      - 仓库根相对（`Program/Client/Assets/.../A.cs`）——`git status` 的原始形式。
+      - 项目根相对（`src/module/A.cs`）——H1 清单的常见形式；
+      - 仓库根相对（`<子目录>/<路径>/A.cs`）——`git status` 的原始形式。
 
     若直接用 `to_project_rel_path`（其语义是「仓库根相对 → 项目根相对」），
     传入项目根相对路径会被当成仓库根相对拼接而落到项目根之外，返回 None
@@ -409,8 +409,8 @@ def read_scope_file(list_path, root, git_root):
     """读取「本次提交计划清单」，返回项目根相对的 .cs 路径列表（排序去重）。
 
     清单文件每行一个路径，支持两种写法（自动判别，无需调用方转换）：
-      - 项目根相对路径，如 `Assets/Game/Runtime/Game/Core/A.cs`
-      - 仓库根相对路径，如 `Program/Client/Assets/.../A.cs`
+      - 项目根相对路径，如 `src/module/Core/A.cs`
+      - 仓库根相对路径，如 `<子目录>/<路径>/A.cs`
 
     非 `.cs` 行、空行、以 `#` 开头的注释行一律忽略。
     与 `git status` 口径不同，本函数**只认清单里列出的文件**，因此不受工作区

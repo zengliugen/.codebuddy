@@ -142,7 +142,7 @@ python scripts/diff_comment_report.py --before <修复前.json> --after <修复�
 ### 检查范围说明：测试文件已纳入
 
 项目侧配置（索引 `comment.project_config`）的 `exclude.paths` 当前为
-`["/Generated/", "/Gen/", "/ThreadLib/", "/Assets/Plugins/"]`——**未排除 `/Tests/`**，即测试目录下的 `.cs` 注释同样纳入工具检查。
+`exclude.paths` 中声明的各目录（如 `"/Generated/"`、`"/Gen/"`、`"/<三方库目录>/"`）——**未排除 `/Tests/`**，即测试目录下的 `.cs` 注释同样纳入工具检查。
 若测试代码上出现噪声（如测试方法的行内注释规则命中），应通过项目侧配置按规则调整严重程度，
 而非重新排除测试目录。
 

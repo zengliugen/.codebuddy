@@ -130,14 +130,13 @@ Parse("<all>", "")  →  includedAssemblies = "<all>"
 **因此必须写入显式清单**。清单内容由配置 `realCoverage.assemblyIncludePrefixes` 与
 `assemblyExcludeSuffixes` 在运行时枚举生成，无需手工维护。
 
-> **以下为本项目实测的清单示例**（25 个程序集，其中框架包 21 个）。迁移到其他项目时，
-> 该清单会随目标项目的 `assemblyIncludePrefixes` 配置自动变化，无需照抄本例。
+> **清单形态示例**（具体程序集随目标项目变化）：该清单由项目侧
+> `coverage_config.project.json` 的 `assemblyIncludePrefixes` 与前缀匹配规则自动生成，
+> 迁移到其他项目时无需照抄，只需配好前缀。
 
 ```
-Assembly-CSharp-firstpass, Battle, Battle.Data, Battle.Editor, Battle.Excel,
-Battle.Logic, Battle.Render, Game, Game.Editor, Game.Entrance, Game.Excel,
-Game.Protocol, LittleBaby.Framework.AssetBundle(+.Editor), Core(+.Editor),
-FixedMathematics(+.Editor), Game, Graph(+.Editor), LogTrack(+.Editor), UI(+.Editor)
+<框架包程序集>, <框架包程序集>.Editor,
+<领域程序集>, <领域程序集>.Data, <领域程序集>.Editor, <领域程序集>.Logic
 ```
 
 ---

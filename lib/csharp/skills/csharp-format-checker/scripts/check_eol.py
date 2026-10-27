@@ -21,7 +21,7 @@
 
 用法：
     python check_eol.py                      # 检测整仓
-    python check_eol.py --path Assets/Battle # 仅检测指定目录
+    python check_eol.py --path src/module  # 仅检测指定目录
     python check_eol.py --fix                # 打印修复命令（不自动执行）
 """
 
@@ -181,7 +181,7 @@ def is_in_exclude_dirs(repo_rel_path, project_rel_path, exclude_dirs):
         for cand in candidates:
             if cand == base or cand.startswith(base + "/") or ("/" + base + "/") in ("/" + cand):
                 return True
-            # 项目相对路径可能带仓库前缀（如 Program/Client/Assets/...），检查后缀匹配
+            # 项目相对路径可能带仓库前缀（如 <子目录>/<路径>/...），检查后缀匹配
             if cand.endswith("/" + base) or ("/" + base + "/") in cand:
                 return True
     return False
@@ -204,7 +204,7 @@ def to_repo_path(path_arg, git_root, project_root):
 
     git ls-files 的 pathspec 以**仓库根**为基准，而用户（与技能其余参数）习惯用
     项目根相对路径。两者在子目录型仓库下不同（本项目仓库根在项目根的上一级），
-    故此处统一转换，避免 `--path Assets/Game` 匹配不到任何文件。
+    故此处统一转换，避免 `--path src/module` 匹配不到任何文件。
     """
     normalized = normalize(path_arg)
     if os.path.isabs(normalized):

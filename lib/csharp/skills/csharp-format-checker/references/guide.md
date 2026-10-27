@@ -34,7 +34,7 @@ python scripts/dotnet_format.py fix
 # 【修复链路收尾】工作区行尾合规检测（期望 CRLF，仅 git ls-files --eol 能稳定检出）
 # 退出码 0=合规 / 1=忽略目录外存在异常 / 3=配置或环境不可用
 python scripts/check_eol.py
-python scripts/check_eol.py --path Assets/Game   # 限定范围
+python scripts/check_eol.py --path <目标目录>   # 限定范围
 python scripts/check_eol.py --fix                # 额外打印修复命令（不自动执行）
 ```
 
@@ -46,9 +46,9 @@ python scripts/check_eol.py --fix                # 额外打印修复命令（�
 > **清单文件路径写法（Windows + Git Bash 必读）**：使用 `--changed-from-file` 时，临时清单文件须写作
 > `$TEMP/xxx.txt` 或 `/tmp/xxx.txt`——**目录与文件名之间必须有斜杠**。写成 `/tmp_xxx.txt` 会被 Git Bash
 > 解析为 Git 安装目录下的文件（实测 `cygpath -w /tmp_fmt_list.txt` → `C:\Program Files\Git\tmp_fmt_list.txt`），
-> 因无写权限而**写入失败**；而脚本遇到清单文件不存在时会**静默回退整仓检查**，把「本笔变更工程」（约 41 秒/工程）
-> 退化为「整仓」（约 162 秒），且不报错、不中断。实测踩坑：一次提交的 H1 门禁因该写法丢失清单文件，
-> 无谓触发整仓扫描约 2.7 分钟。
+> 因无写权限而**写入失败**；而脚本遇到清单文件不存在时会**静默回退整仓检查**，把「本笔变更工程」
+> 退化为「整仓」（多出整仓工程加载的固定开销，量级可达分钟），且不报错、不中断。
+> 实测踩坑：一次提交的 H1 门禁因该写法丢失清单文件，无谓触发了整仓扫描。
 
 ---
 
@@ -57,7 +57,7 @@ python scripts/check_eol.py --fix                # 额外打印修复命令（�
 
 1. **禁止预扫描**：不要在调用技能前用 Glob/Grep 搜索 `.cs` 文件列表。
 2. **禁止逐个分析**：不要在调用技能前逐一分析文件内容。
-3. **禁止自行筛选**：忽略哪些目录、哪些文件参与检查由配置文件 `csharp-format-checker/config.json` 决定，不要人工判断。
+3. **禁止自行筛选**：忽略哪些目录、哪些文件参与检查由项目侧配置 `format_checker.config`（经索引定位）决定，不要人工判断。
 
 技能脚本内部已经处理了：
 - 读取项目根 `.editorconfig` 作为唯一格式标准
@@ -83,25 +83,20 @@ python scripts/check_eol.py --fix                # 额外打印修复命令（�
 ## 忽略目录配置（三方插件保护）
 技能的忽略目录在项目侧配置（索引 `format_checker.config`）的 `exclude_dirs` 中声明，语义为**既不被检查、也不被修改**：
 
-> **下表为本项目当前取值**（迁移时以 `config.json` 的 `exclude_dirs` 为准）。
+**排除项按类别划分**（具体目录由项目侧配置声明，本文件不提供任何项目的实际取值）：
 
-| 默认值（本项目） | 说明 |
+| 类别 | 说明 |
 |------------------|------|
-| `Assets/Plugins` | 三方插件源码目录（DOTween、Sirenix/Odin、XLua、Proxima、HybridCLR、TextMeshPro、StompyRobot 等） |
-| `Library/PackageCache` | Unity 官方/社区 Package 缓存（com.unity.*、com.cysharp.unitask 等） |
-| `HybridCLRData` | HybridCLR 生成的补充元数据等目录 |
-| 各 `Gen/`、`Generated/` 目录 | 生成代码目录（`Assets/Game/Runtime/Game/Gen`、`Packages/com.littlebaby.framework.*/Runtime/Gen` 等，共 10 个，逐一显式声明） |
-| `Packages/com.littlebaby.framework.core/Runtime/ThreadLib/UnityHook` | 自研包内嵌的三方挂钩库（命名空间 `MonoHook`） |
+| 三方插件源码目录 | 由外部维护的插件源码，通常位于 `Assets/Plugins` 一类目录 |
+| Package 缓存 | Unity 官方/社区 Package 缓存（`Library/PackageCache`） |
+| 生成代码目录 | 代码生成器产出目录（各类 `Gen/`、`Generated/`、补充元数据目录等），需逐一显式声明 |
+| 自研包内嵌的三方代码 | 位于自研包内、实为三方的代码（如挂钩库、序列化库） |
 
-**检查范围口径**：仅覆盖 `Assets/` 与 `Packages/` 下的**自研代码**（`Assets/Game`、`Assets/Battle`、`Packages/com.littlebaby.framework.*`）。
+- `.codebuddy/`、`.codebuddy.project/` 等配置与工具目录**必须显式排除**（其中的 `.cs` 不属于项目源码）。
+- 检查范围的具体口径（覆盖哪些根、排除哪些三方库）属**项目事实**，以项目侧规则正文为准。
+- 生成代码受**三重保护**：`exclude_dirs` 显式声明 + dotnet format 内置 auto-generated 标记识别 + 范围限定。
 
-- `Assets/`、`Packages/` 之外的目录（如 `.codebuddy/` 技能自带工具的 `.cs` 源码、根目录工具产物）**不在检查范围内**，无需为其新增排除项。
-- `Packages/TouchSocket.*` 等三方包当前无 `.cs` 文件；若后续引入源码，应追加进 `exclude_dirs`。
-- 生成代码受**三重保护**：`exclude_dirs` 显式声明 + dotnet format 内置 auto-generated 标记识别 + 上述范围限定。
-
-其他 `PackageCache` 之外的 Package 目录（如本项目 `Packages/com.littlebaby.framework.*` 自研包）不在排除之列，正常参与检查。
-
-- 新增三方插件/生成目录时，编辑 `csharp-format-checker/config.json` 的 `exclude_dirs` 即可，无需改动技能脚本。
+- 新增三方插件/生成目录时，编辑项目侧 `format_checker.config` 的 `exclude_dirs` 即可，无需改动技能脚本。
 - 检查/修复时脚本通过 `--exclude` 将忽略目录原样传给 dotnet format，保证 dotnet format 不会触碰其中任何文件。
 
 ## 执行流程
@@ -138,7 +133,7 @@ python scripts/check_eol.py --fix                # 额外打印修复命令（�
 python scripts/dotnet_format.py [check|fix] [--changed-from-file <清单> | --changed | --path <相对路径> | --project <工作区文件>] [--reuse-report] [--max-projects <N>] [--no-save] [--severity <级别>]
 ```
 
-- 脚本自动向上定位含 `.editorconfig` 的项目根目录，读取 `csharp-format-checker/config.json`（配置为唯一来源，缺失/缺必需键时报错退出，不生成模板也不回退默认值）。
+- 脚本自动向上定位含 `.editorconfig` 的项目根目录，读取项目侧 `format_checker.config`（配置为唯一来源，缺失/缺必需键时报错退出，不生成模板也不回退默认值）。
 - 默认执行 `whitespace` 与 `style` 两个分组（见配置 `groups`），不运行第三方 analyzer 分组，避免 Unity 自带分析器的非格式类告警混入。
 - `--changed-from-file` / `--changed` / `--path` / `--project` **四者互斥**（手动指定范围会与自动定位冲突，脚本报错退出）。
 - `--reuse-report`：仅 `check` 模式有效，存在 5 分钟内且**检查范围一致**（`scope_key` 严格匹配）的报告时直接复用。
@@ -147,15 +142,15 @@ python scripts/dotnet_format.py [check|fix] [--changed-from-file <清单> | --ch
   > 遇到「复用结果报失败、但工作区实际合规」时，去掉 `--reuse-report` 重跑确认，
   > **不要**据此直接进入 `fix`。可用字节级核对交叉验证（如统计 `\r\n` 与孤立 `\n` 的条数）。
 
-**耗时参考**：整仓（本项目 `Client.slnx` 含 133 个工程）约 162 秒；单工程约 41 秒。
-变更范围检查命中单工程时提速约 75%；工程数超过 `changed_scope.max_projects`（本项目配 3）时回退整仓
-（每个工程需独立重载一次工作区，实测约 40 秒/工程，超过 3 个的串行耗时已不低于整仓）。
+**耗时参考**：耗时随工程数线性增长（每个工程需独立重载一次工作区，固定开销数十秒量级），
+与清单内文件数量几乎无关。因此 `changed_scope.max_projects` 的合理取值是「整仓耗时 ÷ 单工程耗时」，
+超过该值即回退整仓。**具体秒数与工程数属项目实测值**，按目标项目实测后写入项目侧配置的注释。
 
-> **耗时的决定因素是「工程数」，不是「文件数」**：瓶颈在**工程加载**（约 41 秒/工程的固定开销），
-> 与清单内文件数量无关——单工程下 1 个文件与 100 个文件的耗时几乎相同。因此判断"是否值得按变更工程检查"
-> 应看**涉及的工程数**；也不要因为"本次只改了很少几个文件"就预期检查很快。
-> 实测教训：一次提交实际有 6 个有效 `.cs`，因清单文件写入失败回退整仓（133 个工程），
-> 耗时从预期的秒级复用量级跳到约 162 秒。
+> **耗时的决定因素是「工程数」，不是「文件数」**：瓶颈在**工程加载**（每个工程数十秒的固定开销），
+> 与清单内文件数量无关——单工程下 1 个文件与 100 个文件的耗时几乎相同。因此判断「是否值得按变更工程检查」
+> 应看**涉及的工程数**；也不要因为「本次只改了很少几个文件」就预期检查很快。
+> 实测教训：一次提交实际只有数个有效 `.cs`，因清单文件写入失败回退整仓，
+> 耗时从秒级跳到分钟级。
 
 ### 3. 解读结果
 
@@ -192,7 +187,7 @@ python scripts/dotnet_format.py [check|fix] [--changed-from-file <清单> | --ch
 **为何需要独立检测**：`.editorconfig` 声明 `end_of_line = crlf`，`dotnet format` 也能报出 `ENDOFLINE`，
 但它只在**指定范围跑格式检查时**才覆盖；而工具（编码转换、批量重写等）直接以 LF 写回工作区文件后，
 `git status` 因比对前归一化行尾而**看不到差异**（实测：仅 `git ls-files --eol` 可稳定检出）。
-历史上 `Assets/Battle` 曾有 20 个文件因此静默变成 LF，直到偶然跑格式检查才发现。
+实测：批量改写工具以 LF 写回工作区文件时，曾有整批文件静默变成 LF，直到偶然跑格式检查才发现。
 
 **执行时机**：修复链路（注释修复、格式修复、批量重写等会改动源码的操作）**收尾时**执行一次，锁定改动范围。
 
@@ -230,7 +225,7 @@ rm -f "<文件>" && git checkout -- "<仓库相对路径>"
 ## 检查清单
 - [ ] 是否已直接传递用户目标路径给脚本，未预扫描文件列表？
 - [ ] 项目根目录是否存在 `.editorconfig`（技能唯一格式标准）？
-- [ ] `csharp-format-checker/config.json` 的 `exclude_dirs` 是否覆盖了三方插件/生成代码目录？
+- [ ] 项目侧 `format_checker.config` 的 `exclude_dirs` 是否覆盖了三方插件/生成代码目录？
 - [ ] 提交门禁/审查流程内调用时是否用了 `--changed-from-file <本笔清单>`（只查本笔计划内文件所属工程）？
 - [ ] 变更范围检查回退整仓时是否已向用户说明回退原因，未把回退结果当作「变更范围通过」？
 - [ ] 使用 `--reuse-report` 时，复用的报告范围（`scope_key`）是否与本次一致？

@@ -140,26 +140,19 @@ git diff --cached   # 若需含暂存区
 > **禁止**放入后台后用 `sleep N; ls` 之类命令轮询产物——实测后台冷启动 + sleep 轮询
 > 曾单次浪费约 5 分钟，而前台热跑仅需 40 秒。
 
-对目标运行 `dotnet format` 工具做**确定性**格式校验（标准为项目根 `.editorconfig`，忽略目录由 `csharp-format-checker/config.json` 决定）：
+对目标运行 `dotnet format` 工具做**确定性**格式校验（标准为项目根 `.editorconfig`，忽略目录由项目侧 `format_checker.config`（索引 `format_checker.config`）决定）：
 
-0. **检查范围口径（先确认）**：格式维度**仅覆盖 `Assets/` 与 `Packages/` 下的自研代码**。以下内容**一律忽略**，不作为格式问题报告：
-   - `Assets/`、`Packages/` 之外的目录（如 `.codebuddy/` 技能自带工具的 `.cs` 源码）；
-   - 三方库；
-   - 生成代码（`Gen/`、`Generated/` 目录、文件头含 auto-generated 标记的文件）。
-
-   > **上述口径的具体目录与三方库清单为本项目当前取值**（`Assets/Game`、`Assets/Battle`、
-   > `Packages/com.littlebaby.framework.*`；三方库如 `Assets/Plugins`、`Library/PackageCache`、
-   > `Packages/TouchSocket.*`、`ThreadLib/UnityHook`）。**迁移时以 `csharp-format-checker/config.json`
-   > 的 `exclude_dirs` 为准**，无需改动本文件。
+0. **检查范围口径（先确认）**：格式维度**不覆盖整个仓库**，具体覆盖哪些根目录、排除哪些三方库与生成代码，
+   属**项目事实**，以项目侧规则正文与 `format_checker.config` 的 `exclude_dirs` 为准
+   （见 `csharp-code-review/format-scope.mdc` 指向的项目侧文件）。**不得凭经验假设目录结构。**
 
    该口径由**三重机制**共同保证，**无需人工判断**：
-   - `Assets/`、`Packages/` 之外目录（含 `.codebuddy/`）→ 由 **检查范围**天然排除：格式检查按**变更文件所属工程**
-     （`--changed`，工程即 `.csproj`，按目标项目替换）执行，而 `.codebuddy/` 下各工具的 `.csproj` **不在 Unity
-     工程映射内**，故不会被扫描（实测：在 `.codebuddy/` 下放置格式违规文件，`check` 仍报「格式合规」）；
+   - **检查范围**天然排除：格式检查按**变更文件所属工程**（`--changed`，工程即 `.csproj`）执行，
+     不在任何工程映射内的目录（如技能自带工具）不会被扫描；
    - 三方库与生成目录 → 由 `exclude_dirs` 配置排除；
    - 文件头 auto-generated 标记 → 由 dotnet format 内置识别排除。
 
-   若目标为上述范围之外的文件，格式维度直接标注「不在检查范围内」。
+   若目标文件不属于配置声明的范围，格式维度直接标注「不在检查范围内」。
 1. **优先复用最近报告**（避免重复耗时）：检查 `.codebuddy.project/caches/skills/csharp/csharp-format-checker/check_logs/` 下是否存在 **5 分钟内**生成的报告。
    - 用户或先前流程刚跑过 `csharp-format-checker` 时，**直接解析该报告，不再重复运行脚本**（注意本阶段在提交流程的审查门禁中先于 H1 格式检查执行，故此处通常无新鲜报告，需自行运行）。
    - 报告超过 5 分钟或不存在时，按下述步骤自行运行脚本。
@@ -169,7 +162,7 @@ git diff --cached   # 若需含暂存区
    python .codebuddy/lib/csharp/skills/csharp-format-checker/scripts/dotnet_format.py check --changed
    ```
    - 脚本自动定位项目根、读取配置与忽略目录，并按 `git status` 定位变更文件所属工程，无需人工筛选文件。
-   - `--changed` 只检查变更文件所属工程：整仓（本项目 `Client.slnx` 含 133 个工程）实测约 162 秒，**单工程约 41 秒**（提速约 75%）。无法定位变更工程时脚本**回退整仓并输出告警**（如非 git 环境、变更文件不在任何工程内），此时耗时回落到整仓水平。
+   - `--changed` 只检查变更文件所属工程，可显著缩短耗时（瓶颈是工程加载，与文件数几乎无关）。无法定位变更工程时脚本**回退整仓并输出告警**（如非 git 环境、变更文件不在任何工程内），此时耗时回落到整仓水平。
 3. **判定与降级**：
    - **退出码 0**：格式合规，该维度无问题。
    - **退出码 2**：存在待格式化文件 —— 解析报告诊断，逐条记录为格式维度问题；`.log` 为完整原始输出，`.md` 的「诊断统计」为摘要且**只统计 `error`/`warning` 级诊断**，需以**进程退出码**为准，不可因摘要显示为空就判定通过。
