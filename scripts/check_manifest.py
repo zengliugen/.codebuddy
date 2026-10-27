@@ -334,6 +334,100 @@ def check_rule_classification(codebuddy_dir, packs):
     return problems
 
 
+def check_project_components(project_root):
+    """校验项目专有包的组件命名与落位（校验项 10）。
+
+    约定（见 rules/core/core-rule-governance/ §2.4）：
+      1. `.codebuddy.project/<类型>/project/` 下的组件名必须以 `project-` 开头；
+      2. 入口规则独占目录：`<名>.entry/<名>.entry.mdc`，且必须有同名（或前缀）技能；
+      3. 规范规则有同名技能时不得 `alwaysApply: true`；
+      4. 技能的 SKILL.md frontmatter `name` 必须等于技能目录名。
+
+    背景：项目专有包在 packs.json 里 `comps` 为空（内容由项目自行管理），
+    项 8 与项 9 都跳过它，导致项目侧改名后没有任何脚本兜底。此项按同一套约定补上。
+
+    返回：
+        缺口列表
+    """
+    problems = []
+    rules_root = os.path.join(project_root, ".codebuddy.project", "rules", "project")
+    skills_root = os.path.join(project_root, ".codebuddy.project", "skills", "project")
+
+    skills = set()
+    if os.path.isdir(skills_root):
+        for name in sorted(os.listdir(skills_root)):
+            full = os.path.join(skills_root, name)
+            if not os.path.isdir(full):
+                continue
+            rel = ".codebuddy.project/skills/project/" + name
+            if not name.startswith("project-"):
+                problems.append("项目侧技能命名不合规：%s（应以 project- 开头）" % rel)
+            skills.add(name)
+            skill_md = os.path.join(full, "SKILL.md")
+            if not os.path.isfile(skill_md):
+                continue
+            try:
+                with open(skill_md, "r", encoding="utf-8") as handle:
+                    text = handle.read()
+            except OSError:
+                continue
+            declared = None
+            if text.startswith("---"):
+                end = text.find("\n---", 3)
+                head = text[:end] if end != -1 else ""
+                for line in head.splitlines():
+                    if line.startswith("name:"):
+                        declared = line[len("name:"):].strip()
+                        break
+            if declared and declared != name:
+                problems.append("项目侧技能 SKILL.md 的 name 与目录名不一致：%s（name=%s）"
+                                % (rel, declared))
+
+    if not os.path.isdir(rules_root):
+        return problems
+
+    for name in sorted(os.listdir(rules_root)):
+        full = os.path.join(rules_root, name)
+        if not os.path.isdir(full):
+            continue
+        rel = ".codebuddy.project/rules/project/" + name
+        if name.endswith(".entry"):
+            rule_name = name[: -len(".entry")]
+            if not rule_name.startswith("project-"):
+                problems.append("项目侧入口规则命名不合规：%s（应以 project- 开头）" % rel)
+            expect = os.path.join(full, rule_name + ".entry.mdc")
+            if not os.path.isfile(expect):
+                problems.append("项目侧入口规则目录缺少同名文件：%s（期望 %s.entry.mdc）"
+                                % (rel, rule_name))
+                continue
+            if not (rule_name in skills
+                    or any(s.startswith(rule_name + "-") for s in skills)):
+                problems.append("项目侧入口规则无对应技能：%s（期望技能 %s 或其前缀技能）"
+                                % (rel, rule_name))
+            continue
+
+        if not name.startswith("project-"):
+            problems.append("项目侧规则命名不合规：%s（应以 project- 开头）" % rel)
+        rule_file = os.path.join(full, "RULE.mdc")
+        if not os.path.isfile(rule_file):
+            continue
+        try:
+            with open(rule_file, "r", encoding="utf-8") as handle:
+                text = handle.read()
+        except OSError:
+            continue
+        head = text
+        if text.startswith("---"):
+            end = text.find("\n---", 3)
+            if end != -1:
+                head = text[:end]
+        if "alwaysApply: true" in head and any(
+                s == name or s.startswith(name + "-") for s in skills):
+            problems.append("项目侧规范规则不应 alwaysApply: true：%s（存在对应技能，应由其按需加载）"
+                            % rel)
+    return problems
+
+
 def check_cross_pack_refs(codebuddy_dir, packs):
     """校验各包正文是否引用了依赖闭包之外的包组件（校验项 7）。
 
@@ -422,6 +516,8 @@ def main():
         problems.extend(check_component_naming(packs))
         # 9. 规则分类与命名（入口 vs 规范）
         problems.extend(check_rule_classification(codebuddy_dir, packs))
+        # 10. 项目专有包组件的命名与落位（project- 前缀、入口目录、技能同名）
+        problems.extend(check_project_components(os.path.dirname(codebuddy_dir)))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")

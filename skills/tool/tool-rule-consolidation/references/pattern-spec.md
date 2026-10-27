@@ -79,7 +79,7 @@ provider:
 | `core-engine` | core | 底线规范 | `paths: **/.codebuddy/**` | 3 |
 | `core-language` | core | 底线规范 | `alwaysApply` | 1 |
 | `core-project-guide` | core | 底线规范 | `alwaysApply` | 5 |
-| `core-rule-governance` | core | 底线规范 | `paths: **/.codebuddy/**` | 0 |
+| `core-rule-governance` | core | 底线规范 | `alwaysApply` | 0 |
 | `core-tooling` | core | 底线规范 | `alwaysApply` | 4 |
 | `csharp-code-review` | csharp | 入口 | `paths: **/*.cs` | 5 |
 | `csharp-comment` | csharp | 入口 | `alwaysApply` | 5 |
@@ -107,6 +107,25 @@ provider:
 
 > 合计 29 条：入口 21、底线规范 8。**无「有技能对应的规范规则」**——规范全部随技能走，
 > 不单独成规则，避免规范与技能双份维护。
+
+> **注**：`core-rule-governance` 常驻（`alwaysApply: true`），不用 `paths`。它约束的是
+> 「这条规则该不该建、该叫什么名字、该放在哪」，这个判断发生在写入规则文件**之前**；
+> `paths` 是文件操作命中该路径后才注入的事后触发，赶不上决策点。
+
+### 项目侧规则（`.codebuddy.project/rules/project/`）
+
+项目专有规则与引擎侧**同构**（入口独占目录 + 规范目录），组件名统一加 `project-` 前缀，
+由 `check_manifest.py` 项 10 校验。清单如下：
+
+| 规则 | 类型 | 触发方式 | 对应技能 | 子规范 |
+|---|---|---|---|---|
+| `project-extension-capability-guard` | 入口 | `alwaysApply` | 同名技能 | 0 |
+| `project-extension-capability` | 规范 | `alwaysApply: false`（技能加载） | 前缀 `project-extension-capability-guard` | 4 |
+| `project-upstream-compat-guard` | 入口 | `alwaysApply` | 同名技能 | 0 |
+| `project-upstream-compat` | 规范 | `alwaysApply: false`（技能加载） | 前缀 `project-upstream-compat-guard` | 2 |
+
+> 合计 4 条：入口 2、规范 2。项目侧内容由项目自行管理，不登记 `lib/packs.json` 的
+> `comps`（`project` 包的 `comps` 保持空），故项 8 与项 9 跳过它，由项 10 单独校验。
 
 > **注**：`core-tooling` 常驻（`alwaysApply: true`，入口约 2.5 KB）。它把「命令如何构造」与「结果如何判定」合到同一条规则下——两者共享同一前提（工具被拦下或做失败时都不抛异常，只改变返回值），且都必须在每次工具调用时生效。核心底线压进入口、分级细则与校验命令下沉子规则，是为让纪律在调用时真正生效的必要代价。
 >

@@ -27,7 +27,7 @@ tools: Glob, Grep, Read, Edit, Write, Bash, TaskCreate, TaskGet, TaskUpdate, Tas
 - **仅处理 Python 代码**（`.py`）。其他语言不审查。
 - **默认只报告不修改**。仅当用户明确要求修复时，经授权后修改。
 - **审查范围限定**为项目自有代码（`extensions/`、`extensions_tests/`）。`src/` 与 `tests/` 不在范围（前者血缘上是上游模板，后者是上游基线测试）。
-- **不设架构维度**：项目已有 `upstream-compat` 规则管扩展落位，两处判据会冲突。
+- **不设架构维度**：项目已有 `project-upstream-compat` 规则管扩展落位，两处判据会冲突。
 
 ### 安全约束
 
@@ -154,4 +154,4 @@ tools: Glob, Grep, Read, Edit, Write, Bash, TaskCreate, TaskGet, TaskUpdate, Tas
 | 上游文件 | 提示「改动需登记 `divergence.yaml`」，不擅自建议直接改上游 |
 | 生成代码 | 跳过 |
 | 纯格式问题 | 由 `ruff` 承担，人工维度不重复 |
-| 架构问题 | 转项目侧 `upstream-compat` 规则，本 Agent 不下结论 |
+| 架构问题 | 转项目侧 `project-upstream-compat` 规则，本 Agent 不下结论 |

@@ -1,20 +1,20 @@
 ---
-description: 规则命名与分类治理入口 —— 新增、改名、删除规则，或判断某条规则属于入口规则还是规范规则时，必须遵循本规则。定义两类规则的命名约定、触发方式、技能与规则的对应关系，以及校验方式。改动 .codebuddy/rules 或 lib/<pack>/rules 时注入。
-alwaysApply: false
-paths: "**/.codebuddy/**"
+description: 规则命名与分类治理入口 —— 新增、改名、删除规则，或判断某条规则属于入口规则还是规范规则时，必须遵循本规则。定义三类规则的命名约定、触发方式、技能与规则的对应关系，以及校验方式。覆盖引擎侧 .codebuddy/rules 与项目侧 .codebuddy.project/rules 两个规则根。
+alwaysApply: true
 enabled: true
-updatedAt: 2026-10-26T00:00:00.000Z
+updatedAt: 2026-10-27T00:00:00.000Z
 provider:
 ---
 
 # 规则命名与分类治理
 
-本文件是规则体系的**治理规则**，按路径触发（`paths: "**/.codebuddy/**"`）。
-它规定「规则怎么命名、怎么分类、与技能怎么对应」，是其余所有规则的元规则。
+本文件是规则体系的**治理规则**，**始终生效**（`alwaysApply: true`）。
+它规定「规则怎么命名、怎么分类、与技能怎么对应」，是其余所有规则的元规则，
+同时覆盖引擎侧 `.codebuddy/rules/` 与项目侧 `.codebuddy.project/rules/` 两个规则根。
 
-## 一、两类规则
+## 一、规则的三类形态
 
-规则只分两类，职责不得混合：
+规则只分三类，职责不得混合：
 
 | 类型 | 文件名 | 职责 | 触发方式 |
 |---|---|---|---|
@@ -32,6 +32,10 @@ provider:
 项目结构、工具调用纪律），允许 `alwaysApply: true`。判据是「有没有技能负责加载它」：
 - 有技能 → 规范归技能加载，必须 `alwaysApply: false`
 - 无技能且无条件适用 → 底线规范，允许 `alwaysApply: true`
+
+**元规则必须常驻**：本规则自身即底线规范。它约束的是「这条规则该不该建、该叫什么名字、
+该放在哪」——这个判断发生在写入任何规则文件**之前**。若改用 `paths` 按需触发，
+规则只在该路径被文件操作命中后才注入，那时违规文件已经落盘，约束来不及生效。
 
 把细则塞进底线规范会让入口膨胀；把底线改成按需加载会让约束失效。两者都不允许。
 
@@ -71,6 +75,23 @@ provider:
 | 被上游规则的强制链路包住的检查与修复技能 | 上游规则定义的多环链路 |
 | 用户主动发起的思维类技能 | 无入口（不设强制） |
 
+### 2.4 项目侧规则与技能
+
+项目专有组件位于 `.codebuddy.project/<类型>/project/`，与引擎侧**同一布局**，
+组件名加 `project-` 前缀（与 `lib/packs.json` 中 `project` 包的命名约定一致）：
+
+```
+.codebuddy.project/rules/project/
+├── project-<技能名>.entry/project-<技能名>.entry.mdc
+└── project-<主题>/RULE.mdc
+```
+
+- 入口规则名仍是**技能名**：技能 `project-extension-capability-guard` → 入口
+  `project-extension-capability-guard.entry/`。
+- 规范目录取技能名的**共同前缀**：`project-extension-capability/`。
+- 技能同理：`.codebuddy.project/skills/project/project-<主题>/`，`SKILL.md` 与
+  `manifest.json` 的 `name` 字段、`agents/interface.yaml` 的 `name` 字段同步改名。
+
 ## 三、目录结构
 
 ```
@@ -81,6 +102,9 @@ rules/<pack>/
     ├── RULE.mdc               # 规范索引
     └── <主题>-spec.mdc        # 规范分项（alwaysApply: false）
 ```
+
+引擎侧（`.codebuddy/rules/<pack>/`）与项目侧（`.codebuddy.project/rules/project/`）
+布局同构，差异只在项目侧的 `project-` 前缀（见 §2.4）。
 
 **入口规则必须独占目录**，目录名与文件主干一致（`core-init.entry/core-init.entry.mdc`）。
 理由：入口与规范职责不同、加载方式不同，混在同一目录会让「哪些是入口、哪些是规范」
@@ -99,7 +123,9 @@ rules/<pack>/
    - 入口规则 → 目录 `<规则名>.entry/` 下建 `<规则名>.entry.mdc`，frontmatter 按触发场景取
      `alwaysApply` 或 `paths`
    - 规范规则 → 目录 `<规则名>/` 下建 `RULE.mdc` 或 `<主题>.mdc`，必须 `alwaysApply: false`
-4. **登记**：在 `lib/packs.json` 对应包的 `comps.rules` 追加规则名。
+   - 项目侧组件 → 路径基准换成 `.codebuddy.project/rules/project/`，名称加 `project-` 前缀
+4. **登记**：引擎侧在 `lib/packs.json` 对应包的 `comps.rules` 追加规则名；
+   项目侧因该包内容由项目自行管理，只按 §2.4 命名，不登记 `packs.json`。
 5. **同步引用**：全库检索旧名，改掉技能文档、README、规则全景表、项目索引中的引用。
 6. **校验**：`python .codebuddy/scripts/check_manifest.py` 必须退出码 0。
 
@@ -116,24 +142,31 @@ rules/<pack>/
 5. **分类不得混合**：入口规则里不写规范细则，规范规则里不定义强制入口。
    发现混合时按本规则拆分。
 
-6. **改名必须同步五处**：目录名、`packs.json`、`project.index.json`（若登记）、
+6. **改名必须同步五处**：目录名、`packs.json`（引擎侧）、`project.index.json`（若登记）、
    规则全景表、所有正文引用。漏任一处即形成悬空引用。
+
+7. **项目侧组件一律以 `project-` 开头**，规则与技能同规；入口目录、规范目录、技能目录
+   三类形态与引擎侧一致，不得退回单 `RULE.mdc` 的松散结构。
 
 ## 六、校验
 
-`check_manifest.py` 已覆盖两条：
+`check_manifest.py` 现已覆盖三条：
 
 | 校验项 | 内容 |
 |---|---|
 | 项 8 | 组件名必须为 `<包名>-` 开头，或等于包名（命名约定） |
 | 项 9 | ① 入口目录 `<名>.entry/` 内必须有同名 `<名>.entry.mdc`；② 入口规则必须有对应技能（或为其共同前缀）；③ `RULE.mdc` 若 `alwaysApply: true` 则不得有同名技能（底线规范例外） |
+| 项 10 | 项目侧 `.codebuddy.project/rules/project/` 与 `.codebuddy.project/skills/project/` 同样适用项 8 与项 9 的命名与落位规则 |
 
 校验未覆盖的部分（命名是否为共同前缀、技能是否被拉起）须**人工判定**，
 在新增/改名时按 §2.2 与 §2.3 执行。
 
 ## 加载机制说明
 
-- 本规则**按路径触发**（`.codebuddy/**`），不产生常驻成本。
+- 本规则**始终生效**（`alwaysApply: true`），不设 `paths`。
+- **为何不用 `paths`**：治理判断发生在写入规则文件**之前**，而 `paths` 是「文件操作命中
+  该路径后」才注入的事后触发，赶不上决策点（见 §1「元规则必须常驻」）。
+- 常驻成本可控：全文约 8 KB，且只在新增、改名、删除规则时才真正用得上。
 - 无子规则：条款本身即完整判据，示例与流程见上文。
 
 ## 与其他规则的关系
@@ -143,4 +176,4 @@ rules/<pack>/
 | `core-rule-governance`（本规则） | 规则的**命名、分类、技能对应**（元规则） |
 | 规则重组类技能（若已安装） | **单条规则内部**的子规则拆分与合并 |
 | `core-engine` | 引擎内容的**登记点同步**与提交归属 |
-| 经验固化类技能（若已安装） | 会话经验**写回**规则时的落点判定 |
+| 经验固化类技能（若已安装） | 会话经验**写回规则**时的落点判定 |

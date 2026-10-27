@@ -56,7 +56,7 @@ metadata:
 | 注释合规 | 本 Agent | 内容准确性与信息价值；可机械判定的部分由 ruff 承担 |
 | 潜在 Bug 与边界 | 本 Agent | 可变默认参数、异常处理、资源释放、比较语义、并发 |
 | 格式 | `python-lint`（ruff） | 工具确定性结果，Agent 直接采信、不重复报 |
-| 架构 | 项目侧 `upstream-compat` 规则 | 两处判据会冲突，本 Agent 不下结论 |
+| 架构 | 项目侧 `project-upstream-compat` 规则 | 两处判据会冲突，本 Agent 不下结论 |
 
 ## 参考文献
 

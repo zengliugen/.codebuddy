@@ -9,7 +9,7 @@
     口径只有一处。
 
     项目根 `pyproject.toml` **不放** `[tool.ruff]`：该文件属上游 lineage，改动会与
-    `git merge upstream/master` 冲突（项目侧 `upstream-compat` 规则）。
+    `git merge upstream/master` 冲突（项目侧 `project-upstream-compat` 规则）。
 
 分级（`--blocking`，供 H1 使用）：
     1. `ruff check --fix --select I` —— import 排序是机械变换，自动修、不阻塞；
