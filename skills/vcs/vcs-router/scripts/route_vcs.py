@@ -85,8 +85,10 @@ def _resolve_artifact_dir(logical_name):
 # 技能目录：脚本位于 <技能目录>/scripts/route_vcs.py
 SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 技能根目录：skills/，用于检查路由目标技能是否存在
-USER_SKILLS_DIR = os.path.dirname(SKILL_DIR)
+# 技能扫描根：技能按包分层（扫描根/<pack>/<技能>/SKILL.md），故需上溯两级：
+#   <扫描根>/<pack>/<技能>/scripts/route_vcs.py  →  dirname ×2 = <扫描根>/<pack>
+USER_PACK_DIR = os.path.dirname(SKILL_DIR)
+USER_SKILLS_DIR = os.path.dirname(USER_PACK_DIR)
 
 
 def get_cache_path():
@@ -191,18 +193,30 @@ def detect_git(directory):
 
 
 def route_target(vcs_type, operation):
-    """VCS 类型 + 操作类型 → 路由目标技能名（<vcs>-<op>）。none 或无操作返回空字符串。"""
-    if vcs_type == "git" and operation:
-        return f"{vcs_type}-{operation}"
-    return ""
+    """VCS 类型 + 操作类型 → 路由目标技能名。none 或无操作返回空字符串。
+
+    目标技能名遵循引擎的组件命名约定 `<包名>-<语义名>`：vcs 包的提交/合并技能分别为
+    `vcs-git-commit`、`vcs-git-merge`。不能简单拼成 `<vcs>-<op>`（那会得到 `git-commit`，
+    与包化后的实际组件名不符，导致 target_exists 恒为 false）。
+    """
+    if vcs_type != "git" or not operation:
+        return ""
+    return f"vcs-{vcs_type}-{operation}"
 
 
 def target_exists(target):
-    """检查路由目标技能是否存在（skills/<目标>/SKILL.md 存在则视为可路由）。"""
+    """检查路由目标技能是否存在（扫描根下任意包内存在 `<target>/SKILL.md` 即可路由）。
+
+    技能按包分层为 `<扫描根>/<pack>/<技能>/`，故须逐包查找，不能只查扫描根一层。
+    """
     if not target:
         return False
-    target_skill_md = os.path.join(USER_SKILLS_DIR, target, "SKILL.md")
-    return os.path.isfile(target_skill_md)
+    if not os.path.isdir(USER_SKILLS_DIR):
+        return False
+    for pack in os.listdir(USER_SKILLS_DIR):
+        if os.path.isfile(os.path.join(USER_SKILLS_DIR, pack, target, "SKILL.md")):
+            return True
+    return False
 
 
 def parse_args(argv):
