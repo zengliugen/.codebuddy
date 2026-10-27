@@ -3,10 +3,10 @@
 """
 引擎包安装器：按 lib/packs.json 声明的可选包，在项目侧物化组件链接并登记安装状态。
 
-引擎扫描根的形态（本脚本不创建默认包，只桥接可选包）：
-  .codebuddy/rules/<pack>           默认包真实目录 / 可选包链接 → 项目侧
+引擎扫描根的形态（按 location 判定，与 default 无关；本脚本不物化默认包，只桥接可选包与项目专有包）：
+  .codebuddy/rules/<pack>           location=engine 真实目录 / lib 链接 / project 链接
   .codebuddy/skills/<pack>          同上
-  .codebuddy/agents/<pack>          同上（仅可选包）
+  .codebuddy/agents/<pack>          同上（engine 包无 agent 组件，故通常只有链接）
   .codebuddy.project/rules/<pack>/<名>   → lib/<pack>/rules/<名>
   .codebuddy.project/skills/<pack>/<名>  → lib/<pack>/skills/<名>
   .codebuddy.project/agents/<pack>/<名>.md  同上（与 rules/skills 一致的目录链接）
@@ -273,11 +273,11 @@ def ensure_bridge(paths, pack, comp_type, repair=False, force=False):
             return "drift", "桥接指向错误：%s → %s" % (link, current)
         os.unlink(link)
     elif os.path.lexists(link):
-        # 占位物有两种来源：默认包的同名真实目录、或 core.symlinks=false 克隆后
-        # 链接落成的普通文本文件。前者不可覆盖（默认包随引擎分发），后者可重建。
+        # 占位物有两种来源：location=engine 包的同名真实目录、或 core.symlinks=false 克隆后
+        # 链接落成的普通文本文件。前者不可覆盖（引擎内容），后者可重建。
         if os.path.isdir(link):
-            # 默认包为引擎内真实目录，不重建也不覆盖（避免误删引擎内容）
-            return "drift", "扫描根已存在同名真实目录（默认包？）：%s" % link
+            # location=engine 的包为引擎内真实目录，不重建也不覆盖（避免误删引擎内容）
+            return "drift", "扫描根已存在同名真实目录（engine 包？）：%s" % link
         if not (repair or force):
             return "drift", "已存在占位文件（symlinks=false 的链接落盘）：%s" % link
         remove_link_placeholder(link)

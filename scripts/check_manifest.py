@@ -11,7 +11,8 @@
   1. `lib/packs.json` 引用的组件在对应位置真实存在（location=engine 查扫描根，location=lib 查 lib/）；
   2. `lib/` 下无任何包都未引用的孤儿目录；
   3. 每个包的 `requires` 指向同一份注册表中存在的包，且不出现同名组件跨包重复声明；
-  4. 默认包（default=true）的组件在扫描根为真实目录（非链接）；可选包在扫描根为链接；
+  4. 扫描根形态按 `location` 判定（与 `default` 无关）：`engine` 为真实目录；`lib` 与 `project`
+     为链接（`project` 虽 default=true，但内容在项目侧，链接必须存在）；
   5. `project.index.json` 的 `files` / `rule_shells` 中 `path` 均为相对路径（入库共享前提）；
      且 `rule_shells` 的键能落到真实文件——判定时按包 location 区分：
      engine 查扫描根；lib 查 `lib/<pack>/rules/`（未安装该可选包时扫描根无链接属正常）；
@@ -30,6 +31,9 @@
       即违规）；子规则不得 `alwaysApply: true`。
   12. 技能激活：`agents/interface.yaml` 的 `activation.mode` 不得为 `path_scoped`，
       `activation.paths` 必须为空——技能的唤起靠 `description` 与 `activation.triggers`。
+  13. 索引落盘存在性：`files` 的 `path` 与 `artifacts.dirs` 的目录在**已生效包**范围内必须真实
+      存在；路径归属未安装的可选包时豁免（该包的骨架本就不该生成）。仅校验相对性与格式时，
+      索引写错路径、包卸载后的残留目录都查不出来——表现是技能运行时才报「配置缺失」。
 
 退出码：
   0 —— 一致
@@ -60,8 +64,8 @@ def find_codebuddy_dir(start):
 def list_dirs(path, skip_symlinks=False, only_symlinks=False):
     """列出目录下的一级子目录名（排序）。
 
-    skip_symlinks：跳过符号链接目录（可选包在扫描根以链接形式出现，不属默认包）；
-    only_symlinks：只保留符号链接目录（用于核对可选包的桥接形态）。
+    skip_symlinks：跳过符号链接目录（lib / project 包在扫描根以链接形式出现）；
+    only_symlinks：只保留符号链接目录（用于核对包桥接形态）。
     """
     if not os.path.isdir(path):
         return []
@@ -150,25 +154,26 @@ def check_packs(codebuddy_dir, packs):
                 if not os.path.exists(target):
                     problems.append("组件缺失：bundle=%s %s/%s（期望 %s）"
                                     % (pack, comp_type, name, target))
-        # 默认包在扫描根必须是真实目录；可选包必须是链接（未安装时允许缺席）
+        # 扫描根形态按 location 判定（与 default 无关）：engine 必须是真实目录；
+        # lib 与 project 必须是链接（lib 未安装时允许缺席，project 必须存在）
         for comp_type in ("rules", "skills", "agents"):
             is_project_pack = location == "project"
             # 项目专有包固定三个桥接（内容可暂空）；其余包仅在声明了该类型时才校验
             if not comps.get(comp_type) and not is_project_pack:
                 continue
             scan_root = os.path.join(codebuddy_dir, comp_type, pack)
-            if meta.get("default") and location == "project":
+            if is_project_pack:
                 # 项目专有包：内容在项目侧，扫描根必须是指向它的链接
                 if not os.path.islink(scan_root):
                     problems.append("项目专有包桥接缺失或非链接：%s/%s" % (comp_type, pack))
-            elif meta.get("default"):
+            elif location == "engine":
                 if not os.path.isdir(scan_root):
-                    problems.append("默认包目录缺失：%s/%s" % (comp_type, pack))
+                    problems.append("engine 包目录缺失：%s/%s" % (comp_type, pack))
                 elif os.path.islink(scan_root):
-                    problems.append("默认包目录不应为链接：%s/%s" % (comp_type, pack))
+                    problems.append("engine 包目录不应为链接：%s/%s" % (comp_type, pack))
             else:
                 if os.path.lexists(scan_root) and not os.path.islink(scan_root):
-                    problems.append("可选包在扫描根应为链接（实际为真实目录）：%s/%s"
+                    problems.append("lib 包在扫描根应为链接（实际为真实目录）：%s/%s"
                                     % (comp_type, pack))
                 # 项目侧 pack 目录同样必须是链接（整目录指向 lib，不逐组件建链）
                 proj_pack = os.path.join(os.path.dirname(codebuddy_dir), ".codebuddy.project",
@@ -241,8 +246,8 @@ def pack_of_file(codebuddy_dir, path):
     """按路径反推文件所属包；无法判定（不在任一包目录内）时返回 None。
 
     推导规则与 component_path 一致：
-      lib/<pack>/<类型>/...     → 可选包
-      <类型>/<pack>/...         → 默认包（引擎扫描根）
+      lib/<pack>/<类型>/...     → location=lib 的包
+      <类型>/<pack>/...         → location=engine 的包（引擎扫描根）
     """
     rel = os.path.relpath(path, codebuddy_dir).replace("\\", "/")
     segments = rel.split("/")
@@ -696,6 +701,134 @@ def check_cross_pack_refs(codebuddy_dir, packs):
     return sorted(set(problems))
 
 
+def pack_of_index_path(rel):
+    """从索引路径中解析所属包名。
+
+    路径约定为 `.codebuddy.project/<configs|caches>/<类别>/<pack>/<组件>/...`，
+    其中 `<类别>` 为 skills / rules / agents。非该结构（如根级通用文件
+    `.codebuddy.project/caches/.vcs-lock`）返回空串，表示不按包过滤。
+
+    参数：
+        rel：索引中登记的相对项目根路径。
+
+    返回：
+        包名；无法判定时返回空串。
+    """
+    parts = rel.replace("\\", "/").split("/")
+    for index, segment in enumerate(parts):
+        if segment in ("skills", "rules", "agents") and index + 2 < len(parts):
+            return parts[index + 1]
+    return ""
+
+
+def read_installed_packs(project_root):
+    """读取项目侧已装可选包清单；文件缺失或损坏时返回空集合。
+
+    引擎仓库可能被单独检出（无项目侧目录），此时不做安装状态过滤——
+    缺失属正常，不应阻断校验。
+
+    参数：
+        project_root：项目根（`.codebuddy` 的父目录）。
+
+    返回：
+        (已装包名集合, 问题列表)
+    """
+    path = os.path.join(project_root, ".codebuddy.project", "configs", "packs.json")
+    if not os.path.isfile(path):
+        return set(), []
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError) as error:
+        return set(), ["项目侧包清单读取失败：%s（%s）" % (path, error)]
+    installed = data.get("installed")
+    if not isinstance(installed, list):
+        return set(), ["项目侧包清单的 installed 必须是数组：%s" % path]
+    return set(str(name) for name in installed), []
+
+
+def check_index_targets(index, packs, project_root):
+    """校验索引登记的路径在磁盘真实存在（校验项 13）。
+
+    背景：项 5 只校验 `files` / `rule_shells` 的 `path` 是否为相对路径，`artifacts.dirs`
+    也只校验相对性——索引指向一个写错或已被删除的路径时，全部校验仍然通过，
+    直到技能运行时才以「配置缺失」的形式暴露。包卸载后残留的条目同理无法识别。
+
+    豁免规则：
+      - 路径归属未安装的可选包 → 跳过（该包的骨架本就不该生成）；
+      - 路径归属未在 `lib/packs.json` 声明的包 → 报错（索引与注册表脱节）；
+      - 无法判定归属（通用配置/产物）→ 照常校验。
+
+    参数：
+        index：已解析的索引字典。
+        packs：`lib/packs.json` 的 packs 字典。
+        project_root：项目根（`.codebuddy` 的父目录）。
+
+    返回：
+        缺口列表。
+    """
+    problems = []
+    installed, install_problems = read_installed_packs(project_root)
+    problems.extend(install_problems)
+    active = set(name for name, meta in (packs or {}).items() if meta.get("default")) | installed
+
+    def skip_by_pack(code_name, rel, kind_label):
+        """判断条目是否因归属未安装的可选包而豁免。
+
+        参数：
+            code_name：索引中的逻辑名。
+            rel：索引登记的相对项目根路径。
+            kind_label：报错时展示的条目全名（如 `files.code_review.config`）。
+
+        返回：
+            True 表示豁免（归属未安装的可选包），False 表示需继续校验存在性。
+        """
+        pack = pack_of_index_path(rel)
+        if not pack:
+            return False
+        if pack not in (packs or {}):
+            problems.append("索引 %s 的路径归属包 %s，但该包未在 lib/packs.json 声明：%s"
+                            % (kind_label, pack, code_name))
+            return False
+        if pack not in active:
+            return True
+        return False
+
+    for code_name, entry in (index.get("files") or {}).items():
+        rel = (entry or {}).get("path")
+        if not isinstance(rel, str) or not rel or os.path.isabs(rel):
+            continue
+        if skip_by_pack(code_name, rel, "files." + code_name):
+            continue
+        if not os.path.exists(os.path.normpath(os.path.join(project_root, rel))):
+            problems.append(
+                "索引 files.%s 指向的文件不存在：%s（包已安装，骨架须存在；"
+                "写错路径请修索引，包已卸载请清条目）" % (code_name, rel))
+
+    for code_name, entry in (index.get("rule_shells") or {}).items():
+        rel = (entry or {}).get("path")
+        if not isinstance(rel, str) or not rel or os.path.isabs(rel):
+            continue
+        if skip_by_pack(code_name, rel, "rule_shells." + code_name):
+            continue
+        if not os.path.exists(os.path.normpath(os.path.join(project_root, rel))):
+            problems.append(
+                "索引 rule_shells.%s 的项目事实正文不存在：%s（薄壳会指向空文件）"
+                % (code_name, rel))
+
+    for logical_name, rel in ((index.get("artifacts") or {}).get("dirs") or {}).items():
+        if not isinstance(rel, str) or not rel or os.path.isabs(rel):
+            continue
+        if skip_by_pack(logical_name, rel, "artifacts.dirs." + logical_name):
+            continue
+        if not os.path.isdir(os.path.normpath(os.path.join(project_root, rel))):
+            problems.append(
+                "索引 artifacts.dirs.%s 指向的目录不存在：%s（请运行 core-init 补齐产物目录）"
+                % (logical_name, rel))
+
+    return problems
+
+
 def main():
     codebuddy_dir = find_codebuddy_dir(os.getcwd())
     if not codebuddy_dir:
@@ -744,8 +877,8 @@ def main():
 
         # rule_shells 的键为「薄壳相对 .codebuddy 的路径」，必须能落到真实文件（防路径随目录重构漂移）。
         # 候选位置随包 location 不同：
-        #   location=engine（默认包）→ 扫描根 .codebuddy/rules/<pack>/<名>/...（真实目录）
-        #   location=lib（可选包）  → 源在 .codebuddy/lib/<pack>/rules/<名>/...，扫描根仅是指向项目侧的链接；
+        #   location=engine → 扫描根 .codebuddy/rules/<pack>/<名>/...（真实目录）
+        #   location=lib → 源在 .codebuddy/lib/<pack>/rules/<名>/...，扫描根仅是指向项目侧的链接；
         #                             未安装该包时扫描根无链接，此时 lib 源仍在，不应判为悬空。
         #   location=project         → 项目侧 .codebuddy.project/rules/project/...，引擎内不持有该文件
         for key in (index.get("rule_shells") or {}):
@@ -828,16 +961,25 @@ def main():
                     problems.append("索引 root_symlinks.entries.%s 的链接路径不是符号链接：%s"
                                     % (logical_name, link_rel))
 
+        # 13. 索引落盘存在性（已生效包范围内）
+        problems.extend(check_index_targets(index, packs, os.path.dirname(codebuddy_dir)))
+
     if problems:
         print("[不一致] 发现 %d 项：" % len(problems))
         for item in problems:
             print("  - %s" % item)
         return 1
 
-    defaults = sorted(name for name, meta in (packs or {}).items() if meta.get("default"))
-    optionals = sorted(name for name, meta in (packs or {}).items() if not meta.get("default"))
-    print("[一致] 包 %d 个（默认：%s；可选：%s），组件与索引路径均合规。"
-          % (len(packs or {}), "、".join(defaults) or "无", "、".join(optionals) or "无"))
+    # 按 location 分组展示：真正决定扫描根形态的是 location，default 只表示「随引擎分发」
+    engine_packs = sorted(name for name, meta in (packs or {}).items()
+                          if meta.get("location") == "engine")
+    lib_packs = sorted(name for name, meta in (packs or {}).items()
+                       if meta.get("location") == "lib")
+    project_packs = sorted(name for name, meta in (packs or {}).items()
+                           if meta.get("location") == "project")
+    print("[一致] 包 %d 个（engine：%s；lib：%s；project：%s），组件与索引路径均合规。"
+          % (len(packs or {}), "、".join(engine_packs) or "无",
+             "、".join(lib_packs) or "无", "、".join(project_packs) or "无"))
     return 0
 
 
