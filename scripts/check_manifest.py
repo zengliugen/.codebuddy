@@ -504,11 +504,20 @@ def check_trigger_fields(codebuddy_dir, project_root):
     """
     problems = []
     project_root = os.path.abspath(project_root)
-    roots = [codebuddy_dir, os.path.join(project_root, ".codebuddy.project")]
+    # 项目侧只校验「真正被加载的规则」（经软链接进引擎的 rules/project/）。
+    # .codebuddy.project/configs/ 下是 rule_shells 的项目事实正文与配置，不被规则加载器扫描，
+    # 也不承载触发语义，套用入口/子规则判定会误报（如正文沿用 .entry 目录名即被判为入口规则）。
+    roots = [
+        codebuddy_dir,
+        os.path.join(project_root, ".codebuddy.project")
+    ]
+    skip_dirs = [os.path.join(project_root, ".codebuddy.project", "configs")]
     for root in roots:
         if not os.path.isdir(root):
             continue
         for dirpath, _dirnames, filenames in os.walk(root):
+            if any(dirpath == d or dirpath.startswith(d + os.sep) for d in skip_dirs):
+                continue
             for name in sorted(filenames):
                 if not name.endswith(".mdc"):
                     continue
