@@ -23,7 +23,8 @@ metadata:
 bash:
 DIR=.codebuddy/lib/devflow/skills/devflow-guard
 python $DIR/scripts/devflow_guard.py init
-python $DIR/scripts/devflow_guard.py new <能力名> [--rework-from 已归档能力名]
+python $DIR/scripts/devflow_guard.py new <能力名> [--from-explore 探索记录名] [--rework-from 已归档能力名]
+python $DIR/scripts/devflow_guard.py explore <主题名> [--title 标题]
 python $DIR/scripts/devflow_guard.py adr <slug> [--title 标题] [--capability 能力名]
 python $DIR/scripts/devflow_guard.py status <能力名> <状态>
 python $DIR/scripts/devflow_guard.py archive <能力名>
@@ -32,7 +33,8 @@ python $DIR/scripts/devflow_guard.py audit
 | 模式 | 作用 | 保护 |
 |---|---|---|
 | `init` | 按配置创建五个子目录说明与总览 README | 只创建不覆盖，已存在即整体中止 |
-| `new <名>` | 生成设计/计划/偏差/测试四份骨架并登记总览表（偏差列一并填好路径） | 名字合法、目标不存在、总览表可解析，任一不满足即中止且不写文件；`--rework-from` 须指向已归档能力 |
+| `new <名>` | 生成设计/计划/偏差/测试四份骨架并登记总览表（偏差列一并填好路径） | 名字合法、探索记录已确认（`--from-explore` 必填）、目标不存在、总览表可解析，任一不满足即中止且不写文件；`--rework-from` 须指向已归档能力 |
+| `explore <主题>` | 创建需求探索记录（动手前的需求确认，可反复改写） | 名称须为英文 kebab-case；目标不存在。**建立能力文档前必须先有已确认的探索记录** |
 | `adr <slug>` | 创建决策记录，编号按现有最大值推算 | slug 为英文 kebab-case、决策目录存在、目标不存在，任一不满足即中止 |
 | `status <名> <状态>` | 把状态同步到总览表与该能力四份文档的文件头（共五处） | 状态须在合法集合内；目标文件须存在，缺任一即整体中止 |
 | `archive <名>` | 四类文档移入 `archive/<名>/` 并统一改名为 design/plan/deviation/testing.md，回写总览表路径 | 能力须已登记且状态为完成或废弃；目标已存在即中止；移动失败或写表失败全部回滚 |
@@ -42,9 +44,11 @@ python $DIR/scripts/devflow_guard.py audit
 
 ### audit 检查什么
 
-九项，全部机械可判定：文件头字段与状态取值、生成器字段、总览表表头与列数、空白单元格、表引用文件存在性、磁盘文档已登记、决策编号连续合规、决策取代链完整、计划与偏差成对、归档目录与总览表一致。
+十一项，全部机械可判定：文件头字段与状态取值、生成器字段、总览表表头与列数、空白单元格、表引用文件存在性、磁盘文档已登记、决策编号连续合规、决策取代链完整、计划与偏差成对、归档目录与总览表一致、需求探索记录状态合法、探索采纳指针双向一致。
 
 **不查代码落位**——落位原则需要读懂代码才能判断，留给评审。
+**不查文档内容是否被回改**——本地无法证明（哈希值存在同一仓库里，同仓不可信），
+也不假装能查：每条告警都必须能被真实修复，否则会训练人忽略告警。
 
 ### 三档分级与退出码
 
@@ -78,6 +82,7 @@ python $DIR/scripts/devflow_guard.py audit
 | 请求 | 该去哪 |
 |---|---|
 | 判断某次改动算不算新增能力 | 规则 `devflow/design-spec.mdc` 的判定表——本技能不做语义判断 |
+| 需求该怎么问、问几轮 | 规则 `devflow/design-spec.mdc`「建骨架之前」一节；专用诘问技能若已安装可用其驱动，本技能只校验记录是否成形，不校验提问过程 |
 | 决定用哪种实现手段 | 规则 `devflow/implementation-spec.mdc`——需要读代码与框架能力，脚本判断不了 |
 | 修改文档内容、补写设计论证 | 人写。本技能只生成空骨架，不生成内容 |
 | 执行测试 | 项目自有的测试运行方式——本技能不跑测试 |

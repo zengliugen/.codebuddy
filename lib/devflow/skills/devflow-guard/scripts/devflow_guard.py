@@ -51,8 +51,10 @@ TEMPLATES_DIR = os.path.normpath(
 # 这里装的是「骨架源文件」，与文档根（docs_root）无关。
 SKELETON_DIR = "skeletons"
 
-# 需要创建说明文件的五个子目录（键名对应配置 dirs 下的键）
-DOC_SUBDIR_KEYS = ("design", "plans", "testing", "decisions", "archive")
+# 需要创建说明文件的子目录（键名对应配置 dirs 下的键，缺失即报错）。
+# explore 是必需键：需求确认是这个流程的一部分，不是可选附加项——
+# 做成可选会产生两种「new 的行为不一样」的项目，而规则文本无法同时说清两者。
+DOC_SUBDIR_KEYS = ("explore", "design", "plans", "testing", "decisions", "archive")
 
 # 配置必需键（缺失即报错，不回退默认值）
 REQUIRED_CONFIG_KEYS = (
@@ -434,6 +436,7 @@ def fill_placeholders(text, config, keep_generator=False):
     mapping = {
         "{{dir_" + key + "}}": config["dirs"][key] for key in DOC_SUBDIR_KEYS
     }
+
     mapping["<设计目录>"] = config["dirs"]["design"]
     mapping["<计划目录>"] = config["dirs"]["plans"]
     mapping["<测试目录>"] = config["dirs"]["testing"]
@@ -488,7 +491,7 @@ def run_init(root, config):
             os.path.join(target_root, config["overview"]["file"]),
         )
     )
-    # 五个子目录的目录说明
+    # 必需子目录的目录说明
     for key in DOC_SUBDIR_KEYS:
         plan.append(
             (
@@ -934,10 +937,27 @@ def run_archive(root, config, capability):
             % (write_error, rel(root, overview_path))
         )
 
+    # 归档改变了设计文档的路径，探索记录的采纳行必须跟着改，否则指针立刻悬空。
+    # 这里改的是路径、不是采纳事实，因此与「采纳后不得回改」不冲突。
+    path_root = os.path.join(target_root, config["dirs"]["explore"])
+    changed_records = []
+    for index, column in enumerate(header):
+        kind = column_kind(column, cap_index, status_index, index)
+        if kind != "design":
+            continue
+        old_rel = row["单元格"][index].replace(os.sep, "/")
+        new_rel = os.path.relpath(
+            os.path.join(archive_root, name, ARCHIVE_FILENAMES["design"]), target_root
+        ).replace(os.sep, "/")
+        if old_rel and not is_placeholder(old_rel, config):
+            changed_records = rewrite_adoption_targets(path_root, old_rel, new_rel, config)
+
     print("已归档能力：" + name)
     for source, destination in done:
         print("  " + rel(root, source) + "  ->  " + rel(root, destination))
     print("总览表路径已更新为归档位置。")
+    for record in changed_records:
+        print("探索记录采纳行已同步为归档路径：" + record)
     print("")
     print("注意：状态未改动（归档是存放位置，不是生命周期阶段）；决策记录不归档。")
     return 0
@@ -968,6 +988,39 @@ SCAFFOLD_FILENAMES = {
     "deviation": "{dir_name}/{name}-deviation.md",
     "testing": "{dir_name}/{name}-testing.md",
 }
+
+
+def inject_explore_note(text, explore_rel):
+    """在设计文档「背景」一节写入需求探索来源。
+
+    与重开注入的区别：这里指向的是「这个能力为什么该做」的确认记录，
+    而重开指向的是「旧能力为什么不够」。两者可以同时存在，故各插一行。
+
+    参数：
+        text: 设计文档全文
+        explore_rel: 需求探索记录相对文档根的路径
+
+    返回：
+        新正文；未定位到「## 背景」时返回 None
+    """
+    marker = "## 背景"
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if line.strip() != marker:
+            continue
+        newline = ""
+        if line.endswith(chr(13) + chr(10)):
+            newline = chr(13) + chr(10)
+        elif line.endswith(chr(10)):
+            newline = chr(10)
+        note = (
+            "> 需求已确认，探索记录见 " + explore_rel
+            + "（含已排除方向与重新可行的前提）。" + newline
+        )
+        lines.insert(index + 1, newline)
+        lines.insert(index + 2, note)
+        return "".join(lines)
+    return None
 
 
 def inject_rework_note(text, archive_rel):
@@ -1003,7 +1056,396 @@ def inject_rework_note(text, archive_rel):
     return text, False
 
 
-def run_new(root, config, name, rework_from=''):
+def run_explore(root, config, slug, title):
+    """创建一份需求探索记录。
+
+    探索阶段与能力文档阶段的区别在于**允许反复改写**：需求在确认之前本就该变，
+    而能力文档一旦建立就是承诺。把两者分开，才能让「还没想清楚」不至于污染
+    「已经决定要做」的记录。
+
+    参数：
+        root: 项目根
+        config: 配置字典
+        slug: 探索记录名（英文 kebab-case）
+        title: 主题；为空时取 slug
+
+    返回：
+        退出码
+    """
+    if not ADR_SLUG_PATTERN.fullmatch(slug or ""):
+        die(
+            "探索记录名不合法：" + repr(slug) + chr(10) +
+            "必须是英文 kebab-case（如 cache-policy），因为它会直接成为文件名。"
+        )
+    folder = explore_dir(config)
+
+    target_root = docs_dir(root, config)
+    target_dir = os.path.join(target_root, folder)
+    if not os.path.isdir(target_dir):
+        # 已初始化的项目无法靠 init 补目录：init 在任一目标已存在时整体中止。
+        # 而「给老项目后加探索」是常见诉求，因此这里自行补齐目录与说明文件。
+        # 只创建缺的，不碰任何已有文件。
+        readme_src = os.path.join(TEMPLATES_DIR, "explore", "README.md")
+        try:
+            os.makedirs(target_dir, exist_ok=True)
+            if os.path.isfile(readme_src):
+                raw_readme, read_error = read_text(readme_src)
+                if raw_readme is not None:
+                    with open(
+                        os.path.join(target_dir, "README.md"), "w", encoding="utf-8"
+                    ) as handle:
+                        handle.write(fill_placeholders(raw_readme, config))
+                else:
+                    print("提示：目录说明读取失败（" + str(read_error) + "），已跳过写入 README。")
+            else:
+                print("提示：包内缺少 explore 目录说明模板，已跳过写入 README。")
+        except OSError as make_error:
+            die("无法创建需求探索目录（%s）：%s" % (make_error, rel(root, target_dir)))
+
+    target = os.path.join(target_dir, slug + ".md")
+    if os.path.exists(target):
+        die("目标文件已存在，已中止（不覆盖）：" + rel(root, target))
+
+    template = os.path.join(TEMPLATES_DIR, SKELETON_DIR, "explore.md")
+    if not os.path.isfile(template):
+        die("包内模板缺失：" + template + chr(10) + "该包可能未完整安装。")
+
+    raw, error = read_text(template)
+    if raw is None:
+        die("包内模板读取失败：%s（%s）" % (rel(root, template), error))
+
+    text = fill_placeholders(raw, config)
+    text = text.replace("<主题>", (title or "").strip() or slug)
+    text = text.replace("YYYY-MM-DD", date.today().isoformat())
+    # 初始状态取配置状态集合的第一个取值，与 check_explore_confirmed 的判据一致：
+    # 两处若各写各的字面，改配置后会出现「刚创建就满足确认条件」或「永远无法确认」。
+    text = text.replace("{{initial_status}}", config["overview"]["status_values"][0])
+
+    leftover = [
+        token for token in ("<主题>", "{{generator}}", "{{initial_status}}") if token in text
+    ]
+    if leftover:
+        die(
+            "模板中仍有未替换的占位符：" + "、".join(leftover) + chr(10) +
+            "说明包内模板与本命令的替换规则不一致，已中止（不写文件）。"
+        )
+
+    try:
+        with open(target, "w", encoding="utf-8") as handle:
+            handle.write(text)
+    except OSError as write_error:
+        die("写入失败（%s）：%s" % (write_error, rel(root, target)))
+
+    print("已创建需求探索记录：")
+    print("  " + rel(root, target))
+    print("")
+    print("下一步：填写「要解决的问题」「未定项」与「结论」，确认后把状态改为已确认，")
+    print("       再用 new <能力名> --from-explore " + slug + " 建立能力文档。")
+    return 0
+
+
+def explore_dir(config):
+    """返回需求探索目录名（相对文档根）。
+
+    参数：
+        config: 配置字典
+
+    返回：
+        目录名；配置缺失时由 load_config 提前以退出码 3 拦下，此处不再兜底
+    """
+    return str(config["dirs"]["explore"]).strip()
+
+
+def check_explore_confirmed(root, config, slug):
+    """校验需求探索记录存在且「结论」已填写，返回其相对文档根的路径。
+
+    为什么要求「结论非空」：探索阶段的价值就在于把未定项收敛成一个决定。
+    结论为空说明还在讨论中，此时建立能力文档等于把「想清楚」这一必经步骤降级为可选项，
+    它留下的正是那种「有文档但什么都没说」的骨架。
+
+    参数：
+        root: 项目根
+        config: 配置字典
+        slug: 探索记录名（不含 .md）
+
+    返回：
+        探索文档相对文档根的路径
+
+    异常：
+        SystemExit: 校验不通过时由 die 抛出
+    """
+    folder = explore_dir(config)
+    if not folder:
+        die(
+            "本项目未启用需求探索（配置 dirs 未声明 explore）。\n"
+            "启用方式：在配置 dirs 中加 explore 键并指向 explore 目录，再重新执行 init。"
+        )
+    target_root = docs_dir(root, config)
+    path = os.path.join(target_root, folder, slug + ".md")
+    if not os.path.isfile(path):
+        die(
+            "找不到需求探索记录：" + folder + "/" + slug + ".md\n"
+            "先用 explore 子命令创建并完成它，再建立能力文档。"
+        )
+    text, error = read_text(path)
+    if text is None:
+        die("读取需求探索记录失败：" + rel(root, path) + "（" + str(error) + "）")
+
+    values = parse_header_fields(extract_header_table(text))
+    status_field = config["file_header"]["status_field"]
+    # 探索记录用两态：初始「探索中」与终态「已确认」。
+    # 初始值取配置里能力状态的第一个取值（即「草稿」这一档语义），
+    # 只要与它不同就视为已推进——探索阶段不需要更细的档位。
+    initial = config["overview"]["status_values"][0]
+    known = set(config["overview"]["status_values"])
+    status = values.get(status_field, "").strip()
+    if not status or status == initial:
+        hint = ("、".join(v for v in config["overview"]["status_values"] if v != initial))
+        die(
+            "需求探索尚未确认：" + folder + "/" + slug + ".md 状态为「" + (status or "空") + "」" + "\n" +
+            "请先补齐「结论」一节，并把状态改为 " + hint + " 中的任一档，再建立能力文档。"
+        )
+
+    # 「已确认的决定」必须至少有一条实质内容：结论只说明最终做什么，
+    # 而这一节记录「凭什么这么定」。缺它的话，探索记录退化成一张结论贴纸——
+    # 后来者能看到决定，看不到判据，等于把同一个问题原样推给他重推一遍。
+    decisions = extract_section(text, "已确认的决定")
+    if not has_table_rows(decisions):
+        die(
+            "需求探索记录缺少已确认的决定：" + folder + "/" + slug + ".md" + chr(10) +
+            "「## 已确认的决定」一节须至少写一条（决定 / 为什么这么定 / 成立前提）。" + chr(10) +
+            "这一节应由逐轮向用户提问得出，不能自问自答地填。"
+        )
+
+    conclusion = extract_section(text, "结论")
+    if not has_conclusion(conclusion):
+        die(
+            "需求探索记录缺少结论：" + folder + "/" + slug + ".md\n"
+            "「## 结论」一节必须写明做什么、不做什么；仅保留填写提示视为未确认。"
+        )
+    return folder + "/" + slug + ".md"
+
+
+def extract_section(text, title):
+    """取出某一节的正文（第二个参数为标题去掉 ## 后的部分）。
+
+    参数：
+        text: 文档全文
+        title: 节标题（不含 ##）
+
+    返回：
+        该节正文；未找到返回空串
+    """
+    lines = text.splitlines()
+    start = None
+    for index, line in enumerate(lines):
+        if line.strip() == "## " + title:
+            start = index + 1
+            break
+    if start is None:
+        return ""
+    collected = []
+    for line in lines[start:]:
+        if line.strip().startswith("## "):
+            break
+        collected.append(line)
+    return chr(10).join(collected)
+
+
+def has_table_rows(section_text):
+    """判断某一节的表格里是否至少有一行实际内容。
+
+    排除表头行、对齐行与全空单元格的行——模板留的空行不算填写。
+
+    参数：
+        section_text: 该节正文
+
+    返回：
+        至少有一行实质内容为 True
+    """
+    for line in section_text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if not cells:
+            continue
+        # 表头与对齐行
+        if all(set(cell) <= set("-: ") for cell in cells):
+            continue
+        if cells[0] in ("决定", "未定项", "方向", "约束"):
+            continue
+        if any(cells):
+            return True
+    return False
+
+
+def has_conclusion(section_text):
+    """判断「结论」一节是否写了实际内容（而非只剩填写提示）。
+
+    三条排除规则，任一条命中即不算内容：
+    1. 空行；
+    2. 引用块（模板里的提示语一律写成 > 引用），用于说明怎么写而不是写了什么；
+    3. 只有标签没有内容——形如「- 做：」的行，冒号后为空，属于未填写的骨架。
+
+    这样判定的目的不是判断结论好坏，而是区分「填了」与「没填」。
+    好坏交给评审——机械检查不该假装能判断论证是否站得住。
+
+    参数：
+        section_text: 该节正文
+
+    返回：
+        有实际内容为 True
+    """
+    for line in section_text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith(">"):
+            continue
+        body = stripped.lstrip("-*").strip()
+        if not body:
+            continue
+        # 只有标签、冒号后没有内容
+        if body.endswith("：") or body.endswith(":"):
+            continue
+        return True
+    return False
+
+
+def explore_adoption_section(text):
+    """取出需求探索记录的「## 采纳」一节正文。
+
+    参数：
+        text: 探索记录全文
+
+    返回：
+        该节正文；未找到返回空串
+    """
+    return extract_section(text, "采纳")
+
+
+def parse_adoption_targets(section_text):
+    """解析「采纳」节里记录的设计文档路径。
+
+    行形如「- 采纳于：design/cache-ttl.md（2026-10-29）」，取冒号后的路径部分，
+    去掉日期括注与反引号，统一成正斜杠——比对时不因书写差异误报。
+
+    参数：
+        section_text: 「采纳」节正文
+
+    返回：
+        相对文档根的设计文档路径列表
+    """
+    targets = []
+    for line in section_text.splitlines():
+        stripped = line.strip().lstrip("-*").strip()
+        if not stripped.startswith("采纳于"):
+            continue
+        body = stripped[len("采纳于"):].lstrip("：:").strip()
+        for sep in ("（", "("):
+            body = body.split(sep)[0]
+        body = body.strip().strip(chr(96)).strip().replace(chr(92), "/")
+        if body:
+            targets.append(body)
+    return targets
+
+
+def rewrite_adoption_targets(path_root, old_rel, new_rel, config):
+    """把探索记录里指向 old_rel 的采纳行改写为 new_rel，返回已改写的记录路径列表。
+
+    为什么归档要动采纳行：采纳行记的是设计文档的路径，归档后该路径变了。
+    不改的话，「采纳行 → 设计文档」这条指针立刻悬空——而它记录的采纳事实本身没变，
+    变的只是文件位置。因此这是**位置迁移**，不是内容改写，与「采纳后不得回改」不冲突。
+
+    只改路径部分，日期与其余文字原样保留。
+
+    参数：
+        path_root: 探索目录绝对路径
+        old_rel: 原设计文档相对路径（正斜杠）
+        new_rel: 归档后相对路径（正斜杠）
+        config: 配置字典
+
+    返回：
+        已改写的探索记录相对路径列表
+    """
+    changed = []
+    if not os.path.isdir(path_root):
+        return changed
+    for name in sorted(os.listdir(path_root)):
+        if name == "README.md" or not name.endswith(".md"):
+            continue
+        path = os.path.join(path_root, name)
+        if not os.path.isfile(path):
+            continue
+        text, _ = read_text(path)
+        if text is None:
+            continue
+        targets = parse_adoption_targets(explore_adoption_section(text))
+        if old_rel not in targets:
+            continue
+        lines = text.splitlines(keepends=True)
+        touched = False
+        for index, line in enumerate(lines):
+            if old_rel in line and "采纳于" in line:
+                lines[index] = line.replace(old_rel, new_rel)
+                touched = True
+        if not touched:
+            continue
+        try:
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write("".join(lines))
+        except OSError:
+            continue
+        changed.append(explore_dir(config) + "/" + name)
+    return changed
+
+
+def append_adoption_note(text, design_rel, today):
+    """在探索记录里追加一条采纳记录，返回新正文。
+
+    由 new 写入而非人工填写：「是否被采纳、被谁采纳」必须是工具当场留下的痕迹。
+    人工填写等于让人事后自证，而事后合理化正是这条记录要防的东西。
+
+    参数：
+        text: 探索记录全文
+        design_rel: 采纳它的设计文档相对路径
+        today: 日期字符串
+
+    返回：
+        新正文
+    """
+    line = "- 采纳于：" + design_rel + "（" + today + "）"
+    lines = text.splitlines(keepends=True)
+    start = None
+    for index, item in enumerate(lines):
+        if item.strip() == "## 采纳":
+            start = index + 1
+            break
+
+    crlf = chr(13) + chr(10)
+    newline = crlf if crlf in text else chr(10)
+
+    if start is None:
+        body = text
+        if body and not body.endswith(newline):
+            body += newline
+        return body + newline + "## 采纳" + newline + newline + line + newline
+
+    end = len(lines)
+    for index in range(start, len(lines)):
+        if lines[index].strip().startswith("## "):
+            end = index
+            break
+    last = start - 1
+    for index in range(start, end):
+        if lines[index].strip():
+            last = index
+    lines.insert(last + 1, line + newline)
+    return "".join(lines)
+
+
+def run_new(root, config, name, rework_from='', from_explore=''):
     """生成能力文档骨架并登记总览表。
 
     三道运行时保护，任一不满足即中止且不写任何文件：
@@ -1014,6 +1456,7 @@ def run_new(root, config, name, rework_from=''):
         config: 配置字典
         name: 能力名
         rework_from: 被重开的已归档能力名；为空表示全新能力
+        from_explore: 需求探索记录名；项目启用探索时必填，且该记录须已确认
 
     返回：
         退出码
@@ -1038,6 +1481,19 @@ def run_new(root, config, name, rework_from=''):
             "理由：能力名同时用作文件名、总览表「能力」列与文件头「关联能力」字段的值，"
             "必须是无需转义的标识。"
         )
+
+    # 需求确认是必经步骤：不带 --from-explore 直接拒绝。
+    # 这是把「先想清楚再做」从纪律变成结构的关键——否则 new 只校验名字格式，
+    # 需求完全没成形也能建出四份空骨架，而 audit 只查契约、查不出「全是模板话术」。
+    if not (from_explore or '').strip():
+        die(
+            "建立能力文档前必须先确认需求。\n"
+            "1) 创建探索记录：python devflow_guard.py explore <主题名>\n"
+            "2) 填写「要解决的问题」「未定项」「结论」，状态推进一档\n"
+            "3) 再建立能力文档：python devflow_guard.py new " + name + " --from-explore <主题名>"
+        )
+    explore_slug = (from_explore or '').strip()
+    explore_rel = check_explore_confirmed(root, config, explore_slug)
 
     target_root = docs_dir(root, config)
     overview_path = os.path.join(target_root, config["overview"]["file"])
@@ -1103,6 +1559,12 @@ def run_new(root, config, name, rework_from=''):
         text = text.replace("<能力名>", name)
         text = text.replace("YYYY-MM-DD", today)
         text = text.replace("{{generator}}", generator)
+        if explore_rel and template_name == "design.md":
+            text = inject_explore_note(text, explore_rel)
+            if text is None:
+                die(
+                    "设计文档骨架缺少「## 背景」一节，无法写入需求探索来源，已中止（不写任何文件）。"
+                )
         if rework_dir and template_name == "design.md":
             archive_rel = config["dirs"]["archive"] + "/" + rework_capability
             text, located = inject_rework_note(text, archive_rel)
@@ -1155,10 +1617,37 @@ def run_new(root, config, name, rework_from=''):
                 pass
         die("写入能力总览表失败（%s），已回滚生成的文件：%s" % (error, rel(root, overview_path)))
 
+    # 采纳写回：登记成功后才回写，顺序不能颠倒。
+    # 若先写采纳再登记，登记失败回滚骨架时，探索记录里会留下一条指向不存在文档的采纳行。
+    # 回写失败不中止：骨架与登记都已完成，此时中止会留下半套状态，
+    # 而缺失的采纳行由 audit 的「被引用却未采纳」检查兜住，可事后补。
+    if explore_rel:
+        explore_path = os.path.join(target_root, explore_rel)
+        explore_text, explore_error = read_text(explore_path)
+        if explore_text is None:
+            print(
+                "警告：需求探索记录读取失败（" + str(explore_error) + "），未能写回采纳行："
+                + explore_rel
+            )
+        else:
+            design_rel = SCAFFOLD_FILENAMES["design"].format(
+                dir_name=config["dirs"]["design"], name=name
+            )
+            adopted = append_adoption_note(explore_text, design_rel, today)
+            try:
+                with open(explore_path, "w", encoding="utf-8") as handle:
+                    handle.write(adopted)
+            except OSError as adopt_error:
+                print(
+                    "警告：采纳写回失败（" + str(adopt_error) + "）：" + explore_rel
+                )
+
     print("已生成：")
     for item in created:
         print("  " + rel(root, item))
     print("已在能力总览表登记：" + name)
+    if explore_rel:
+        print("已在需求探索记录写回采纳：" + explore_rel)
     if rework_capability:
         print("")
         print(
@@ -1953,6 +2442,212 @@ def _supersede_section(text):
     return chr(10).join(collected)
 
 
+def check_explore_records(root, target_root, config):
+    """检查 10：需求探索记录的状态与结论完整性。
+
+    只查两件机械可判定的事：
+    1. 状态不得为空，且必须是「初始值」或任一能力状态取值（即已推进）；
+    2. 已有能力文档引用它时（设计文档背景写了它的路径），结论不得为空。
+
+    不查「结论写得好不好」——那属评审。这里只保证「确认过」这件事有据可查，
+    否则探索记录会退化成一张空表，而它恰恰是用来防止空文档的。
+
+    参数：
+        root: 项目根
+        target_root: 文档根
+        config: 配置字典
+
+    返回：
+        缺口列表
+    """
+    findings = []
+    folder = explore_dir(config)
+    if not folder:
+        return findings
+    path_root = os.path.join(target_root, folder)
+    if not os.path.isdir(path_root):
+        return findings
+
+    status_field = config["file_header"]["status_field"]
+    initial = config["overview"]["status_values"][0]
+    known = set(config["overview"]["status_values"])
+
+    for name in sorted(os.listdir(path_root)):
+        if name == "README.md" or not name.endswith(".md"):
+            continue
+        path = os.path.join(path_root, name)
+        if not os.path.isfile(path):
+            continue
+        text, _ = read_text(path)
+        if text is None:
+            continue
+        header = extract_header_table(text)
+        if not header:
+            findings.append(
+                Finding(LEVEL_ERROR, "需求探索", rel(root, path) + " 缺少文件头字段表")
+            )
+            continue
+        values = parse_header_fields(header)
+        status = values.get(status_field, "").strip()
+        if not status:
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "需求探索",
+                    rel(root, path) + " 的「" + status_field + "」为空",
+                )
+            )
+        elif status not in known:
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "需求探索",
+                    rel(root, path) + " 的状态「" + status + "」不在允许集合内："
+                    + "、".join(config["overview"]["status_values"]),
+                )
+            )
+
+    findings.extend(check_explore_adoption(root, target_root, config, path_root))
+    return findings
+
+
+def check_explore_adoption(root, target_root, config, path_root):
+    """检查 11：采纳指针双向一致。
+
+    两条判据互为反向，缺任一条都会留一个方向的漏洞：
+
+    | 方向 | 判据 | 拦住什么 |
+    |---|---|---|
+    | 探索记录 → 能力 | 写了「采纳于」的路径必须存在 | 能力被删/改名/归档后指针悬空 |
+    | 能力 → 探索记录 | 设计文档「背景」引用某记录的，该记录必须有指向它的采纳行 | 有人重写「背景」时把来源抹掉，或事后补写来源 |
+
+    只查「指针是否成立」，不查内容是否被改过——本地无法证明后者，
+    而假装能证明会产出永远消不掉的告警（合法纠错也会报）。真实防线是提交历史。
+
+    参数：
+        root: 项目根
+        target_root: 文档根
+        config: 配置字典
+        path_root: 探索目录绝对路径
+
+    返回：
+        缺口列表
+    """
+    findings = []
+    folder = explore_dir(config)
+    adoptions = {}
+
+    for name in sorted(os.listdir(path_root)):
+        if name == "README.md" or not name.endswith(".md"):
+            continue
+        path = os.path.join(path_root, name)
+        if not os.path.isfile(path):
+            continue
+        text, _ = read_text(path)
+        if text is None:
+            continue
+        rel_record = folder + "/" + name
+        targets = parse_adoption_targets(explore_adoption_section(text))
+        adoptions[rel_record] = set(targets)
+        for target in targets:
+            full = os.path.normpath(os.path.join(target_root, target))
+            if not os.path.isfile(full):
+                findings.append(
+                    Finding(
+                        LEVEL_ERROR,
+                        "需求采纳",
+                        rel_record + " 记录的采纳目标不存在：" + target,
+                    )
+                )
+
+    # 方向 A：采纳行指向的文档必须仍声明该来源。
+    # 若只查「有引用则须有采纳行」，抹掉引用就能让检查失效；
+    # 反过来说，只查这一条又会被「删掉采纳行」绕过——因此方向 B 不可省。
+    for rel_record, targets in adoptions.items():
+        for target in targets:
+            full = os.path.normpath(os.path.join(target_root, target))
+            if not os.path.isfile(full):
+                continue  # 目标不存在已由上一条报，不重复
+            text, _ = read_text(full)
+            if text is None:
+                continue
+            if rel_record not in extract_section(text, "背景"):
+                findings.append(
+                    Finding(
+                        LEVEL_ERROR,
+                        "需求采纳",
+                        target + " 被 " + rel_record + " 记录为采纳目标，"
+                        + "但其「背景」一节已不含该探索记录的引用（来源被抹掉或改写）",
+                    )
+                )
+
+    # 方向 B：设计文档仍声明来源的，探索记录必须存在且反向留有采纳行。
+    # 只有这条能发现「删掉采纳行」——否则删掉一行就能让方向 A 失去依据。
+    for design_full, rel_record in explore_references(target_root, config):
+        record_path = os.path.join(target_root, rel_record)
+        if not os.path.isfile(record_path):
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "需求采纳",
+                    rel(root, design_full) + " 声明来源为 " + rel_record + "，但该记录不存在",
+                )
+            )
+            continue
+        design_rel = os.path.relpath(design_full, target_root).replace(os.sep, "/")
+        if rel_record in adoptions and design_rel not in adoptions[rel_record]:
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "需求采纳",
+                    rel(root, design_full) + " 声明来源为 " + rel_record
+                    + "，但该记录没有指向它的采纳行（采纳行被删或被改）",
+                )
+            )
+    return findings
+
+
+def explore_references(target_root, config):
+    """扫描设计文档「背景」中指向探索记录的引用。
+
+    只认明确写成「探索记录见 <path>」的行，并把路径限定在探索目录内；
+    正文里偶然出现的同名路径不计入，避免误判。
+
+    参数：
+        target_root: 文档根
+        config: 配置字典
+
+    返回：
+        [(设计文档绝对路径, 探索记录相对文档根的路径), ...]
+    """
+    folder = explore_dir(config)
+    marker = "探索记录见"
+    found = []
+    design_dir = os.path.join(target_root, config["dirs"]["design"])
+    archive_dir = os.path.join(target_root, config["dirs"]["archive"])
+    for base_dir in (design_dir, archive_dir):
+        if not os.path.isdir(base_dir):
+            continue
+        for dirpath, _, filenames in os.walk(base_dir):
+            for name in sorted(filenames):
+                if not name.endswith(".md") or name == "README.md":
+                    continue
+                path = os.path.join(dirpath, name)
+                text, _ = read_text(path)
+                if text is None:
+                    continue
+                for line in extract_section(text, "背景").splitlines():
+                    if marker not in line:
+                        continue
+                    body = line.split(marker, 1)[1].strip()
+                    for sep in ("（", "(", chr(32)):
+                        body = body.split(sep)[0]
+                    body = body.strip().strip(chr(96)).strip().replace(chr(92), "/")
+                    if body.startswith(folder + "/") and body.endswith(".md"):
+                        found.append((path, body))
+    return found
+
+
 def check_archive_consistency(root, target_root, config, rows):
     """检查 8：归档目录与总览表一致——归档能力必须登记，且四类文档齐全。
 
@@ -2128,6 +2823,7 @@ def run_audit(root, config):
         findings.extend(check_archive_consistency(root, target_root, config, rows))
     findings.extend(check_adr_numbering(root, target_root, config))
     findings.extend(check_adr_supersede(root, target_root, config))
+    findings.extend(check_explore_records(root, target_root, config))
 
     errors = [item for item in findings if item.level == LEVEL_ERROR]
     warns = [item for item in findings if item.level == LEVEL_WARN]
@@ -2181,6 +2877,14 @@ def main(argv=None):
         default="",
         help="被重开的已归档能力名（在原能力上改行为时，应立新能力并指向旧能力）",
     )
+    new_parser.add_argument(
+        "--from-explore",
+        default="",
+        help="需求探索记录名（项目启用探索时必填，且该记录须已确认）",
+    )
+    explore_parser = sub.add_parser("explore", help="创建需求探索记录（动手前的需求确认）")
+    explore_parser.add_argument("slug", help="主题名（英文 kebab-case，成为文件名）")
+    explore_parser.add_argument("--title", default="", help="主题标题（默认取 slug）")
     adr_parser = sub.add_parser("adr", help="创建决策记录（ADR），自动推算编号")
     adr_parser.add_argument("slug", help="决策描述（英文 kebab-case，成为文件名的一部分）")
     adr_parser.add_argument("--title", default="", help="决策标题（默认取 slug）")
@@ -2207,7 +2911,9 @@ def main(argv=None):
     if args.mode == "init":
         return run_init(root, config)
     if args.mode == "new":
-        return run_new(root, config, args.name, args.rework_from)
+        return run_new(root, config, args.name, args.rework_from, args.from_explore)
+    if args.mode == "explore":
+        return run_explore(root, config, args.slug, args.title)
     if args.mode == "adr":
         return run_adr(root, config, args.slug, args.title, args.capability)
     if args.mode == "archive":
