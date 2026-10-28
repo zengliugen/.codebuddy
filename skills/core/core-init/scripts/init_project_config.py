@@ -232,7 +232,7 @@ def build_gitignore_content():
 #  caches/ 为运行时产物根目录（不持久化的临时结果：各技能 check_logs、
 #  .cache、.vcs-lock 等），由脚本执行生成，不入库；
 #  产物目录清单见 .codebuddy/project.index.json 的 artifacts.dirs。
-#  configs/ 与 store/ 为入库内容，不在此忽略。
+#  configs/、store/、docs/ 为入库内容，不在此忽略。
 # ============================================================
 
 # 仓库根 .gitignore 的 configs/ 会匹配本项目侧 configs/ 目录（Python 运行时用户配置），
@@ -241,6 +241,12 @@ def build_gitignore_content():
 # 须用 !configs/** 才能让 configs/skills/<pack>/... 等嵌套内容正常入库。
 !configs/
 !configs/**
+
+# docs/ 存放技能产出的项目文档（如 devflow 的能力设计/计划/测试文档），必须随项目入库。
+# 与 configs/ 同理反选：不少仓库根有泛化的 docs/ 忽略规则（站点构建产物、临时笔记等），
+# 会连带忽略此处，导致文档静默不入库。同样两行缺一不可。
+!docs/
+!docs/**
 
 # 运行时产物根目录（整体忽略）
 caches/
@@ -464,19 +470,21 @@ def readme_content(project_config_root):
 ├── configs/            # 配置（入库）：settings.json、skills/<技能>/、rules/<规则>/ 等
 ├── caches/             # 运行时产物（不入库）：各技能 check_logs/、.cache/、.vcs-lock/ 等
 ├── store/              # 持久化项目结果（入库）：需长期保留的运行结果
+├── docs/               # 技能产出的项目文档（入库）：<pack>/ 如 devflow 的能力文档
 ├── skills/             # 技能目录（入库）：<pack>/ 可选包链接，project/ 项目专有技能
 ├── README.md
 ├── .gitignore          # 忽略 caches/ 与系统临时文件
 └── cleanup-caches.cmd  # 缓存清理入口（薄入口，调用引擎侧清理工具）
 ```
 
-三类内容的边界约定：
+四类内容的边界约定：
 
 | 子目录 | 语义 | 是否入库 | 可否删除 |
 |--------|------|---------|---------|
 | `configs/` | 与项目绑定的配置 | 是 | 删除后技能按「配置缺失即报错」 |
 | `caches/` | 运行时生成、**不持久化**的临时结果 | 否（整体忽略） | 随时可删，可重新生成 |
 | `store/` | 运行时生成、需**持久化保留**的项目结果 | 是 | 删除即丢失，需谨慎 |
+| `docs/` | 技能产出的**项目文档**（如 devflow 的能力设计/计划/测试文档） | 是 | 删除即丢失；卸载对应包后需手工清理 |
 
 **约定**：后续所有运行时生成的、不持久化的临时结果一律放 `caches/`，不得散落到其他目录。
 

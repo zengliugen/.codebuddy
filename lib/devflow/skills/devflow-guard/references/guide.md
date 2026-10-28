@@ -19,7 +19,7 @@
 ```json
 {
   "version": 1,
-  "docs_root": "<文档根，相对项目根>",
+  "docs_root": ".codebuddy.project/docs/devflow",
   "dirs": {
     "design": "design",
     "plans": "plans",
@@ -51,7 +51,7 @@
 
 | 键 | 作用 | 缺失或非法时 |
 |---|---|---|
-| `docs_root` | 文档根，相对项目根 | 为空即报错（退出码 3） |
+| `docs_root` | 文档根，相对项目根。推荐 `.codebuddy.project/docs/devflow`（见下方「文档根放在哪」） | 为空即报错（退出码 3） |
 | `dirs` | 六个子目录的实际名称 | 缺任一键即报错 |
 | `overview.header` | 总览表列名与顺序；audit 用它定位表格 | 表头不匹配即报「未找到总览表」 |
 | `overview.capability_column` / `status_column` | 能力列与状态列序号（从 0 起） | 越界即报错 |
@@ -64,6 +64,28 @@
 
 **脚本不内置任何默认值**。代价是首次使用必须先有配置，收益是「配置写错」永远表现为可操作的报错，
 而不是「检查莫名通过」。
+
+### 文档根放在哪
+
+推荐 `.codebuddy.project/docs/devflow`（索引 `files["devflow.docs.config"].template.docs_root`
+的骨架值即此路径）。理由是位置语义与既有约定一致：
+
+| 理由 | 说明 |
+|---|---|
+| 与 `configs/`、`caches/`、`store/` 同级 | 项目侧内容根统一放在 `.codebuddy.project/` 下，文档不另起顶层目录 |
+| 按包分层 | `docs/<pack>/` 与 `configs/skills/<pack>/` 的包层习惯一致，卸载包时能一眼看出归属 |
+| 随项目入库 | 该路径不被 `.codebuddy.project/.gitignore` 忽略；放进引擎侧会让子模块指针长期 dirty |
+| 不污染引擎 | 文档是项目事实，放进 `.codebuddy/` 会随引擎迁移被带到其他项目 |
+
+**这只是推荐值，不是脚本默认值**：`docs_root` 仍必须显式填写，留空仍报退出码 3。
+脚本不读索引、不猜位置——它只读配置。上表解释的是「配置该填什么」，不是「不填会发生什么」。
+
+换位置也可以（如 `Docs/devflow`），但须同时满足：相对项目根、不含盘符、不含 `../`。
+另外两条容易踩的：
+
+- **目录不能提前建**：`init` 在任一目标已存在时整体中止。若要换目录，先把旧目录移开。
+- **卸载包不会自动清理文档**：`docs/` 路径不含 `skills`/`rules`/`agents` 段，
+  `core-init` 的孤儿检测识别不到它。卸载 `devflow` 后须手工删 `.codebuddy.project/docs/devflow/`。
 
 ### 状态取值与列序的语义约定
 

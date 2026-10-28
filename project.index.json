@@ -330,7 +330,7 @@
       "template": {
         "version": 1,
         "_comment": "本文件为 devflow-guard 的项目配置：docs_root/dirs 决定文档放在哪、overview 决定总览表的列序与合法取值、file_header 决定文件头字段与生成器标识、capability_name_pattern 决定能力名合法模式。本文件是这些形状的唯一来源——脚本不内置任何默认值，缺失、损坏或缺少必需键时直接报错退出（退出码 3）。首次使用先执行技能的 init 模式初始化文档结构。",
-        "docs_root": "",
+        "docs_root": ".codebuddy.project/docs/devflow",
         "dirs": {
           "design": "design",
           "plans": "plans",

@@ -104,7 +104,10 @@
 - **包名是路径中的固定层级**（紧跟 `skills/`、`rules/`、`agents/` 之后）。初始化脚本据此判断
   条目归属哪个包，**未安装的包不生成配置与产物目录**。
 - 无包归属的通用路径（如根级锁目录 `.codebuddy.project/caches/.vcs-lock`）**不加包层**，
-  初始化时不做包过滤。
+  初始化时不做包过滤。- **文档目录**（技能产出的项目文档，如 devflow 的能力文档）同样按包分层：
+  `.codebuddy.project/docs/<pack>/`。它**不是** `configs`/`caches` 的下级，而是与二者同级的独立类别；
+  路径中不含 `skills`/`rules`/`agents` 段，因此 `pack_of_path()` 返回空串、**不参与包过滤**——
+  详见 §3.6.2。
 - 引擎侧通用配置（不随项目变化的部分）**不进入注册表**，留在 `.codebuddy` 内。
 
 ### 3.4 骨架语义（`template` / `template_outline`）
@@ -156,6 +159,25 @@
 | `--prune-orphans` | 由用户确认后执行：删除孤儿配置**文件**与**空**产物目录；非空目录不删（避免误删用户内容），并上溯清理因此变空的上级目录 |
 
 判定依据是路径中的包层（见 §3.3）：包名不在「默认包 ∪ 已装可选包」内即视为孤儿。
+
+**不含包层的路径不在检测范围内**：`.codebuddy.project/docs/<pack>/` 路径中没有 `skills`/`rules`/`agents`
+段，`pack_of_path()` 返回空串，因此**卸载包后其文档目录不会被列为孤儿、也不会被 `--prune-orphans` 删除**
+（见 §3.6.2）。这类残留须手工清理。
+
+### 3.6.2 文档目录（`.codebuddy.project/docs/`）
+
+技能产出的**项目文档**（如 devflow 的能力设计/计划/测试文档）放 `.codebuddy.project/docs/<pack>/`，
+与 `configs/`、`caches/`、`store/` 同级。它**不是运行时产物**（入库、不随清理工具删除），
+也**不是配置**（不参与索引 `files` 的骨架生成），故单列一类。
+
+- **位置由各技能的项目配置声明**（如 devflow 的 `files["devflow.docs.config"].template.docs_root`），
+  索引只提供骨架值；脚本不内置默认值，读的时候仍旧「配置缺失即报错」。
+- **不入 `artifacts.dirs`**：那是运行时产物清单，会被 `cleanup_artifacts.py` 删除；文档必须留下。
+- **入库**：`.codebuddy.project/.gitignore` 不忽略 `docs/`。但仓库根若有泛化的 `docs/` 规则
+  会把这里一并忽略，故该 `.gitignore` 也显式反选（同 `configs/` 的处理）。
+- **不受包过滤与孤儿检测管辖**：路径中不含 `skills`/`rules`/`agents` 段，`pack_of_path()` 返回空串，
+  按 §3.3 的规则视为「无包归属」——**未安装的包不会少生成它，卸载包也不会清掉它**。
+  卸载包后须**手工删除** `docs/<pack>/`，`--prune-orphans` **不会**碰这些目录。
 
 ### 3.7 项目专有包（project，软链接）
 

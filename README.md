@@ -143,7 +143,7 @@
 | 本仓库（检出为 `.codebuddy/`） | 引擎 | 纯通用内容；跨项目共享 |
 | `.codebuddy/project.index.json` | 引擎 | 配置注册表；路径 + 骨架，**无项目专有值** |
 | `.codebuddy/skills/**/tools/**/<工具>.json` | 引擎 | **分层配置的通用部分**（规则、算法参数等） |
-| `.codebuddy.project/` | 项目 | 项目侧内容根：`configs/` 配置、`caches/` 运行时产物（不入库）、`store/` 持久化结果、`skills/` 项目专有技能（含 `settings.json` 源文件）；随项目独立维护 |
+| `.codebuddy.project/` | 项目 | 项目侧内容根：`configs/` 配置、`caches/` 运行时产物（不入库）、`store/` 持久化结果、`docs/` 技能产出的项目文档（如 devflow 能力文档）、`skills/` 项目专有技能（含 `settings.json` 源文件）；随项目独立维护 |
 | `.codebuddy/settings.json` | 项目（链接） | **软链接** → `.codebuddy.project/configs/settings.json`（由项目侧创建，**不入本库**） |
 | `.codebuddy.project/<类型>/project/` | 项目 | **项目专有包**内容（与其他包同构）：`rules/project/`、`skills/project/`、`agents/project/`，经 `.codebuddy/<类型>/project` 链接被加载，**不入本库** |
 | `.codebuddy.project/skills/` | 项目 | 可选包在项目侧的组件链接（由 setup 创建） |
