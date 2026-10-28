@@ -23,20 +23,26 @@ metadata:
 bash:
 DIR=.codebuddy/lib/devflow/skills/devflow-guard
 python $DIR/scripts/devflow_guard.py init
-python $DIR/scripts/devflow_guard.py new <能力名>
+python $DIR/scripts/devflow_guard.py new <能力名> [--rework-from 已归档能力名]
+python $DIR/scripts/devflow_guard.py adr <slug> [--title 标题] [--capability 能力名]
+python $DIR/scripts/devflow_guard.py status <能力名> <状态>
+python $DIR/scripts/devflow_guard.py archive <能力名>
 python $DIR/scripts/devflow_guard.py audit
 
 | 模式 | 作用 | 保护 |
 |---|---|---|
-| `init` | 按配置复制六个子目录说明、总览 README 与五份模板 | 只创建不覆盖，已存在即整体中止 |
-| `new <名>` | 生成设计/计划/测试三份骨架并登记总览表 | 名字合法、目标不存在、总览表可解析，任一不满足即中止且不写文件 |
+| `init` | 按配置创建五个子目录说明与总览 README | 只创建不覆盖，已存在即整体中止 |
+| `new <名>` | 生成设计/计划/偏差/测试四份骨架并登记总览表（偏差列一并填好路径） | 名字合法、目标不存在、总览表可解析，任一不满足即中止且不写文件；`--rework-from` 须指向已归档能力 |
+| `adr <slug>` | 创建决策记录，编号按现有最大值推算 | slug 为英文 kebab-case、决策目录存在、目标不存在，任一不满足即中止 |
+| `status <名> <状态>` | 把状态同步到总览表与该能力四份文档的文件头（共五处） | 状态须在合法集合内；目标文件须存在，缺任一即整体中止 |
+| `archive <名>` | 四类文档移入 `archive/<名>/` 并统一改名为 design/plan/deviation/testing.md，回写总览表路径 | 能力须已登记且状态为完成或废弃；目标已存在即中止；移动失败或写表失败全部回滚 |
 | `audit` | 只读体检文档契约，按三档输出缺口 | 不修改任何文件 |
 
 **不提供 `--force`**：覆盖会毁掉已写内容，而设计文档往往是唯一副本。
 
 ### audit 检查什么
 
-七项，全部机械可判定：文件头字段与状态取值、生成器字段、总览表表头与列数、空白单元格、表引用文件存在性、磁盘文档已登记、决策编号连续合规、计划与偏差成对。
+九项，全部机械可判定：文件头字段与状态取值、生成器字段、总览表表头与列数、空白单元格、表引用文件存在性、磁盘文档已登记、决策编号连续合规、决策取代链完整、计划与偏差成对、归档目录与总览表一致。
 
 **不查代码落位**——落位原则需要读懂代码才能判断，留给评审。
 
@@ -55,7 +61,7 @@ python $DIR/scripts/devflow_guard.py audit
 
 一切形状来自项目配置，脚本**不内置任何默认值**。配置经项目索引 `files.devflow.docs.config` 定位，缺失或缺必需键即退出码 3。
 
-决定项：文档根、六个子目录名、总览表列序与状态取值、文件头字段与生成器标识、能力名模式。字段级说明与示例见 `references/guide.md`。
+决定项：文档根、五个子目录名、总览表列序与状态取值、文件头字段与生成器标识、能力名模式。字段级说明与示例见 `references/guide.md`。
 
 **为什么缺失必须报错**：内置默认值会让「配置写错」表现为「配置没生效」，这类问题极难排查，不如直接失败。
 

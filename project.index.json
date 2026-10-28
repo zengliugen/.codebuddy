@@ -325,7 +325,7 @@
     },
     "devflow.docs.config": {
       "path": ".codebuddy.project/configs/skills/devflow/devflow-guard/config.json",
-      "description": "devflow-guard 技能参数：文档根、六个子目录名、总览表列序与状态取值、文件头字段与生成器标识、能力名模式",
+      "description": "devflow-guard 技能参数：文档根、五个子目录名、总览表列序与状态取值、文件头字段与生成器标识、能力名模式",
       "format": "json",
       "template": {
         "version": 1,
@@ -336,7 +336,6 @@
           "plans": "plans",
           "testing": "testing",
           "decisions": "decisions",
-          "templates": "templates",
           "archive": "archive"
         },
         "overview": {

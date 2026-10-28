@@ -12,7 +12,7 @@
 
 1. **不按固定层级数定位项目根**。自脚本所在目录向上查找含 .git 或 .codebuddy 的目录，
    因此同一份脚本在引擎侧与项目侧两种挂载深度下都能工作。
-2. **一切形状来自项目配置**。文档根、六个子目录名、总览表列序、状态取值、文件头字段、
+2. **一切形状来自项目配置**。文档根、五个子目录名、总览表列序、状态取值、文件头字段、
    生成器标识全部读配置，脚本不内置任何默认值。配置缺失或缺少必需键时直接报错退出（退出码 3），
    不回退默认值——否则「配置写了但没生效」会表现成「检查莫名通过」。
 3. **只查机械可判定的契约**，不查代码落位。落位原则属规则判据，抽象后无法机械校验。
@@ -34,6 +34,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
 import unicodedata
 from datetime import date
@@ -41,13 +42,17 @@ from datetime import date
 # 配置在项目索引中的逻辑名
 CONFIG_CODENAME = "devflow.docs.config"
 
-# 模板目录（相对本脚本）：scripts/ -> devflow-guard/ -> references/templates
+# 模板根目录（相对本脚本）：scripts/ -> devflow-guard/ -> references/templates
 TEMPLATES_DIR = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "templates")
 )
 
-# 需要复制的六个子目录（键名对应配置 dirs 下的键）
-DOC_SUBDIR_KEYS = ("design", "plans", "testing", "decisions", "archive", "templates")
+# 五份文档骨架所在子目录。命名避开 docs/templates 这类与实际用途不符的词：
+# 这里装的是「骨架源文件」，与文档根（docs_root）无关。
+SKELETON_DIR = "skeletons"
+
+# 需要创建说明文件的五个子目录（键名对应配置 dirs 下的键）
+DOC_SUBDIR_KEYS = ("design", "plans", "testing", "decisions", "archive")
 
 # 配置必需键（缺失即报错，不回退默认值）
 REQUIRED_CONFIG_KEYS = (
@@ -433,6 +438,13 @@ def fill_placeholders(text, config, keep_generator=False):
     mapping["<计划目录>"] = config["dirs"]["plans"]
     mapping["<测试目录>"] = config["dirs"]["testing"]
     mapping["<决策目录>"] = config["dirs"]["decisions"]
+    # 总览表头由配置决定，模板里不该出现具体列名——否则改配置后 init 产出的表头
+    # 与配置不符，new 会因 find_table 匹配不上而直接失败。
+    overview_header = config["overview"]["header"]
+    separator = "|" + "|".join(["---"] * len(overview_header)) + "|"
+    mapping["{{overview_header}}"] = (
+        "| " + " | ".join(overview_header) + " |" + "\n" + separator
+    )
     if not keep_generator:
         mapping["{{generator}}"] = config["file_header"]["generator_values"][0]
     for token, value in mapping.items():
@@ -471,9 +483,12 @@ def run_init(root, config):
 
     # 顶层总览 README
     plan.append(
-        (os.path.join(TEMPLATES_DIR, "docs", "README.md"), os.path.join(target_root, config["overview"]["file"]))
+        (
+            os.path.join(TEMPLATES_DIR, SKELETON_DIR, "README.md"),
+            os.path.join(target_root, config["overview"]["file"]),
+        )
     )
-    # 六个子目录的目录说明
+    # 五个子目录的目录说明
     for key in DOC_SUBDIR_KEYS:
         plan.append(
             (
@@ -481,14 +496,8 @@ def run_init(root, config):
                 os.path.join(target_root, config["dirs"][key], "README.md"),
             )
         )
-    # 五份文档模板
-    for name in ("design.md", "plan.md", "deviation.md", "testing.md", "adr.md"):
-        plan.append(
-            (
-                os.path.join(TEMPLATES_DIR, "docs", name),
-                os.path.join(target_root, config["dirs"]["templates"], name),
-            )
-        )
+    # 文档骨架不复制到项目侧：new / adr 直接从包内读取并实例化，
+    # 复制一份会在项目侧留下没有消费者的副本，且副本与源模板的差异无法机械判定。
 
     missing_templates = [src for src, _ in plan if not os.path.isfile(src)]
     if missing_templates:
@@ -536,6 +545,106 @@ def run_init(root, config):
 # ---------------------------------------------------------------------------
 # 总览表解析
 # ---------------------------------------------------------------------------
+
+
+# 总览表各列与文档类别的对应：列名里出现左侧关键词即视为该类别。
+# 顺序有意义——「实施偏差」同时含「计划」语义，必须先于「计划」判定。
+OVERVIEW_COLUMN_KINDS = (
+    ("偏差", "deviation"),
+    ("设计", "design"),
+    ("测试", "testing"),
+    ("计划", "plan"),
+)
+
+# 类别到归档后文件名的映射。归档统一重命名，避免「按原名」与「改名」两种风格并存。
+ARCHIVE_FILENAMES = {
+    "design": "design.md",
+    "plan": "plan.md",
+    "deviation": "deviation.md",
+    "testing": "testing.md",
+}
+
+
+def resolve_doc_columns(header, config):
+    """把总览表表头解析为 {文档类别: 列序号}。
+
+    列名靠关键词识别，因此列名被改成不含关键词的写法时，这里会解析不到对应列。
+    这种情况必须显式报错：静默退化为「该列填占位符」会让 new 生成的文件没有登记路径，
+    而 audit 只看到占位符、照样判通过——一个改配置就失效的链路最难排查。
+
+    参数：
+        header: 总览表表头列表
+        config: 配置字典
+
+    返回：
+        (列映射, 缺失的类别列表)
+    """
+    cap_index = config["overview"]["capability_column"]
+    status_index = config["overview"]["status_column"]
+    columns = {}
+    for index, column in enumerate(header):
+        kind = column_kind(column, cap_index, status_index, index)
+        if kind and kind not in columns:
+            columns[kind] = index
+    missing = [kind for kind in SCAFFOLD_DIRS if kind not in columns]
+    return columns, missing
+
+
+def require_doc_columns(header, config, action):
+    """解析文档列，缺任何一类即中止。
+
+    参数：
+        header: 总览表表头列表
+        config: 配置字典
+        action: 动作名，用于错误信息
+
+    返回：
+        {文档类别: 列序号}
+    """
+    columns, missing = resolve_doc_columns(header, config)
+    if missing:
+        labels = {"design": "设计", "plan": "计划", "deviation": "偏差", "testing": "测试"}
+        die(
+            "总览表缺少可识别的文档列：" + "、".join(labels[kind] for kind in missing) + "\n"
+            "当前表头：" + " | ".join(header) + "\n"
+            "列名须包含上述关键词之一（如「方案设计」「实施计划」「实施偏差」「验证测试」），"
+            "否则 " + action + " 无法确定该把文件登记到哪一列。"
+        )
+    return columns
+
+
+def column_kind(column_name, cap_index, status_index, index):
+    """判断总览表某一列承载哪类文档。
+
+    参数：
+        column_name: 该列的表头名
+        cap_index: 能力列序号
+        status_index: 状态列序号
+        index: 当前列序号
+
+    返回：
+        "design" / "plan" / "deviation" / "testing"，非文档列返回 None
+    """
+    if index in (cap_index, status_index):
+        return None
+    for keyword, kind in OVERVIEW_COLUMN_KINDS:
+        if keyword in column_name:
+            return kind
+    return None
+
+
+def is_placeholder(cell, config):
+    """判断单元格是否为占位符（不应被当作路径处理）。
+
+    参数：
+        cell: 单元格文本
+        config: 配置字典
+
+    返回：
+        是占位符或空串时为 True
+    """
+    overview = config["overview"]
+    return cell in ("", overview["placeholder_dash"], overview["placeholder_todo"])
 
 
 def split_row(line):
@@ -645,6 +754,195 @@ def insert_row(text, start, rows, new_row):
     return "".join(lines)
 
 
+def replace_row(text, line_no, cells):
+    """改写总览表的指定行，保留该行原有的换行风格。
+
+    参数：
+        text: 原正文
+        line_no: 目标行号（0 起）
+        cells: 新的单元格列表
+
+    返回：
+        新正文
+    """
+    lines = text.splitlines(keepends=True)
+    if line_no >= len(lines):
+        raise ValueError("行号超出范围：%d" % line_no)
+    target = lines[line_no]
+    if target.endswith("\r\n"):
+        newline = "\r\n"
+    elif target.endswith("\n"):
+        newline = "\n"
+    else:
+        newline = ""
+    lines[line_no] = "| " + " | ".join(cells) + " |" + newline
+    return "".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# archive 模式
+# ---------------------------------------------------------------------------
+
+
+def _is_under(path, parent):
+    """判断 path 是否位于 parent 目录之下（含相等）。
+
+    参数：
+        path: 待判断路径
+        parent: 父目录路径
+
+    返回：
+        位于其下或相等时为 True
+    """
+    path = os.path.normpath(path)
+    parent = os.path.normpath(parent)
+    return path == parent or path.startswith(parent + os.sep)
+
+
+def run_archive(root, config, capability):
+    """把一个能力的过程文档整包移入归档目录，并回写总览表路径。
+
+    为什么需要这个命令：归档要同时完成「移动文件」与「改总览表路径」两件事。
+    只做前者，audit 会报四个「引用的文件不存在」；两件都做，才是一致的归档状态。
+    手工做时第二步最容易漏，而漏了之后的报错看不出「这是归档做了一半」。
+    把两步绑成一次操作，半归档状态就不可能产生。
+
+    保护：
+    - 能力必须在总览表登记；
+    - 能力名不得含路径分隔符或 ..（防越出归档目录）；
+    - 待移动的源文件必须存在；
+    - 归档目标文件名不得已存在；
+    - 任一移动失败，已移动的文件全部移回原位；
+    - 总览表写入失败，已移动的文件同样全部移回。
+
+    参数：
+        root: 项目根
+        config: 配置字典
+        capability: 能力名
+
+    返回：
+        退出码
+    """
+    name = (capability or "").strip()
+    if not name:
+        die("能力名不能为空。")
+    if name in (".", "..") or os.sep in name or (os.altsep and os.altsep in name):
+        die("能力名不得包含路径分隔符或 ..：「" + name + "」")
+
+    target_root = docs_dir(root, config)
+    overview_path = os.path.join(target_root, config["overview"]["file"])
+    overview_text, overview_error = read_text(overview_path)
+    if overview_text is None:
+        die(
+            "无法读取能力总览表：%s（%s）\n请先执行 init 初始化文档结构。"
+            % (rel(root, overview_path), overview_error)
+        )
+
+    rows, error = parse_overview(overview_text, config)
+    if error:
+        die("总览表不可解析，已中止（不移动任何文件）：" + error)
+
+    matched = [row for row in rows if row["能力"] == name]
+    if not matched:
+        die("总览表中没有能力「" + name + "」。归档前必须先登记该能力。")
+    if len(matched) > 1:
+        die("能力「" + name + "」在总览表出现多行，无法确定归档哪一行。请先修正重复行。")
+    row = matched[0]
+
+    # 只允许把「完成」或「废弃」的能力归档。规则里归档的对象是已完成能力；
+    # 提前归档会让活跃目录看起来比实际干净，而总览表状态仍是草稿——
+    # 此后没人会去翻归档目录找它。
+    status_values = config["overview"]["status_values"]
+    archivable = {status_values[3], status_values[-1]}
+    if row["状态"] not in archivable:
+        die(
+            "能力「" + name + "」当前状态为「" + row["状态"] + "」，不能归档。\n"
+            "归档对象是已完成或已废弃的能力；请先用 status 命令推进状态：\n"
+            "  python devflow_guard.py status " + name + " " + status_values[3]
+        )
+
+    header = config["overview"]["header"]
+    cap_index = config["overview"]["capability_column"]
+    status_index = config["overview"]["status_column"]
+    archive_root = os.path.join(target_root, config["dirs"]["archive"])
+    dest_dir = os.path.join(archive_root, name)
+
+    # 先算出完整的移动计划，任一不满足即整体中止——避免移了一半才发现冲突。
+    doc_columns = require_doc_columns(header, config, "archive")
+    moves = []
+    for kind, index in sorted(doc_columns.items(), key=lambda item: item[1]):
+        column = header[index]
+        cell = row["单元格"][index]
+        if is_placeholder(cell, config):
+            continue
+        source = os.path.normpath(os.path.join(target_root, cell))
+        if _is_under(source, archive_root):
+            continue  # 已归档，保持原样
+        if not os.path.isfile(source):
+            die(
+                "总览表第 %d 行列「%s」指向的文件不存在：%s\n"
+                "归档前须先修正总览表，否则会把错误路径带进归档目录。"
+                % (row["行号"] + 1, column, cell)
+            )
+        destination = os.path.join(dest_dir, ARCHIVE_FILENAMES[kind])
+        if os.path.exists(destination):
+            die("归档目标已存在，已中止（不覆盖）：" + rel(root, destination))
+        moves.append((source, destination, index))
+
+    if not moves:
+        print("能力「" + name + "」的四类文档均已在归档目录，未做任何改动。")
+        return 0
+
+    try:
+        os.makedirs(dest_dir, exist_ok=True)
+    except OSError as make_error:
+        die("无法创建归档目录（%s）：%s" % (make_error, rel(root, dest_dir)))
+
+    done = []
+    for source, destination, _ in moves:
+        try:
+            shutil.move(source, destination)
+        except OSError as move_error:
+            # 逐份回滚：归档是「要么全部就位、要么原地不动」，
+            # 半套归档会让总览表与磁盘两侧都处于难以判断的状态。
+            for moved_source, moved_dest in reversed(done):
+                try:
+                    shutil.move(moved_dest, moved_source)
+                except OSError:
+                    pass
+            die(
+                "移动失败（%s）：%s\n已移回本次移动的文件，未产生归档。"
+                % (move_error, rel(root, source))
+            )
+        done.append((source, destination))
+
+    cells = list(row["单元格"])
+    for _, destination, index in moves:
+        cells[index] = os.path.relpath(destination, target_root).replace(os.sep, "/")
+    updated = replace_row(overview_text, row["行号"], cells)
+    try:
+        with open(overview_path, "w", encoding="utf-8") as handle:
+            handle.write(updated)
+    except OSError as write_error:
+        for moved_source, moved_dest in reversed(done):
+            try:
+                shutil.move(moved_dest, moved_source)
+            except OSError:
+                pass
+        die(
+            "写入总览表失败（%s），已把文件移回原位：%s"
+            % (write_error, rel(root, overview_path))
+        )
+
+    print("已归档能力：" + name)
+    for source, destination in done:
+        print("  " + rel(root, source) + "  ->  " + rel(root, destination))
+    print("总览表路径已更新为归档位置。")
+    print("")
+    print("注意：状态未改动（归档是存放位置，不是生命周期阶段）；决策记录不归档。")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # new 模式
 # ---------------------------------------------------------------------------
@@ -653,11 +951,59 @@ def insert_row(text, start, rows, new_row):
 SCAFFOLD_SPECS = (
     ("design.md", "design", "{name}.md"),
     ("plan.md", "plans", "{name}-plan.md"),
+    ("deviation.md", "plans", "{name}-deviation.md"),
     ("testing.md", "testing", "{name}-testing.md"),
 )
 
+# 文档类别 → 配置 dirs 键 / 落盘文件名模板。new 填总览表与 archive 定位文件共用。
+SCAFFOLD_DIRS = {
+    "design": "design",
+    "plan": "plans",
+    "deviation": "plans",
+    "testing": "testing",
+}
+SCAFFOLD_FILENAMES = {
+    "design": "{dir_name}/{name}.md",
+    "plan": "{dir_name}/{name}-plan.md",
+    "deviation": "{dir_name}/{name}-deviation.md",
+    "testing": "{dir_name}/{name}-testing.md",
+}
 
-def run_new(root, config, name):
+
+def inject_rework_note(text, archive_rel):
+    """在设计文档「背景」一节写入重开来源，返回新正文。
+
+    只加一行引用，不复制旧文档内容：旧文档留在归档目录里，作为「当时怎么想」的唯一记录；
+    新文档只声明「我从它重开」，读者据此可回溯。二者职责不重叠，因此不合并、不搬运。
+
+    参数：
+        text: 设计文档全文
+        archive_rel: 被重开的归档目录相对路径（如 archive/alpha）
+
+    返回：
+        (新正文, 是否成功定位「背景」一节)
+    """
+    marker = '## 背景'
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if line.strip() != marker:
+            continue
+        newline = ''
+        if line.endswith(chr(13) + chr(10)):
+            newline = chr(13) + chr(10)
+        elif line.endswith(chr(10)):
+            newline = chr(10)
+        note = (
+            '> 本能力重开自 ' + archive_rel + ' 的设计文档。旧文档记录的是当时的推理与盲区，'
+            '已冻结、不再修改；本次为何重开见下方「背景」。' + newline
+        )
+        lines.insert(index + 1, newline)
+        lines.insert(index + 2, note)
+        return ''.join(lines), True
+    return text, False
+
+
+def run_new(root, config, name, rework_from=''):
     """生成能力文档骨架并登记总览表。
 
     三道运行时保护，任一不满足即中止且不写任何文件：
@@ -667,6 +1013,7 @@ def run_new(root, config, name):
         root: 项目根
         config: 配置字典
         name: 能力名
+        rework_from: 被重开的已归档能力名；为空表示全新能力
 
     返回：
         退出码
@@ -709,15 +1056,35 @@ def run_new(root, config, name):
         if row["能力"] == name:
             die("能力已存在于总览表：" + name + "。若需重建请手工处理，本脚本不提供覆盖。")
 
+    # 重开来源：必须是已归档的能力。校验放在写文件之前，避免生成了一半才发现来源写错。
+    rework_dir = ""
+    rework_capability = (rework_from or "").strip()
+    if rework_capability:
+        archive_root = os.path.join(target_root, config["dirs"]["archive"])
+        rework_dir = os.path.join(archive_root, rework_capability)
+        if not os.path.isdir(rework_dir):
+            die(
+                "找不到被重开的归档能力：" + config["dirs"]["archive"] + "/" + rework_capability + "\n"
+                + "重开只能指向已归档的能力；若原能力仍在活跃目录，直接在它上面继续即可，不必新建。"
+            )
+        if rework_capability == name:
+            die("新能力名不能与被重开的能力同名：" + name)
+        # 归档里的设计文档必须存在，否则引用落空
+        if not os.path.isfile(os.path.join(rework_dir, "design.md")):
+            die(
+                "被重开的归档能力缺少设计文档：" + config["dirs"]["archive"] + "/"
+                + rework_capability + "/design.md"
+            )
+
     targets = []
     for template_name, dir_key, pattern_name in SCAFFOLD_SPECS:
-        template = os.path.join(TEMPLATES_DIR, "docs", template_name)
+        template = os.path.join(TEMPLATES_DIR, SKELETON_DIR, template_name)
         if not os.path.isfile(template):
             die("包内模板缺失：" + template)
         target = os.path.join(target_root, config["dirs"][dir_key], pattern_name.format(name=name))
-        targets.append((template, target))
+        targets.append((template_name, template, target))
 
-    conflicts = [dst for _, dst in targets if os.path.exists(dst)]
+    conflicts = [dst for _, _, dst in targets if os.path.exists(dst)]
     if conflicts:
         die(
             "以下文件已存在，已中止（不覆盖）：\n  "
@@ -728,7 +1095,7 @@ def run_new(root, config, name):
     generator = config["file_header"]["generator_values"][0]
 
     created = []
-    for template, target in targets:
+    for template_name, template, target in targets:
         raw, error = read_text(template)
         if raw is None:
             die("包内模板读取失败：%s（%s）" % (template, error))
@@ -736,6 +1103,13 @@ def run_new(root, config, name):
         text = text.replace("<能力名>", name)
         text = text.replace("YYYY-MM-DD", today)
         text = text.replace("{{generator}}", generator)
+        if rework_dir and template_name == "design.md":
+            archive_rel = config["dirs"]["archive"] + "/" + rework_capability
+            text, located = inject_rework_note(text, archive_rel)
+            if not located:
+                die(
+                    "设计文档骨架缺少「## 背景」一节，无法写入重开来源，已中止（不写任何文件）。"
+                )
         os.makedirs(os.path.dirname(target), exist_ok=True)
         with open(target, "w", encoding="utf-8") as handle:
             handle.write(text)
@@ -746,20 +1120,25 @@ def run_new(root, config, name):
     cap_index = config["overview"]["capability_column"]
     status_index = config["overview"]["status_column"]
 
+    # 列与文档类别的对应统一走 require_doc_columns，避免与 archive 各写一套关键词匹配。
+    # 列名改到无法识别时直接中止：否则生成的骨架没有登记路径，而 audit 只看到占位符、照样通过。
+    doc_columns = require_doc_columns(header_names, config, "new")
     cells = []
-    for index, column in enumerate(header_names):
+    for index in range(len(header_names)):
         if index == cap_index:
             cells.append(name)
         elif index == status_index:
             cells.append(config["overview"]["status_values"][0])
-        elif "设计" in column:
-            cells.append(config["dirs"]["design"] + "/" + name + ".md")
-        elif "计划" in column and "偏差" not in column:
-            cells.append(config["dirs"]["plans"] + "/" + name + "-plan.md")
-        elif "测试" in column:
-            cells.append(config["dirs"]["testing"] + "/" + name + "-testing.md")
         else:
-            cells.append(dash)
+            kind = next((k for k, i in doc_columns.items() if i == index), None)
+            if kind is None:
+                cells.append(dash)
+            else:
+                cells.append(
+                    SCAFFOLD_FILENAMES[kind].format(
+                        dir_name=config["dirs"][SCAFFOLD_DIRS[kind]], name=name
+                    )
+                )
     new_row = "| " + " | ".join(cells) + " |"
 
     start, data_rows = find_table(overview_text, header_names)
@@ -780,8 +1159,299 @@ def run_new(root, config, name):
     for item in created:
         print("  " + rel(root, item))
     print("已在能力总览表登记：" + name)
+    if rework_capability:
+        print("")
+        print(
+            "重开自：" + config["dirs"]["archive"] + "/" + rework_capability
+            + "（旧文档已冻结，本次改为在其上叠加新能力；旧文档不再修改）"
+        )
+        print("若推翻了原决策，请用 adr 新建一份并在「取代」字段写旧编号。")
     print("")
     print("下一步：填写设计文档的方案与取舍，方案定稿后补计划，开发完成后补验收记录。")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# adr 模式
+# ---------------------------------------------------------------------------
+
+# 决策记录文件名模式。与 check_adr_numbering 的校验口径必须一致，
+# 否则本命令产出的文件会在体检时被判文件名不合规。
+ADR_SLUG_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+
+
+def next_adr_number(decisions_dir):
+    """推算下一个可用的决策编号。
+
+    audit 要求编号从 0001 起连续、无重复，因此取现有最大编号加一；
+    目录为空时从 1 开始。已归档的 ADR 不会离开本目录，故无需考虑归档。
+
+    参数：
+        decisions_dir: 决策目录绝对路径
+
+    返回：
+        下一个编号（整数）；目录不存在时返回 1
+    """
+    if not os.path.isdir(decisions_dir):
+        return 1
+    numbers = []
+    for name in os.listdir(decisions_dir):
+        match = re.match(r"^(\d{4})-", name)
+        if match and name.endswith(".md"):
+            numbers.append(int(match.group(1)))
+    return max(numbers) + 1 if numbers else 1
+
+
+def run_adr(root, config, slug, title, capability):
+    """创建一份决策记录（ADR）骨架。
+
+    为什么需要这个入口：ADR 没有对应的能力命名规则，无法由 new 产出；
+    而 audit 对「生成器」字段是 error 级校验，手工建必须自填合法值，
+    否则体检不过。把编号推算与字段填充收进脚本，才不必让人记住这些约定。
+
+    参数：
+        root: 项目根
+        config: 配置字典
+        slug: 决策文件名描述部分（英文 kebab-case）
+        title: 决策标题；为空时取 slug
+        capability: 关联能力；为空时写「全局」
+
+    返回：
+        退出码
+    """
+    if not ADR_SLUG_PATTERN.fullmatch(slug or ""):
+        die(
+            "决策 slug 不合法：「" + str(slug) + "」\n"
+            "必须是英文 kebab-case（如 cache-policy），因为它会直接成为文件名的一部分。"
+        )
+    if any(ch.isspace() or unicodedata.category(ch) in ("Cc", "Cf", "Zl", "Zp") for ch in (slug or "")):
+        die("决策 slug 不得包含空白或不可见字符：「" + repr(slug) + "」")
+
+    heading = (title or "").strip() or slug
+    if any(unicodedata.category(ch) in ("Cc", "Cf", "Zl", "Zp") for ch in heading):
+        die("决策标题不得包含控制字符或换行：「" + repr(title) + "」")
+
+    capability_text = (capability or "").strip() or "全局"
+    if any(unicodedata.category(ch) in ("Cc", "Cf", "Zl", "Zp") for ch in capability_text):
+        die("关联能力不得包含控制字符或换行：「" + repr(capability) + "」")
+
+    target_root = docs_dir(root, config)
+    decisions_dir = os.path.join(target_root, config["dirs"]["decisions"])
+    if not os.path.isdir(decisions_dir):
+        die(
+            "决策目录不存在：" + rel(root, decisions_dir) + "\n请先执行 init 初始化文档结构。"
+        )
+
+    number = next_adr_number(decisions_dir)
+    target = os.path.join(decisions_dir, "%04d-%s.md" % (number, slug))
+    if os.path.exists(target):
+        die("目标文件已存在，已中止（不覆盖）：" + rel(root, target))
+
+    template = os.path.join(TEMPLATES_DIR, SKELETON_DIR, "adr.md")
+    if not os.path.isfile(template):
+        die("包内模板缺失：" + template + "\n该包可能未完整安装，请检查安装状态。")
+
+    raw, error = read_text(template)
+    if raw is None:
+        die("包内模板读取失败：%s（%s）" % (rel(root, template), error))
+
+    text = fill_placeholders(raw, config)
+    # 只替换一级标题里的编号：「取代」小节的 ADR-NNNN 是待人工填写的占位符，
+    # 若一并替换，新文档会写成「本决策取代 ADR-00NN」——指向自己。
+    heading_token = "ADR-NNNN"
+    if text.startswith("# "):
+        first_newline = text.find("\n")
+        head_line = text if first_newline < 0 else text[:first_newline]
+        rest = "" if first_newline < 0 else text[first_newline:]
+        text = head_line.replace(heading_token, "ADR-%04d" % number) + rest
+    else:
+        text = text.replace(heading_token, "ADR-%04d" % number, 1)
+    text = text.replace("<决策标题>", heading)
+    # 关联能力单元格在模板里写的是两种可选值，需整格替换，否则会残留「或」
+    text = text.replace("全局 或 <能力名>", capability_text)
+    text = text.replace("YYYY-MM-DD", date.today().isoformat())
+
+    leftover = [token for token in ("<决策标题>", "<能力名>", "{{generator}}") if token in text]
+    if leftover:
+        die(
+            "模板中仍有未替换的占位符：" + "、".join(leftover)
+            + "\n说明包内模板与本命令的替换规则不一致，已中止（不写文件）。"
+        )
+
+    try:
+        with open(target, "w", encoding="utf-8") as handle:
+            handle.write(text)
+    except OSError as write_error:
+        die("写入失败（%s）：%s" % (write_error, rel(root, target)))
+
+    print("已生成：")
+    print("  " + rel(root, target))
+    print("")
+    print("下一步：补齐背景、考虑过的方案与后果；定稿后状态改为已定，之后不再改写。")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# status 模式
+# ---------------------------------------------------------------------------
+
+
+def replace_header_field(text, field, value):
+    """改写文件头字段表里某个字段的取值，其余内容原样保留。
+
+    只在首个「| 字段 | 值 |」表格内替换，正文里出现的同名行不受影响。
+
+    参数：
+        text: 文档全文
+        field: 字段名
+        value: 新取值
+
+    返回：
+        (新正文, 是否找到该字段)
+    """
+    lines = text.splitlines(keepends=True)
+    in_header = False
+    for index, line in enumerate(lines):
+        cells = split_row(line)
+        if not in_header:
+            if len(cells) == 2 and cells[0] == "字段" and cells[1] == "值":
+                in_header = True
+            continue
+        if not line.strip().startswith("|"):
+            break
+        if len(cells) == 2 and cells[0] == field:
+            newline = ""
+            if line.endswith("\r\n"):
+                newline = "\r\n"
+            elif line.endswith("\n"):
+                newline = "\n"
+            lines[index] = "| " + field + " | " + value + " |" + newline
+            return "".join(lines), True
+    return text, False
+
+
+def run_status(root, config, capability, new_status):
+    """把一个能力的状态同步到总览表与该能力的全部文档文件头。
+
+    为什么需要这个命令：状态同时写在总览表与该能力的四份文档头里，
+    共五处。手工改最容易出现「表已改、文档没改」或反之，
+    而 audit 并不比对这两处（它们语义不同：一个是能力状态，一个是文档生命周期），
+    因此不一致不会被发现。一次命令改全，才不必依赖记忆。
+
+    参数：
+        root: 项目根
+        config: 配置字典
+        capability: 能力名
+        new_status: 目标状态
+
+    返回：
+        退出码
+    """
+    name = (capability or "").strip()
+    if not name:
+        die("能力名不能为空。")
+    allowed = config["overview"]["status_values"]
+    if new_status not in allowed:
+        die(
+            "状态取值不合法：「" + str(new_status) + "」\n"
+            "合法取值：" + "、".join(allowed)
+        )
+
+    target_root = docs_dir(root, config)
+    overview_path = os.path.join(target_root, config["overview"]["file"])
+    overview_text, overview_error = read_text(overview_path)
+    if overview_text is None:
+        die(
+            "无法读取能力总览表：%s（%s）"
+            % (rel(root, overview_path), overview_error)
+        )
+
+    rows, error = parse_overview(overview_text, config)
+    if error:
+        die("总览表不可解析，已中止（不写任何文件）：" + error)
+
+    matched = [row for row in rows if row["能力"] == name]
+    if not matched:
+        die("总览表中没有能力「" + name + "」。")
+    if len(matched) > 1:
+        die("能力「" + name + "」在总览表出现多行，无法确定改哪一行。请先修正重复行。")
+    row = matched[0]
+
+    header = config["overview"]["header"]
+    doc_columns, _ = resolve_doc_columns(header, config)
+    status_field = config["file_header"]["status_field"]
+
+    # 已归档的能力不允许把状态改回非终态。归档是「完成后冻结」的位置，
+    # 若允许退回草稿，会造出「状态说还在起草、位置说已完成、体检说没问题」的三方矛盾，
+    # 暗示可以继续在原文档上写——而归档文档记录的是当时的状态，不该被续写。
+    status_values = config["overview"]["status_values"]
+    finalized = {status_values[3], status_values[-1]}
+    archive_root = os.path.join(target_root, config["dirs"]["archive"])
+    doc_paths = []
+    for kind, index in sorted(doc_columns.items(), key=lambda item: item[1]):
+        cell = row["单元格"][index]
+        if is_placeholder(cell, config):
+            continue
+        doc_paths.append(os.path.normpath(os.path.join(target_root, cell)))
+    archived = any(_is_under(path, archive_root) for path in doc_paths)
+    if archived and new_status not in finalized:
+        die(
+            "能力「" + name + "」已归档，状态不能改回「" + new_status + "」。" + "\n"
+            "归档是完成后冻结的位置：后续要改行为，应新建能力并指向它：" + "\n"
+            "  python devflow_guard.py new <新能力名> --rework-from " + name + "\n"
+            "若只是纠错（错别字、失效链接），直接编辑归档文档即可，不必改状态。"
+        )
+
+    # 先收集全部待改文件，任一不存在即整体中止——避免只改了一半。
+    targets = []
+    for kind, index in sorted(doc_columns.items(), key=lambda item: item[1]):
+        cell = row["单元格"][index]
+        if is_placeholder(cell, config):
+            continue
+        path = os.path.normpath(os.path.join(target_root, cell))
+        if not os.path.isfile(path):
+            die(
+                "总览表列「" + header[index] + "」指向的文件不存在：" + cell
+                + "\n状态同步会漏掉该文件，请先修正总览表。"
+            )
+        targets.append(path)
+
+    originals = {}
+    for path in targets:
+        text, read_error = read_text(path)
+        if text is None:
+            die("读取失败：%s（%s）" % (rel(root, path), read_error))
+        updated, found = replace_header_field(text, status_field, new_status)
+        if not found:
+            die(
+                rel(root, path) + " 的文件头里没有「" + status_field + "」字段，已中止（不写任何文件）。"
+            )
+        originals[path] = (text, updated)
+
+    written = []
+    try:
+        for path, (_, updated) in originals.items():
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(updated)
+            written.append(path)
+        cells = list(row["单元格"])
+        cells[config["overview"]["status_column"]] = new_status
+        with open(overview_path, "w", encoding="utf-8") as handle:
+            handle.write(replace_row(overview_text, row["行号"], cells))
+    except OSError as write_error:
+        # 回滚已写入的文档，保持「要么全部改、要么全不改」
+        for path in written:
+            try:
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(originals[path][0])
+            except OSError:
+                pass
+        die("写入失败（%s），已回滚已写入的文档。" % write_error)
+
+    print("能力「" + name + "」状态已改为：" + new_status)
+    print("  " + rel(root, overview_path) + "（总览表）")
+    for path in targets:
+        print("  " + rel(root, path))
     return 0
 
 
@@ -1205,6 +1875,163 @@ def check_adr_numbering(root, target_root, config):
     return findings
 
 
+def check_adr_supersede(root, target_root, config):
+    """检查 9：ADR「取代」字段指向的编号必须存在。
+
+    决策链的价值在于「顺着编号能查到被取代者」。若指向一个不存在的编号，
+    表面上有一条链，实际上断在中间，而读者无从判断是笔误还是链本身缺失。
+
+    参数：
+        root: 项目根
+        target_root: 文档根
+        config: 配置字典
+
+    返回：
+        缺口列表
+    """
+    findings = []
+    folder = os.path.join(target_root, config["dirs"]["decisions"])
+    if not os.path.isdir(folder):
+        return findings
+
+    existing = set()
+    for name in os.listdir(folder):
+        match = re.match(r"^(\d{4})-", name)
+        if match and name.endswith(".md"):
+            existing.add(int(match.group(1)))
+
+    pattern = re.compile(r"ADR-(\d{4})")
+    for name in sorted(os.listdir(folder)):
+        if name == "README.md" or not name.endswith(".md"):
+            continue
+        path = os.path.join(folder, name)
+        if not os.path.isfile(path):
+            continue
+        text, _ = read_text(path)
+        if text is None:
+            continue
+        section = _supersede_section(text)
+        if not section:
+            continue
+        for number in pattern.findall(section):
+            target = int(number)
+            if target == 0 or target not in existing:
+                findings.append(
+                    Finding(
+                        LEVEL_ERROR,
+                        "决策取代",
+                        rel(root, path) + " 的「取代」指向 ADR-" + number + "，但该编号的决策记录不存在",
+                    )
+                )
+    return findings
+
+
+def _supersede_section(text):
+    """取出「取代」一节的正文。
+
+    只在这一节里找编号：一级标题里的自身编号、其余正文里的引用都不算「取代关系」。
+
+    参数：
+        text: 文档全文
+
+    返回：
+        该节正文；未找到该节返回空串
+    """
+    lines = text.splitlines()
+    start = None
+    for index, line in enumerate(lines):
+        if line.strip().startswith("## 取代"):
+            start = index + 1
+            break
+    if start is None:
+        return ""
+    collected = []
+    for line in lines[start:]:
+        if line.strip().startswith("## "):
+            break
+        collected.append(line)
+    return chr(10).join(collected)
+
+
+def check_archive_consistency(root, target_root, config, rows):
+    """检查 8：归档目录与总览表一致——归档能力必须登记，且四类文档齐全。
+
+    归档目录此前的检查只覆盖「文档头字段是否合规」，因此
+    - 凭空出现在归档里的能力（从未登记、也没有对应总览表行）不会被发现；
+    - 归档只移了一半（缺某类文档）也不会被发现。
+    这两类都让「归档」变成可以绕过登记的存放点，故补此检查。
+
+    参数：
+        root: 项目根
+        target_root: 文档根
+        config: 配置字典
+        rows: parse_overview 返回的行列表
+
+    返回：
+        缺口列表
+    """
+    findings = []
+    archive_root = os.path.join(target_root, config["dirs"]["archive"])
+    if not os.path.isdir(archive_root):
+        return findings
+
+    header = config["overview"]["header"]
+    doc_columns, missing = resolve_doc_columns(header, config)
+    if missing:
+        return findings  # 列无法识别由 new/archive 报，这里不重复
+
+    capability_of_archive = {}
+    for row in rows:
+        for kind, index in doc_columns.items():
+            cell = row["单元格"][index]
+            if is_placeholder(cell, config):
+                continue
+            resolved = os.path.normpath(os.path.join(target_root, cell))
+            if _is_under(resolved, archive_root):
+                capability_of_archive.setdefault(row["能力"], set()).add(kind)
+
+    for entry in sorted(os.listdir(archive_root)):
+        sub = os.path.join(archive_root, entry)
+        if not os.path.isdir(sub):
+            continue
+        if entry not in capability_of_archive:
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "归档",
+                    config["dirs"]["archive"] + "/" + entry
+                    + " 不是任何已登记能力的归档位置（总览表没有该能力的归档路径）",
+                )
+            )
+            continue
+        present = {
+            name
+            for name in os.listdir(sub)
+            if name.endswith(".md") and os.path.isfile(os.path.join(sub, name))
+        }
+        expected = set(ARCHIVE_FILENAMES.values())
+        extra = sorted(present - expected - {"README.md"})
+        lacking = sorted(ARCHIVE_FILENAMES[kind] for kind in SCAFFOLD_DIRS if ARCHIVE_FILENAMES[kind] not in present)
+        if lacking:
+            findings.append(
+                Finding(
+                    LEVEL_WARN,
+                    "归档",
+                    "能力「" + entry + "」的归档缺少：" + "、".join(lacking),
+                )
+            )
+        if extra:
+            findings.append(
+                Finding(
+                    LEVEL_WARN,
+                    "归档",
+                    "能力「" + entry + "」的归档目录有无法识别的文件："
+                    + "、".join(extra),
+                )
+            )
+    return findings
+
+
 def check_plan_deviation_pair(root, target_root, config, rows):
     """检查 7：状态为已定或已实施时，计划与偏差成对或显式写明无偏差。
 
@@ -1298,7 +2125,9 @@ def run_audit(root, config):
     if not table_findings:
         findings.extend(check_table_vs_disk(root, target_root, config, rows))
         findings.extend(check_plan_deviation_pair(root, target_root, config, rows))
+        findings.extend(check_archive_consistency(root, target_root, config, rows))
     findings.extend(check_adr_numbering(root, target_root, config))
+    findings.extend(check_adr_supersede(root, target_root, config))
 
     errors = [item for item in findings if item.level == LEVEL_ERROR]
     warns = [item for item in findings if item.level == LEVEL_WARN]
@@ -1344,9 +2173,23 @@ def main(argv=None):
     parser.add_argument("--root", default=None, help="项目根目录（默认自动向上查找）")
     sub = parser.add_subparsers(dest="mode")
 
-    sub.add_parser("init", help="按项目配置初始化文档目录结构与模板")
+    sub.add_parser("init", help="按项目配置初始化文档目录结构")
     new_parser = sub.add_parser("new", help="生成能力文档骨架并登记总览表")
     new_parser.add_argument("name", help="能力名（须匹配配置声明的命名模式）")
+    new_parser.add_argument(
+        "--rework-from",
+        default="",
+        help="被重开的已归档能力名（在原能力上改行为时，应立新能力并指向旧能力）",
+    )
+    adr_parser = sub.add_parser("adr", help="创建决策记录（ADR），自动推算编号")
+    adr_parser.add_argument("slug", help="决策描述（英文 kebab-case，成为文件名的一部分）")
+    adr_parser.add_argument("--title", default="", help="决策标题（默认取 slug）")
+    adr_parser.add_argument("--capability", default="", help="关联能力（默认「全局」）")
+    archive_parser = sub.add_parser("archive", help="把能力的过程文档整包移入归档目录并回写总览表")
+    archive_parser.add_argument("name", help="能力名（须已在总览表登记）")
+    status_parser = sub.add_parser("status", help="同步能力状态到总览表与全部文档文件头")
+    status_parser.add_argument("name", help="能力名（须已在总览表登记）")
+    status_parser.add_argument("value", help="目标状态（须在配置声明的取值集合内）")
     sub.add_parser("audit", help="体检文档契约")
 
     args = parser.parse_args(argv)
@@ -1364,7 +2207,13 @@ def main(argv=None):
     if args.mode == "init":
         return run_init(root, config)
     if args.mode == "new":
-        return run_new(root, config, args.name)
+        return run_new(root, config, args.name, args.rework_from)
+    if args.mode == "adr":
+        return run_adr(root, config, args.slug, args.title, args.capability)
+    if args.mode == "archive":
+        return run_archive(root, config, args.name)
+    if args.mode == "status":
+        return run_status(root, config, args.name, args.value)
     return run_audit(root, config)
 
 
