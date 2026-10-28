@@ -1,0 +1,139 @@
+{
+  "ok": true,
+  "skill_dir": "lib/devflow/skills/devflow-guard",
+  "summary": {
+    "scanned_files": 20,
+    "script_count": 1,
+    "internal_module_count": 0,
+    "secret_findings": 0,
+    "dependency_files": [],
+    "network_script_count": 0,
+    "network_policy_covered_count": 0,
+    "network_policy_missing_count": 0,
+    "file_write_script_count": 1,
+    "permission_required_count": 1,
+    "permission_approved_count": 1,
+    "permission_missing_count": 0,
+    "permission_invalid_count": 0,
+    "permission_expired_count": 0,
+    "help_smoke_checked_count": 1,
+    "help_smoke_failed_count": 0,
+    "interactive_script_count": 0,
+    "package_hash_scope": "source-contract-without-generated-reports",
+    "package_hash_file_count": 20,
+    "package_sha256": "c529c3e1d9cde26e376ba11b3c8a4eb2ea547484175c79ecc1e74a2e4fb47c57"
+  },
+  "failures": [],
+  "warnings": [
+    "No dependency or lock file detected"
+  ],
+  "secrets": [],
+  "scripts": [
+    {
+      "path": "scripts\\devflow_guard.py",
+      "interface": "cli",
+      "interface_declared": false,
+      "interface_reason": "Default CLI classification; add SCRIPT_INTERFACE for internal modules.",
+      "has_argparse": true,
+      "has_main_guard": true,
+      "uses_input": false,
+      "uses_network": false,
+      "uses_file_write": true,
+      "uses_subprocess": false,
+      "network_urls": [],
+      "network_hosts": []
+    }
+  ],
+  "dependencies": {
+    "present": [],
+    "pinned": [],
+    "unpinned": []
+  },
+  "network_policy": {
+    "present": false,
+    "path": "security/network_policy.json",
+    "schema_version": "",
+    "network_script_count": 0,
+    "covered_scripts": [],
+    "missing_scripts": [],
+    "mismatches": [],
+    "default_policy": {}
+  },
+  "help_smoke": {
+    "enabled": true,
+    "timeout_seconds": 5.0,
+    "candidate_count": 1,
+    "checked_count": 1,
+    "passed_count": 1,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "failed_scripts": [],
+    "results": [
+      {
+        "path": "scripts\\devflow_guard.py",
+        "command": "python3 scripts\\devflow_guard.py --help",
+        "returncode": 0,
+        "timed_out": false,
+        "passed": true,
+        "has_help_text": true,
+        "stdout_excerpt": "usage: devflow_guard.py [-h] [--root ROOT] {init,new,audit} ...\n\n开发流程文档骨架生成与契约体检\n\npositional arguments:\n  {init,new,audit}\n    init            按项目配置初始化文档目录结构与模板\n    new             生成能力文档骨架并登记总览表\n    audit           体检文档契约\n\noptions:\n  -h, -",
+        "stderr_excerpt": ""
+      }
+    ],
+    "skipped": []
+  },
+  "permission_governance": {
+    "present": true,
+    "path": "security/permission_policy.json",
+    "schema_version": "1.0",
+    "reviewed_at": "2026-10-28",
+    "required_capabilities": [
+      "file_write"
+    ],
+    "approved_capabilities": [
+      "file_write"
+    ],
+    "missing_capabilities": [],
+    "invalid_capabilities": [],
+    "expired_capabilities": [],
+    "approval_count": 1,
+    "required_count": 1,
+    "missing_count": 0,
+    "invalid_count": 0,
+    "expired_count": 0,
+    "approvals": [
+      {
+        "capability": "file_write",
+        "status": "approved",
+        "scripts": [
+          "scripts\\devflow_guard.py"
+        ],
+        "reviewer": "ok-script-app-pro 项目",
+        "scope": "仅在项目配置声明的文档根下创建文件；总览表仅追加行，不覆盖既有内容。",
+        "reason": "init 与 new 的职责就是创建文档骨架与登记行；脚本对已存在目标一律中止，且不提供 --force，因此写入面被限制在可预期的空位上。",
+        "expires_at": "2027-10-28",
+        "evidence": [
+          "SKILL.md",
+          "scripts/devflow_guard.py",
+          "reports/trust.json"
+        ],
+        "target_enforcement": {
+          "openai": "metadata-only permission_contract",
+          "claude": "target_permission_contract in agents/interface.yaml",
+          "generic": "target_permission_contract in agents/interface.yaml",
+          "vscode": "target_permission_contract plus workspace-trust note"
+        },
+        "validation": []
+      }
+    ]
+  },
+  "trust_metadata": {
+    "source_tier": "local",
+    "remote_inline_execution": "forbid",
+    "remote_metadata_policy": "allow-metadata-only"
+  },
+  "artifacts": {
+    "json": "lib/devflow/skills/devflow-guard/reports/security_trust_report.json",
+    "markdown": "lib/devflow/skills/devflow-guard/reports/security_trust_report.md"
+  }
+}

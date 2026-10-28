@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 import argparse
 import json
@@ -19,6 +20,23 @@ STATUS_LABELS = {
 }
 
 
+def _fallback_display(path):
+    """目标不在基准目录下时的显示形式。
+
+    以目标自身所在的项目根（向上找到的 .codebuddy 或 .git）为基准返回相对路径，
+    避免把本机绝对路径写进报告——报告会随技能入库，绝对路径即成为项目专有值泄漏。
+    """
+    resolved = Path(path).resolve() if hasattr(path, "resolve") else Path(path)
+    for parent in [resolved, *resolved.parents]:
+        if (parent / ".codebuddy").is_dir() or (parent / ".git").exists():
+            try:
+                return resolved.relative_to(parent).as_posix()
+            except ValueError:
+                break
+    parts = resolved.parts
+    return "/".join(parts[1:]) if len(parts) > 1 else resolved.name
+
+
 def load_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -34,7 +52,7 @@ def rel_path(path: Path, root: Path) -> str:
     try:
         return str(path.resolve().relative_to(root.resolve()))
     except ValueError:
-        return str(path.resolve())
+        return _fallback_display(path)
 
 
 def evidence(skill_dir: Path, *paths: str) -> list[dict[str, Any]]:

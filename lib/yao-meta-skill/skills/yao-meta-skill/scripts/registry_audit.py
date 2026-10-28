@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import re
 from datetime import date
 from pathlib import Path
@@ -30,10 +31,18 @@ REQUIRED_PACKAGE_FIELDS = [
 
 
 def display_path(path: Path, root: Path = ROOT) -> str:
+    resolved = path.resolve()
     try:
-        return str(path.resolve().relative_to(root.resolve()))
+        return str(resolved.relative_to(root.resolve()))
     except ValueError:
-        return str(path.resolve())
+        # 目标不在 root 之下时，退回「相对 root 的 ..」形式而非绝对路径：
+        # 绝对路径会把本机目录写进报告，报告随技能入库即成为项目专有值泄漏。
+        try:
+            return os.path.relpath(str(resolved), str(root.resolve())).replace(os.sep, "/")
+        except ValueError:
+            # 跨盘符等无法求相对路径时，用「盘符以外」的尾部路径保持可读，仍不写本机绝对路径。
+            parts = resolved.parts
+            return "/".join(parts[1:]) if len(parts) > 1 else resolved.name
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -191,7 +200,7 @@ def build_package_metadata(skill_dir: Path, generated_at: str) -> dict[str, Any]
         "checksums": checksums,
         "compatibility": compatibility_matrix(skill_dir, targets),
         "source": {
-            "skill_dir": display_path(skill_dir),
+            "skill_dir": ".",
             "skill_ir": ir_source,
             "ir_schema_version": str(ir.get("schema_version") or "missing"),
             "canonical_metadata": "agents/interface.yaml" if (skill_dir / "agents" / "interface.yaml").exists() else "missing",
@@ -329,17 +338,17 @@ def run_registry_audit(
     report = {
         "ok": not failures,
         "schema_version": "2.0",
-        "skill_dir": display_path(skill_dir),
-        "registry_dir": display_path(registry_dir),
+        "skill_dir": ".",
+        "registry_dir": display_path(registry_dir, skill_dir),
         "package": package,
         "index": index,
         "failures": failures,
         "warnings": warnings,
         "artifacts": {
-            "index": display_path(index_path),
-            "package": display_path(package_path),
-            "json": display_path(output_json),
-            "markdown": display_path(output_md),
+            "index": display_path(index_path, skill_dir),
+            "package": display_path(package_path, skill_dir),
+            "json": display_path(output_json, skill_dir),
+            "markdown": display_path(output_md, skill_dir),
         },
     }
     output_json.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

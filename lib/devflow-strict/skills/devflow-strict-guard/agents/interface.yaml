@@ -1,0 +1,34 @@
+interface:
+  display_name: "强制开发流程引导"
+  short_description: "本项目要求新增能力走开发流程；本技能把请求转交给 devflow 包的技能执行"
+  default_prompt: "使用 devflow-strict-guard 处理能力开发：本档位为强制，新建能力须生成骨架并登记总览表，交付前须体检。实际动作由 devflow 包的技能执行。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "强制.*开发流程|开发流程.*强制|是不是必须走流程"
+      - keyword: "能不能跳过.*流程|流程.*可选吗"
+      - keyword: "devflow-strict|强制档"
+  execution:
+    context: "inline"
+    shell: "bash"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: devflow-strict-guard
+version: "0.1"
+mode: Production

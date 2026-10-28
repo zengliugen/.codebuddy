@@ -1,0 +1,91 @@
+{
+  "recommended_threshold": 0.33,
+  "negative_patterns": [
+    "修 bug",
+    "只是重构",
+    "解释一下",
+    "头脑风暴",
+    "格式化",
+    "提交这次",
+    "调参数",
+    "补注释"
+  ],
+  "should_trigger": [
+    {
+      "text": "新增一个能力，先帮我生成设计文档骨架",
+      "family": "new_capability"
+    },
+    {
+      "text": "初始化一下开发流程的文档目录",
+      "family": "init_structure"
+    },
+    {
+      "text": "这个能力在总览表里登记了吗",
+      "family": "registration_check"
+    },
+    {
+      "text": "跑一下文档体检看看有没有缺口",
+      "family": "audit_contract"
+    },
+    {
+      "text": "devflow 检查文档契约",
+      "family": "audit_contract"
+    },
+    {
+      "text": "新建能力文档，把设计、计划、测试三份骨架都建出来",
+      "family": "new_capability"
+    },
+    {
+      "text": "生成设计文档骨架并登记到能力总览",
+      "family": "new_capability"
+    }
+  ],
+  "should_not_trigger": [
+    {
+      "text": "修一下这个 bug",
+      "family": "non_capability"
+    },
+    {
+      "text": "把这段代码格式化",
+      "family": "non_capability"
+    },
+    {
+      "text": "提交这次的改动",
+      "family": "vcs"
+    },
+    {
+      "text": "解释一下什么是 ADR",
+      "family": "explanation"
+    },
+    {
+      "text": "这个参数从 10 调到 20",
+      "family": "tweak_existing"
+    },
+    {
+      "text": "给这个函数补一下注释",
+      "family": "non_capability"
+    }
+  ],
+  "near_neighbor": [
+    {
+      "text": "这个需求该不该做，帮我推演一下取舍",
+      "family": "design_reasoning",
+      "note": "属设计阶段诘问，不是骨架生成"
+    },
+    {
+      "text": "这个改动算不算新增能力",
+      "family": "judgement",
+      "note": "属规则判定，技能不做语义判断"
+    },
+    {
+      "text": "这个 patch 该不该写",
+      "family": "method_choice",
+      "note": "属实施阶段手段选择"
+    },
+    {
+      "text": "帮我写一份设计文档（不用骨架）",
+      "family": "content_writing",
+      "note": "技能只生成空骨架，不写内容"
+    }
+  ]
+}

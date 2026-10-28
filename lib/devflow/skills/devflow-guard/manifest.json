@@ -1,0 +1,30 @@
+{
+  "name": "devflow-guard",
+  "version": "1.0.0",
+  "owner": "ok-script-app-pro 项目",
+  "updated_at": "2026-10-28",
+  "status": "active",
+  "maturity_tier": "production",
+  "lifecycle_stage": "production",
+  "context_budget_tier": "production",
+  "review_cadence": "monthly",
+  "skill_ir_source": "reports/skill-ir.json",
+  "skill_archetype": "production",
+  "target_platforms": [
+    "openai",
+    "claude",
+    "generic",
+    "agent-skills-compatible",
+    "vscode"
+  ],
+  "factory_components": [
+    "references",
+    "scripts",
+    "reports"
+  ],
+  "output_contract": "init/new/audit 三模式：创建文档结构、生成能力骨架并登记总览表、按三档输出契约缺口",
+  "rollback_boundary": "本技能只创建新文件，不覆盖既有内容；回滚即删除由该技能创建的文件与总览表新增行",
+  "input_files": [
+    "项目配置（经索引 files.devflow.docs.config 定位）"
+  ]
+}

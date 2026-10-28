@@ -1,0 +1,45 @@
+interface:
+  display_name: "开发流程守卫"
+  short_description: "初始化过程文档结构、生成能力文档骨架、体检文档契约，约束新增能力的开发流程"
+  default_prompt: "使用 devflow-guard 处理能力开发流程：首次使用先 init 初始化文档结构；新增能力用 new <能力名> 生成骨架并登记总览表；交付前用 audit 体检文档契约。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "开发流程|流程约束|能力开发流程"
+      - keyword: "初始化.*文档|文档结构.*初始化|init.*文档"
+      - keyword: "新建.*能力文档|生成.*骨架|设计文档.*骨架"
+      - keyword: "文档体检|契约体检|文档缺口|能力总览.*核对"
+      - keyword: "这个能力登记了吗|能力总览.*登记"
+      - keyword: "devflow"
+  execution:
+    context: "inline"
+    shell: "bash"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "scripts/devflow_guard.py"
+      - "references/guide.md"
+      - "references/templates/"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: devflow-guard
+version: "0.1"
+mode: Production

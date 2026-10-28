@@ -1,0 +1,27 @@
+{
+  "name": "devflow-strict-guard",
+  "version": "1.0.0",
+  "owner": "ok-script-app-pro 项目",
+  "updated_at": "2026-10-28",
+  "status": "active",
+  "maturity_tier": "production",
+  "lifecycle_stage": "production",
+  "context_budget_tier": "production",
+  "review_cadence": "monthly",
+  "skill_ir_source": "reports/skill-ir.json",
+  "skill_archetype": "production",
+  "target_platforms": [
+    "openai",
+    "claude",
+    "generic",
+    "agent-skills-compatible",
+    "vscode"
+  ],
+  "factory_components": [
+    "references",
+    "reports"
+  ],
+  "output_contract": "回答开发流程档位问题（是否强制、能否跳过），并把动作类请求转交给 devflow-guard 技能",
+  "rollback_boundary": "本技能不写任何文件；回滚即卸载 devflow-strict 包",
+  "input_files": []
+}

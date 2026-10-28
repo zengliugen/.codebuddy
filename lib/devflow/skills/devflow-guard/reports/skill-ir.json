@@ -1,0 +1,112 @@
+{
+  "schema_version": "2.0.0",
+  "name": "devflow-guard",
+  "title": "开发流程守卫",
+  "job_to_be_done": "约束新增能力的开发流程。生成能力文档骨架、初始化文档目录、把能力登记到总览表、体检文档契约并报缺口。用户说\"新建能力文档\"、\"生成设计文档骨架\"、\"初始化开发流程文档\"、\"开发流程体检\"、\"文档缺口\"、\"这个能力登记了吗\"、\"devflow\" 时使用。",
+  "trigger_surface": {
+    "description": "约束新增能力的开发流程。生成能力文档骨架、初始化文档目录、把能力登记到总览表、体检文档契约并报缺口。用户说\"新建能力文档\"、\"生成设计文档骨架\"、\"初始化开发流程文档\"、\"开发流程体检\"、\"文档缺口\"、\"这个能力登记了吗\"、\"devflow\" 时使用。",
+    "should_trigger": [
+      "新增一个能力，先帮我生成设计文档骨架",
+      "初始化一下开发流程的文档目录",
+      "这个能力在总览表里登记了吗",
+      "跑一下文档体检看看有没有缺口",
+      "devflow 检查文档契约",
+      "新建能力文档，把设计、计划、测试三份骨架都建出来",
+      "生成设计文档骨架并登记到能力总览"
+    ],
+    "should_not_trigger": [
+      "修一下这个 bug",
+      "把这段代码格式化",
+      "提交这次的改动",
+      "解释一下什么是 ADR",
+      "这个参数从 10 调到 20",
+      "给这个函数补一下注释"
+    ],
+    "edge_cases": [
+      "这个需求该不该做，帮我推演一下取舍",
+      "这个改动算不算新增能力",
+      "这个 patch 该不该写",
+      "帮我写一份设计文档（不用骨架）"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": [
+      "Tables can render as dense grids with weak hierarchy or poor mobile readability.",
+      "Long bullets can make the output look complete while hiding the actual decision logic.",
+      "Commands can omit environment assumptions, working directory, or rollback notes.",
+      "Code snippets can look runnable while missing required inputs.",
+      "Footnote markers or dense citation notes can interrupt the reading flow.",
+      "Evidence can be over-attached to obvious statements and under-attached to risky claims."
+    ]
+  },
+  "resources": {
+    "references": [
+      "references\\guide.md",
+      "references\\templates\\archive\\README.md",
+      "references\\templates\\decisions\\README.md",
+      "references\\templates\\design\\README.md",
+      "references\\templates\\docs\\adr.md",
+      "references\\templates\\docs\\design.md",
+      "references\\templates\\docs\\deviation.md",
+      "references\\templates\\docs\\plan.md",
+      "references\\templates\\docs\\README.md",
+      "references\\templates\\docs\\testing.md",
+      "references\\templates\\plans\\README.md",
+      "references\\templates\\templates\\README.md",
+      "references\\templates\\testing\\README.md"
+    ],
+    "scripts": [
+      "scripts\\devflow_guard.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.json",
+      "reports/output-risk-profile.md",
+      "reports/skill-overview.json",
+      "reports/skill-overview.html",
+      "reports/conformance_matrix.json",
+      "reports/conformance_matrix.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "medium",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "ok-script-app-pro 项目",
+    "maturity": "production",
+    "review_cadence": "monthly",
+    "review_due": ""
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "agent-skills-compatible",
+    "vscode"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml",
+    "reports/output-risk-profile.json"
+  ]
+}

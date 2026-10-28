@@ -1,0 +1,74 @@
+{
+  "schema_version": "2.0.0",
+  "name": "devflow-strict-guard",
+  "title": "强制开发流程引导",
+  "job_to_be_done": "说明本项目的开发流程档位 —— 回答「本项目是否强制走开发流程」「能不能跳过流程」「强制档装在哪」这类档位问题。能力开发的具体动作（生成骨架、体检、初始化）一律由 devflow 包的技能执行，本技能不做也不应被那些请求唤起。",
+  "trigger_surface": {
+    "description": "说明本项目的开发流程档位 —— 回答「本项目是否强制走开发流程」「能不能跳过流程」「强制档装在哪」这类档位问题。能力开发的具体动作（生成骨架、体检、初始化）一律由 devflow 包的技能执行，本技能不做也不应被那些请求唤起。",
+    "should_trigger": [
+      "本项目是不是必须走开发流程",
+      "能跳过开发流程直接写吗",
+      "devflow-strict 装的是什么",
+      "这个项目的流程是强制的还是可选的",
+      "devflow 和 devflow-strict 有什么区别"
+    ],
+    "should_not_trigger": [
+      "新增一个能力，帮我生成文档骨架",
+      "跑一下文档体检",
+      "初始化开发流程文档目录",
+      "修一下这个 bug"
+    ],
+    "edge_cases": [
+      "这个改动算不算新增能力"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\guide.md"
+    ],
+    "scripts": [],
+    "assets": [],
+    "reports": []
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "low",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "ok-script-app-pro 项目",
+    "maturity": "production",
+    "review_cadence": "monthly",
+    "review_due": ""
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "agent-skills-compatible",
+    "vscode"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

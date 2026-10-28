@@ -1,0 +1,65 @@
+{
+  "optimizer_hints": {
+    "capability": "回答开发流程档位问题：本项目是否强制、能否跳过、强制档装在哪",
+    "inputs": [
+      "档位问题",
+      "强制与可选的差别"
+    ],
+    "trigger_actions": [
+      "询问是否强制",
+      "询问能否跳过",
+      "询问档位差别"
+    ],
+    "exclusions": [
+      "生成文档骨架",
+      "初始化目录",
+      "文档体检",
+      "修 bug"
+    ]
+  },
+  "fallback_positive_concepts": [
+    "tier"
+  ],
+  "positive_concepts": {
+    "tier": {
+      "weight": 1,
+      "phrases": [
+        "开发流程",
+        "强制",
+        "必须走流程",
+        "能不能跳过",
+        "可否跳过",
+        "可选",
+        "档位",
+        "devflow-strict",
+        "强制档",
+        "区别",
+        "有什么区别"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "action": {
+      "weight": 0.5,
+      "exclusive": true,
+      "phrases": [
+        "生成骨架",
+        "生成文档骨架",
+        "文档体检",
+        "初始化",
+        "新建能力",
+        "加个功能"
+      ]
+    },
+    "fix": {
+      "weight": 0.5,
+      "exclusive": true,
+      "phrases": [
+        "修 bug",
+        "修bug",
+        "格式化",
+        "提交"
+      ]
+    }
+  }
+}

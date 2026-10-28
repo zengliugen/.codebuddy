@@ -1,0 +1,54 @@
+{
+  "recommended_threshold": 0.33,
+  "negative_patterns": [],
+  "should_trigger": [
+    {
+      "text": "本项目是不是必须走开发流程",
+      "family": "tier_question"
+    },
+    {
+      "text": "能跳过开发流程直接写吗",
+      "family": "tier_question"
+    },
+    {
+      "text": "devflow-strict 装的是什么",
+      "family": "tier_question"
+    },
+    {
+      "text": "这个项目的流程是强制的还是可选的",
+      "family": "tier_question"
+    },
+    {
+      "text": "devflow 和 devflow-strict 有什么区别",
+      "family": "tier_question"
+    }
+  ],
+  "should_not_trigger": [
+    {
+      "text": "新增一个能力，帮我生成文档骨架",
+      "family": "action",
+      "note": "应路由到 devflow-guard"
+    },
+    {
+      "text": "跑一下文档体检",
+      "family": "action",
+      "note": "应路由到 devflow-guard"
+    },
+    {
+      "text": "初始化开发流程文档目录",
+      "family": "action",
+      "note": "应路由到 devflow-guard"
+    },
+    {
+      "text": "修一下这个 bug",
+      "family": "non_capability"
+    }
+  ],
+  "near_neighbor": [
+    {
+      "text": "这个改动算不算新增能力",
+      "family": "judgement",
+      "note": "属规则判定，两个技能都不该抢"
+    }
+  ]
+}

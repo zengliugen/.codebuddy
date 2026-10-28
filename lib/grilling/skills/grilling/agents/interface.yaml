@@ -46,7 +46,7 @@ compatibility:
     codebuddy-code: "native"
 name: "grilling"
 version: "2.0"
-mode: "Governed"
+mode: "Production"
 source:
   origin: "local"
   upstream: "third-party-grilling-1.0"

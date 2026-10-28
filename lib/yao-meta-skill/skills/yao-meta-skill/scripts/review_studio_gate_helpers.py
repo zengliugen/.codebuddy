@@ -30,7 +30,11 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def link_from(output_html: Path, target: Path) -> str:
-    return os.path.relpath(target.resolve(), output_html.parent.resolve())
+    try:
+        return os.path.relpath(target.resolve(), output_html.parent.resolve())
+    except ValueError:
+        # 跨盘符无法求相对链接时返回空串：绝不把本机绝对路径写进报告与 HTML。
+        return ""
 
 
 def report_link(output_html: Path, skill_dir: Path, rel_path: str) -> str:

@@ -1,0 +1,96 @@
+{
+  "ok": true,
+  "schema_version": "2.0",
+  "skill_dir": ".",
+  "registry_dir": ".yao\\registry",
+  "package": {
+    "schema_version": "2.0",
+    "name": "devflow-guard",
+    "version": "1.0.0",
+    "description": "约束新增能力的开发流程。生成能力文档骨架、初始化文档目录、把能力登记到总览表、体检文档契约并报缺口。用户说\"新建能力文档\"、\"生成设计文档骨架\"、\"初始化开发流程文档\"、\"开发流程体检\"、\"文档缺口\"、\"这个能力登记了吗\"、\"devflow\" 时使用。",
+    "targets": [
+      "openai",
+      "claude",
+      "generic",
+      "agent-skills-compatible",
+      "vscode"
+    ],
+    "maturity": "production",
+    "owner": "ok-script-app-pro 项目",
+    "review_cadence": "monthly",
+    "trust_level": "local",
+    "license": "内部项目使用",
+    "checksums": {
+      "package_sha256": "c529c3e1d9cde26e376ba11b3c8a4eb2ea547484175c79ecc1e74a2e4fb47c57",
+      "archive_sha256": "9036494a6f0915c8a8ba1cb4ca7619f4df1e8c0169818d8b827a80b2e10c50e3"
+    },
+    "compatibility": {
+      "openai": "pass",
+      "claude": "pass",
+      "agent-skills": "pass",
+      "vscode": "pass",
+      "generic": "pass",
+      "agent-skills-compatible": "pass"
+    },
+    "source": {
+      "skill_dir": ".",
+      "skill_ir": "reports\\skill-ir.json",
+      "ir_schema_version": "2.0.0",
+      "canonical_metadata": "agents/interface.yaml"
+    },
+    "artifacts": {
+      "overview_html": "reports/skill-overview.html",
+      "review_studio_html": "reports/review-studio.html",
+      "trust_report": "reports/security_trust_report.md",
+      "conformance_matrix": "reports/conformance_matrix.md",
+      "compiled_targets": "reports/compiled_targets.md",
+      "package_verification": "reports/package_verification.md",
+      "install_simulation": "reports/install_simulation.md",
+      "adoption_drift": "",
+      "review_waivers": "",
+      "review_annotations": "",
+      "package_metadata": "registry/packages/devflow-guard.json"
+    },
+    "distribution": {
+      "archive_verified": true,
+      "archive_sha256": "9036494a6f0915c8a8ba1cb4ca7619f4df1e8c0169818d8b827a80b2e10c50e3",
+      "package_verification": "reports/package_verification.json",
+      "install_simulated": true,
+      "install_simulation": "reports/install_simulation.json"
+    },
+    "generated_at": "2026-10-28"
+  },
+  "index": {
+    "schema_version": "2.0",
+    "generated_at": "2026-10-28",
+    "package_count": 1,
+    "packages": [
+      {
+        "name": "devflow-guard",
+        "version": "1.0.0",
+        "maturity": "production",
+        "owner": "ok-script-app-pro 项目",
+        "targets": [
+          "openai",
+          "claude",
+          "generic",
+          "agent-skills-compatible",
+          "vscode"
+        ],
+        "package_metadata": "registry/packages/devflow-guard.json",
+        "package_sha256": "c529c3e1d9cde26e376ba11b3c8a4eb2ea547484175c79ecc1e74a2e4fb47c57"
+      }
+    ]
+  },
+  "failures": [],
+  "warnings": [
+    "Recommended registry evidence is missing: reports/review_waivers.md",
+    "Recommended registry evidence is missing: reports/review_annotations.md"
+  ],
+  "artifacts": {
+    "index": ".yao\\registry\\index.json",
+    "package": ".yao\\registry\\packages\\devflow-guard.json",
+    "json": "reports\\registry_audit.json",
+    "markdown": "reports\\registry_audit.md"
+  }
+}

@@ -17,7 +17,7 @@
 |------|------|------|---------|---------|
 | `lib/yao-meta-skill/` | 上游 yao-meta-skill（skill 工程化工具链） | 2.1.0 | 只读 vendor | 仅允许最小可行性补丁，须记录在 `references/cli-changelog.md` |
 | `lib/unity-pipeline/` | `com.unity.pipeline` 0.9.0-exp.1 | 2.0 | **本地维护** | 允许本地改造：正文已中文化，补丁记录在 `references/cli-changelog.md` |
-| `lib/grilling/` | 源出上游 grilling（方案拷问） | 2.0 | **本地维护** | 允许本地改造：正文、参考文档、评测与治理产物均归本仓库维护 |
+| `lib/grilling/` | 源出上游 grilling（方案拷问） | 2.0 | **本地维护** | 允许本地改造：正文、参考文档、评测与治理产物均归本仓库维护；改动记录在 `references/cli-changelog.md` |
 
 **为什么 `yao-meta-skill` 不做中文转换**：它的触发评估与回归测试依赖原文措辞（`evals/semantic_config.json` 的
 中英短语权重、`tests/` 快照），翻译会使工具链失效并导致上游 `git pull` 永久冲突。
@@ -54,6 +54,8 @@
 │   ├── python/                 #   包 python：rules/ skills/ agents/ envs/（ruff 工具环境定义）
 │   ├── unity-pipeline/         #   包 unity-pipeline（本地维护：Unity 实例驱动）
 │   ├── grilling/               #   包 grilling（本地维护：设计树逐轮诘问）
+│   ├── devflow/                #   包 devflow（开发流程·可选档：规范 + 技能，无常驻入口）
+│   ├── devflow-strict/         #   包 devflow-strict（开发流程·强制档：常驻入口，requires devflow）
 │   └── yao-meta-skill/         #   包 yao-meta-skill（rules/ skills/：技能工程强制入口）
 │
 ├── rules/                      # 规则扫描根：engine 包真实目录 + 其余包链接
@@ -99,7 +101,7 @@
 
 > **检出即可用**：`location=engine` 的默认包 `core`、`vcs`、`tool` 的组件是引擎内的**真实目录**，
 > 克隆本仓库即有完整基础能力，无需先跑 setup。可选包（`csharp`、`python`、`unity-pipeline`、
-> `grilling`、`yao-meta-skill`）需显式安装。
+> `grilling`、`yao-meta-skill`、`devflow`、`devflow-strict`）需显式安装。
 >
 > `project` 也标 `default: true`，但它的 `location` 是 `project`（内容在项目侧），扫描根下是**链接**——
 > 「默认包」与「真实目录」不是一回事，判定只看 `location`。
@@ -281,6 +283,8 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 | `python` | Python | ❌ | rules: python-code-review、python-comment、python-test、python-env、python-lint、python-test-coverage；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 1 个 |
 | `grilling` | third-party（本地维护） | ❌ | skills: grilling |
 | `yao-meta-skill` | third-party | ❌ | rules: yao-meta-skill；skills: yao-meta-skill |
+| `devflow` | 开发流程 | ❌ | rules: devflow；skills: devflow-guard——**可选档**，无常驻入口，主动唤起才生效 |
+| `devflow-strict` | 开发流程 | ❌ | rules: devflow-strict-guard；skills: devflow-strict-guard——**强制档**，常驻入口要求新增能力走流程；`requires: [devflow]` 自动带上规范 |
 
 ### 组件命名约定
 
@@ -289,7 +293,7 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 | 情形 | 规则 | 示例 |
 |---|---|---|
 | 一般组件 | `<包名>-<语义名>` | `core-tooling`、`vcs-git-commit`、`tool-engine-sync` |
-| **组件名等于包名**（可选包自名组件） | **豁免**，保持与包名一致 | `unity-pipeline`、`grilling`、`yao-meta-skill` |
+| **组件名等于包名**（可选包自名组件） | **豁免**，保持与包名一致 | `unity-pipeline`、`grilling`、`yao-meta-skill`、`devflow` |
 
 豁免的第二个情形来自 vendor 约束：`yao-meta-skill` 仍是只读 vendor，改名会让上游 `git pull` 永久冲突；
 `unity-pipeline` 与 `grilling` 虽已转本地维护，但组件名与包名相同，加前缀会得到

@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-10-28",
+  "capabilities": {
+    "file_write": {
+      "decision": "approved",
+      "reviewer": "ok-script-app-pro 项目",
+      "scope": "仅在项目配置声明的文档根下创建文件；总览表仅追加行，不覆盖既有内容。",
+      "reason": "init 与 new 的职责就是创建文档骨架与登记行；脚本对已存在目标一律中止，且不提供 --force，因此写入面被限制在可预期的空位上。",
+      "expires_at": "2027-10-28",
+      "evidence": [
+        "SKILL.md",
+        "scripts/devflow_guard.py",
+        "reports/trust.json"
+      ],
+      "target_enforcement": {
+        "openai": "metadata-only permission_contract",
+        "claude": "target_permission_contract in agents/interface.yaml",
+        "generic": "target_permission_contract in agents/interface.yaml",
+        "vscode": "target_permission_contract plus workspace-trust note"
+      }
+    },
+    "network": {
+      "decision": "denied",
+      "reviewer": "ok-script-app-pro 项目",
+      "scope": "脚本不发起任何网络请求。",
+      "reason": "三模式全部为本地文件操作，无依赖下载或远程校验需求。",
+      "expires_at": "2027-10-28",
+      "evidence": [
+        "reports/trust.json"
+      ]
+    },
+    "subprocess": {
+      "decision": "denied",
+      "reviewer": "ok-script-app-pro 项目",
+      "scope": "脚本不派生外部进程。",
+      "reason": "不调用版本控制、测试运行器等外部命令。",
+      "expires_at": "2027-10-28",
+      "evidence": [
+        "reports/trust.json"
+      ]
+    }
+  }
+}

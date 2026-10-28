@@ -38,7 +38,7 @@ models.json
 settings.local.json
 
 # --- 计划文件（本机运行期）---
-plans/
+/plans/
 
 # --- 开发设计文档：目录内全忽略，仅放行索引 README --------------------------
 #   引擎包在开发期产生的计划、约束快照等文档，属开发过程产物，不随引擎分发、
@@ -83,6 +83,8 @@ plans/
 !/lib/yao-meta-skill/skills/yao-meta-skill/.previews/**
 # 上面 `**` 会连带放行包内 `.gitignore` 的排除项，故对真正的临时产物重新排除
 /lib/yao-meta-skill/skills/yao-meta-skill/dist/
+/lib/devflow/skills/devflow-guard/dist/
+/lib/devflow/skills/devflow-guard/.yao/
 /lib/yao-meta-skill/skills/yao-meta-skill/.yao/
 /lib/yao-meta-skill/skills/yao-meta-skill/**/__pycache__/
 /lib/yao-meta-skill/skills/yao-meta-skill/tests/tmp*/

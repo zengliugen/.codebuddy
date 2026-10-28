@@ -18,6 +18,7 @@ from review_studio_gate_helpers import (
     build_output_lab_gate,
     fallback_permission_governance,
     gate,
+    link_from,
     report_link,
     target_maturity,
 )
@@ -562,7 +563,9 @@ def build_gates(skill_dir: Path, output_html: Path, data: dict[str, dict[str, An
             release_status,
             release_detail,
             "reports/promotion_decisions.json + reports/upgrade_check.json + docs/migration-v2.md",
-            report_link(output_html, skill_dir, "reports/promotion_decisions.md") if promotion else str(migration_path),
+            report_link(output_html, skill_dir, "reports/promotion_decisions.md")
+            if promotion
+            else link_from(output_html, migration_path),
         )
     )
 
