@@ -38,6 +38,14 @@
     {
       "text": "生成设计文档骨架并登记到能力总览",
       "family": "new_capability"
+    },
+    {
+      "text": "走一下开发流程，先问我要做什么",
+      "family": "intake"
+    },
+    {
+      "text": "按开发流程走，先问我要做什么再决定",
+      "family": "intake"
     }
   ],
   "should_not_trigger": [
@@ -64,6 +72,10 @@
     {
       "text": "给这个函数补一下注释",
       "family": "non_capability"
+    },
+    {
+      "text": "帮我把这个改动的方案推演一下",
+      "family": "design_reasoning"
     }
   ],
   "near_neighbor": [
@@ -86,6 +98,11 @@
       "text": "帮我写一份设计文档（不用骨架）",
       "family": "content_writing",
       "note": "技能只生成空骨架，不写内容"
+    },
+    {
+      "text": "我要改一下现有一个能力的方案",
+      "family": "design_reasoning",
+      "note": "要的是方案推演，不是流程骨架；技能只做分流与留痕工具"
     }
   ]
 }

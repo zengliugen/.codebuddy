@@ -1,7 +1,7 @@
 interface:
   display_name: "开发流程守卫"
   short_description: "初始化过程文档结构、生成能力文档骨架、体检文档契约，约束新增能力的开发流程"
-  default_prompt: "使用 devflow-guard 处理能力开发流程：首次使用先 init 初始化文档结构；新增能力用 new <能力名> 生成骨架并登记总览表；交付前用 audit 体检文档契约。"
+  default_prompt: "使用 devflow-guard 处理能力开发流程：唤起后先分流意图——问清这次是新增能力、改动现有能力、只跑验证体检，还是维护文档结构；新增或改动能力时先检测诘问压测技能是否已装，装没装都询问（已装问「用不用」，未装问「装不装」），再走 explore → new → 实施 → 验收 → audit 全链路；纯体检直接 audit。"
 compatibility:
   canonical_format: "agent-skills"
   adapter_targets:
@@ -27,6 +27,7 @@ compatibility:
     artifacts:
       - "SKILL.md"
       - "scripts/devflow_guard.py"
+      - "references/intake.md"
       - "references/guide.md"
       - "references/templates/"
       - "agents/interface.yaml"
