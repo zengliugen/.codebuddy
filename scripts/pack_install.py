@@ -12,7 +12,7 @@
   .codebuddy.project/agents/<pack>/<名>.md  同上（与 rules/skills 一致的目录链接）
 
 用法：
-  python .codebuddy/scripts/pack_install.py list
+  python .codebuddy/scripts/pack_install.py list          # 含「可选搭配」提示
   python .codebuddy/scripts/pack_install.py install csharp unity-pipeline
   python .codebuddy/scripts/pack_install.py remove csharp
   python .codebuddy/scripts/pack_install.py status
@@ -468,6 +468,12 @@ def cmd_list(paths, packs, state):
             flag = "（%s）" % "，".join(marks) if marks else ""
             print("  %-18s 组件 %-2d 依赖 %-12s %s%s"
                   % (name, count, req, meta.get("description", ""), flag))
+            # 可选搭配单独一行缩进展示：它是「装了本包后可考虑再装」的提示，
+            # 与依赖在语义上完全不同，混进「依赖」列会让读者以为必须装。
+            optional = meta.get("optional_requires") or []
+            if optional:
+                print("  %-18s %s" % ("", "可选搭配 %s（未装不影响本包功能）"
+                                      % ", ".join(optional)))
     return 0
 
 
@@ -492,6 +498,20 @@ def cmd_install(paths, packs, state, names, force):
     failed = [r for r in rows if r[3] == "failed"]
     print("")
     print("已安装：%s" % ", ".join(added))
+    # 可选搭配只提示不安装：装 A 不代表用户想要 B，替用户装会改变项目侧链接与安装状态。
+    installed_now = set(state["installed"]) | set(added)
+    hints = []
+    for name in added:
+        for dep in packs[name].get("optional_requires") or []:
+            if dep not in packs or dep in installed_now or packs[dep].get("default"):
+                continue
+            hints.append((name, dep))
+    if hints:
+        print("")
+        print("可选搭配（未安装，不影响已装包的功能）：")
+        for name, dep in hints:
+            print("  %s 可搭配 %s：python .codebuddy/scripts/pack_install.py install %s"
+                  % (name, dep, dep))
     if failed:
         print("存在失败项 %d 个，请检查上方 [failed] 行" % len(failed))
         return 3

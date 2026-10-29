@@ -13,7 +13,7 @@ provider:
 | # | 位置 | 维护内容 | 漏改后果 |
 |---|---|---|---|
 | 1 | `lib/packs.json` → `packs.<pack>.comps` | 组件名清单（rules / skills / agents） | 组件不生效或安装时报「组件源缺失」 |
-| 2 | `lib/packs.json` → `packs.<pack>.requires` | 包依赖 | 依赖包未自动带出，技能链断裂 |
+| 2 | `lib/packs.json` → `packs.<pack>.requires` / `optional_requires` | 包依赖（硬依赖 / 可选搭配） | 硬依赖未声明 → 依赖包未自动带出，技能链断裂；可选搭配未声明 → 装了本包却没有相应提示，用户不知道还能装什么 |
 | 3 | `project.index.json` → `rule_shells` | 键 = 薄壳相对 `.codebuddy` 的路径 | 薄壳读不到项目事实正文，规则事实缺失 |
 | 4 | `project.index.json` → `files` | 项目侧配置路径 | 技能报「配置缺失」，脚本退出码 3 |
 | 5 | `project.index.json` → `artifacts.dirs` | 运行时产物目录 | 产物落到错误位置或无法清理 |
@@ -29,6 +29,9 @@ provider:
 - **违规**：默认包（`core`/`vcs`/`tool`）引用可选包（`csharp`/`unity-pipeline`/`grilling`/`yao-meta-skill`）组件。
 - **不要**用「给 `requires` 加依赖」来消解违规——那会把可选包变成默认包的硬依赖，形成循环依赖或让无关项目被拖入。
   正确做法是**泛化**（只留参数名与机制，取值由项目侧配置给出），或**条件化**（写明「已安装 X 时…；未安装降级为…」）。
+- **`optional_requires` 也不构成豁免**。它表达的是「装了本包后可考虑再装谁」，只影响 `list` 与
+  `install` 的提示文字；**不进入依赖闭包、不放宽本项校验**。正文引用可选搭配的组件仍须泛化、
+  条件化或 `pack-ref-ok`。把可选搭配当免检凭证，等于让「未安装时提示静默失效」重新变得容易产生。
 - **豁免**：叙述性引用（「走 X」「不替代 X」「交给 X」等分流/关系说明）自动放行；其余需在文件中加
   `pack-ref-ok: <包名或组件名>` 声明并注明理由，供评审复核。
 - 校验由 `check_manifest.py` 的校验项 7 执行；`evals/`、`reports/` 不参与判定（不参与运行时）。
@@ -85,7 +88,7 @@ provider:
 
 | 步骤 | 操作 |
 |---|---|
-| 1 | 改 `packs.json` 的 `location` / `default` / `requires` |
+| 1 | 改 `packs.json` 的 `location` / `default` / `requires` / `optional_requires` |
 | 2 | `location` 变更意味着物理位置变更 → 按「搬迁」流程走 |
 | 3 | `default` 变更会影响所有项目 → 在 README 包表标注，并在 `refactor-sync.mdc` 记录影响面 |
 | 4 | 检查**引用边界**：新增 `requires` 后，原本「跨包引用违规」的正文是否已合规；删除 `requires` 后，是否有正文变成违规 |

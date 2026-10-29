@@ -200,6 +200,9 @@
       }
     },
     "devflow": {
+      "optional_requires": [
+        "grilling"
+      ],
       "category": "开发流程",
       "description": "开发流程（可选档）：新增能力的判定、设计留痕、实施落位总则、验收留痕，以及过程文档骨架生成与契约体检。不强制使用，无常驻入口",
       "default": false,

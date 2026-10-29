@@ -127,6 +127,10 @@ python .codebuddy/skills/core/core-init/scripts/init_project_config.py
 python .codebuddy/scripts/pack_install.py list
 ```
 
+输出中每个包名下方可能出现 `可选搭配 xxx（未装不影响本包功能）` 一行。它来自注册表的
+`optional_requires`，只是「装了本包后可考虑再装」的提示，**不随安装自动装上**，
+也不代表本包缺它不可用。用户想装时按 D 走正常安装流程。
+
 **D. 追加安装可选包**
 
 1. 从 `--status` 的 `packs.available` 取值，用 `AskUserQuestion`（`multiSelect`）让用户勾选，不替用户决定。

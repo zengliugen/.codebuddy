@@ -288,6 +288,24 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 | `devflow` | 开发流程 | ❌ | rules: devflow；skills: devflow-guard——**可选档**，无常驻入口，主动唤起才生效 |
 | `devflow-strict` | 开发流程 | ❌ | rules: devflow-strict-guard；skills: devflow-strict-guard——**强制档**，常驻入口要求新增能力走流程；`requires: [devflow]` 自动带上规范 |
 
+### 包依赖：`requires` 与 `optional_requires`
+
+两个字段都只写包名，语义不同：
+
+| 字段 | 语义 | 安装行为 | 卸载行为 | 校验项 7（跨包引用） |
+|---|---|---|---|---|
+| `requires` | **硬依赖**：没有它本包功能不成立 | 自动带出，一并安装 | 被依赖时拒绝卸载（`--force` 连带移除） | 闭包内的组件**可以直接引用** |
+| `optional_requires` | **可选搭配**：有它更好用，没有也能跑 | **不安装**，仅在 `list` 与 `install` 后提示 | 无约束 | **不放宽**，仍须条件化写法或 `pack-ref-ok` |
+
+**为什么可选搭配不放宽校验项 7**：校验项 7 拦的是「正文硬编码了未安装包里才存在的东西」——
+那种失效是静默的（提示与命令全部不存在，但不编译报错）。把可选搭配声明成「免检」会让同一类
+静默失效重新变得容易产生，而声明的价值本来只是给人看的提示，不需要动防线。
+
+**约束**（由 `check_manifest.py` 校验项 3 检查）：必须是不含自身、不含 `requires` 成员的字符串数组，
+且每项都指向注册表中存在的包。与 `requires` 重复意味着它其实是硬依赖，标成可选会让两者的边界不可读。
+
+**未安装的可选搭配不影响任何检查**：它不进入依赖闭包，因此卸载它不会拦住依赖方，缺它也不会报漂移。
+
 ### 组件命名约定
 
 **组件名（规则 / 技能 / 智能体的目录名）必须以 `<包名>-` 开头**，让归属一目了然：
@@ -337,6 +355,8 @@ python .codebuddy/scripts/pack_install.py verify --repair  # 修复漂移
 - **组件路径推导**：`location=engine` → `.codebuddy/<类型>/<pack>/<名>`；`location=lib` → `.codebuddy/lib/<pack>/<类型>/<名>`。
   `packs.json` 的 `comps` 只写组件名，不写路径。
 - **安装状态**：只记可选包，落在项目侧 `.codebuddy.project/configs/packs.json`；默认包不入清单（避免双份事实）。
+- **两种依赖**：`requires` 是**硬依赖**（装本包必然装它，卸载时被依赖即拒绝）；`optional_requires` 是
+  **可选搭配**（只提示「装本包后可考虑再装它」，不进依赖闭包、不自动安装、卸载不受其约束）。
 - **agents 特殊**：文件级符号链接会被扫描器的路径白名单拒绝，故项目侧用**硬链接**（跨卷降级复制）。
 - **顺序**：先 `install`（物化链接）再启动新会话，否则扫描不到新组件。
 - **项目专有包 `project`**：默认启用、无需安装。内容与其他包**同构**放在

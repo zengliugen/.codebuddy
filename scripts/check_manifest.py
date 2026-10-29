@@ -11,6 +11,8 @@
   1. `lib/packs.json` 引用的组件在对应位置真实存在（location=engine 查扫描根，location=lib 查 lib/）；
   2. `lib/` 下无任何包都未引用的孤儿目录；
   3. 每个包的 `requires` 指向同一份注册表中存在的包，且不出现同名组件跨包重复声明；
+     `optional_requires`（可选搭配）同样指向存在的包，但**不得**与 `requires` 重复、不得自指——
+     它只是「装了 A 时提示可以再装 B」的元数据，不进入依赖闭包，也不放宽校验项 7；
   4. 扫描根形态按 `location` 判定（与 `default` 无关）：`engine` 为真实目录；`lib` 与 `project`
      为链接（`project` 虽 default=true，但内容在项目侧，链接必须存在）；
   5. `project.index.json` 的 `files` / `rule_shells` 中 `path` 均为相对路径（入库共享前提）；
@@ -141,6 +143,26 @@ def check_packs(codebuddy_dir, packs):
         for dep in meta.get("requires") or []:
             if dep not in packs:
                 problems.append("包 %s 依赖了不存在的包：%s" % (pack, dep))
+        # 可选搭配：只做提示用，不进入依赖闭包。因此与 requires 重复即冗余声明
+        # （那说明它其实是硬依赖），自指则无意义。这两类错误都不会影响运行，
+        # 只会让「可选」与「必需」的边界在注册表里变得不可读。
+        optional = meta.get("optional_requires")
+        if optional is not None:
+            if not isinstance(optional, list) or not all(
+                    isinstance(item, str) for item in optional):
+                problems.append("包 %s 的 optional_requires 必须是字符串数组：%r"
+                                % (pack, optional))
+            else:
+                required = set(meta.get("requires") or [])
+                for dep in optional:
+                    if dep not in packs:
+                        problems.append("包 %s 的可选搭配指向不存在的包：%s" % (pack, dep))
+                    elif dep in required:
+                        problems.append(
+                            "包 %s 的可选搭配与必需依赖重复：%s（既是必需就不该标为可选）"
+                            % (pack, dep))
+                    elif dep == pack:
+                        problems.append("包 %s 的可选搭配不能指向自身" % pack)
         comps = meta.get("comps") or {}
         for comp_type in ("rules", "skills", "agents"):
             for name in comps.get(comp_type) or []:
