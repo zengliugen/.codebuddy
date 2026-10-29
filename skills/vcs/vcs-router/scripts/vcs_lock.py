@@ -66,26 +66,53 @@ def print_result(status, message):
     print(f"{symbol.get(status, '[INFO]')} {message}", flush=True)
 
 
-def find_codebuddy_dir():
-    """定位项目 .codebuddy 目录：优先从当前工作目录向上查找，未命中时回退到脚本自身位置推导。
+def _codebuddy_from_script():
+    """自脚本位置向上查找名为 .codebuddy 的目录；找不到返回 None。
 
-    锁只与项目（.codebuddy）绑定，不依赖 VCS 类型。
-    脚本位于 <项目根>/.codebuddy/skills/vcs/vcs-router/scripts/vcs_lock.py，
-    向上遍历总能找到名为 .codebuddy 的目录。
+    这是**唯一可靠的锚点**：脚本必然位于 <项目根>/.codebuddy/... 之下，与当前工作目录无关。
     """
-    # 方式一：从当前工作目录向上查找含 .codebuddy 的目录（目录链接共享配置时落在当前项目）
+    for parent in Path(__file__).resolve().parents:
+        if parent.name == ".codebuddy" and parent.is_dir():
+            return parent
+    return None
+
+
+def _codebuddy_from_cwd():
+    """自当前工作目录向上查找含 .codebuddy 的目录；找不到返回 None。"""
     current = Path.cwd()
     for parent in (current, *current.parents):
         candidate = parent / ".codebuddy"
         if candidate.is_dir():
             return candidate
-
-    # 方式二：从脚本自身位置向上查找名为 .codebuddy 的目录
-    script_path = Path(__file__).resolve()
-    for parent in script_path.parents:
-        if parent.name == ".codebuddy" and parent.is_dir():
-            return parent
     return None
+
+
+def find_codebuddy_dir():
+    """定位项目 .codebuddy 目录，未命中返回 None。
+
+    锁只与项目（.codebuddy）绑定，不依赖 VCS 类型。
+
+    判据：**以脚本自身位置为主，当前工作目录仅作一致性核对**。
+
+    原先 CWD 优先，导致向上查找越过项目边界：实测在宿主仓库根运行时命中上一层
+    另一个项目的 .codebuddy，锁被建到那份引擎的项目侧（残留目录），而真正要保护的
+    本项目仓库完全没有上锁——互斥保护静默失效，比报错更危险。
+
+    仍保留 CWD 参与判断的理由：「多项目经目录链接共享同一份 .codebuddy」是受支持的
+    用法，此时两侧 realpath 相同，采用 CWD 结果不改变语义。realpath 不同则说明命中的
+    是另一份引擎，必须忽略。
+    """
+    anchor = _codebuddy_from_script()
+    cwd_dir = _codebuddy_from_cwd()
+    if anchor and cwd_dir and os.path.realpath(str(anchor)) == os.path.realpath(str(cwd_dir)):
+        return cwd_dir
+    if anchor:
+        if cwd_dir:
+            sys.stderr.write(
+                "[提示] 当前目录向上命中的 .codebuddy 与脚本所属的不是同一份，已忽略：\n"
+                "       忽略：%s\n       采用：%s\n" % (cwd_dir, anchor))
+        return anchor
+    return cwd_dir
 
 
 def new_session_id():

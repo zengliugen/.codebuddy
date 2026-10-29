@@ -52,12 +52,24 @@ def init_stdout():
         sys.stderr.reconfigure(encoding="utf-8", errors="replace", newline="\n")
 
 
-def find_codebuddy_dir(start):
-    """自 start 向上查找含 `.codebuddy` 子目录的目录，返回该 .codebuddy 的绝对路径；找不到返回 None。
+def _codebuddy_from_script():
+    """自脚本位置向上查找名为 .codebuddy 的目录，返回其绝对路径；找不到返回 None。
 
-    项目根即 `.codebuddy` 的父目录；脚本通常从项目根或其子目录运行。
+    这是**唯一可靠的锚点**：脚本必然位于 <项目根>/.codebuddy 之下，与当前工作目录无关。
     """
-    current = os.path.abspath(start)
+    current = os.path.dirname(os.path.abspath(__file__))
+    while True:
+        if os.path.basename(current) == ".codebuddy" and os.path.isdir(current):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
+def _codebuddy_from_cwd(start=None):
+    """自 start（缺省为当前工作目录）向上查找含 .codebuddy 子目录的目录。"""
+    current = os.path.abspath(start if start else os.getcwd())
     while True:
         candidate = os.path.join(current, ".codebuddy")
         if os.path.isdir(candidate):
@@ -66,6 +78,31 @@ def find_codebuddy_dir(start):
         if parent == current:
             return None
         current = parent
+
+
+def find_codebuddy_dir(start=None):
+    """定位本项目 .codebuddy 目录（项目根即其父目录），找不到返回 None。
+
+    判据：**以脚本自身位置为主，当前工作目录仅作一致性核对**。
+
+    为什么不能 CWD 优先：向上查找会越过项目边界。实测在宿主仓库根运行时命中上一层
+    另一个项目的 .codebuddy，于是索引、产物目录、配置骨架全部按那份引擎生成，
+    在错误的项目里建出文件——比报错更难发现，因为命令本身「成功」了。
+
+    为什么仍要看 CWD：「多项目经目录链接共享同一份 .codebuddy」是受支持的用法，
+    此时两侧 realpath 相同，采用 CWD 结果不改变语义。
+    """
+    anchor = _codebuddy_from_script()
+    cwd_dir = _codebuddy_from_cwd(start)
+    if anchor and cwd_dir and os.path.realpath(anchor) == os.path.realpath(cwd_dir):
+        return cwd_dir
+    if anchor:
+        if cwd_dir:
+            sys.stderr.write(
+                "[提示] 当前目录向上命中的 .codebuddy 与脚本所属的不是同一份，已忽略：\n"
+                "       忽略：%s\n       采用：%s\n" % (cwd_dir, anchor))
+        return anchor
+    return cwd_dir
 
 
 def load_index(codebuddy_dir):

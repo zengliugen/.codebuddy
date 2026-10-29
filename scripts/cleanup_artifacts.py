@@ -46,9 +46,24 @@ def init_stdout():
         sys.stderr.reconfigure(encoding="utf-8", errors="replace", newline="\n")
 
 
-def find_codebuddy_dir(start):
-    """自 start 向上查找含 `.codebuddy` 子目录的目录，返回该 .codebuddy 的绝对路径；找不到返回 None。"""
-    current = os.path.abspath(start)
+def _codebuddy_from_script():
+    """自脚本位置向上查找名为 .codebuddy 的目录，返回其绝对路径；找不到返回 None。
+
+    这是**唯一可靠的锚点**：脚本必然位于 <项目>/.codebuddy 之下，与当前工作目录无关。
+    """
+    current = os.path.dirname(os.path.abspath(__file__))
+    while True:
+        if os.path.basename(current) == ".codebuddy" and os.path.isdir(current):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
+def _codebuddy_from_cwd(start=None):
+    """自 start（缺省为当前工作目录）向上查找含 .codebuddy 子目录的目录。"""
+    current = os.path.abspath(start if start else os.getcwd())
     while True:
         candidate = os.path.join(current, ".codebuddy")
         if os.path.isdir(candidate):
@@ -57,6 +72,32 @@ def find_codebuddy_dir(start):
         if parent == current:
             return None
         current = parent
+
+
+def find_codebuddy_dir(start=None):
+    """定位本项目的 .codebuddy 目录，返回绝对路径；找不到返回 None。
+
+    判据：**以脚本自身位置为主，当前工作目录仅作一致性核对**。
+
+    为什么不能 CWD 优先：向上查找会越过项目边界。实测在宿主仓库根运行脚本时，
+    查找会命中上一层另一个项目的 .codebuddy（同级目录下还有别的引擎检出），
+    于是包注册表、索引、配置全部读错，报出一批与本项目无关的错误，并在项目侧留下残留目录。
+
+    为什么仍要看 CWD：「多项目经目录链接共享同一份 .codebuddy」是受支持的用法，
+    此时 CWD 找到的 .codebuddy 与脚本锚点 realpath 相同，采用它不改变语义。
+    CWD 结果与锚点 realpath 不同，说明命中的是另一份引擎，必须忽略。
+    """
+    anchor = _codebuddy_from_script()
+    cwd_dir = _codebuddy_from_cwd(start)
+    if anchor and cwd_dir and os.path.realpath(anchor) == os.path.realpath(cwd_dir):
+        return cwd_dir
+    if anchor:
+        if cwd_dir:
+            sys.stderr.write(
+                "[提示] 当前目录向上命中的 .codebuddy 与脚本所属的不是同一份，已忽略：\n"
+                "       忽略：%s\n       采用：%s\n" % (cwd_dir, anchor))
+        return anchor
+    return cwd_dir
 
 
 def resolve_artifact_dirs():

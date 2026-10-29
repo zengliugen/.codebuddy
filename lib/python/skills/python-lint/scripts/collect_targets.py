@@ -104,22 +104,63 @@ def find_codebuddy_dir(start):
         current = parent
 
 
-def find_project_root(start):
-    """自 start 向上查找**含 .codebuddy 子目录**的目录作为项目根，找不到则返回 start。
+def _project_root_from_script():
+    """自脚本位置向上查找项目根（含 .codebuddy 的目录）；找不到返回 None。
 
-    只认 .codebuddy 锚点，**不以 .git 为锚**：.codebuddy 自身是独立 git 仓库时
-    （引擎以「独立 git 检出」形态挂载，.codebuddy/.git 是目录而非 submodule 的 gitfile），
-    同时匹配 .git 会让向上查找先命中 .codebuddy 本身，项目根被误判，
-    配置路径随之拼成 .codebuddy/.codebuddy.project/...，所有项目侧配置都读不到。
+    脚本必然位于 <项目根>/.codebuddy/... 之下，这是**唯一可靠锚点**，与工作目录无关。
     """
-    current = os.path.abspath(start)
+    current = os.path.dirname(os.path.abspath(__file__))
     while True:
         if os.path.isdir(os.path.join(current, ".codebuddy")):
             return current
         parent = os.path.dirname(current)
         if parent == current:
-            return os.path.abspath(start)
+            return None
         current = parent
+
+
+def _project_root_from_cwd(start=None):
+    """自 start（缺省当前工作目录）向上查找含 .codebuddy 的目录。"""
+    current = os.path.abspath(start if start else os.getcwd())
+    while True:
+        if os.path.isdir(os.path.join(current, ".codebuddy")):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
+def find_project_root(start=None):
+    """定位项目根，找不到返回 None。
+
+    判据：**以脚本自身位置为主，当前工作目录仅作一致性核对**。
+
+    为什么不能 CWD 优先：向上查找会越过项目边界。实测在宿主仓库根运行脚本时命中上一层
+    另一个项目的 .codebuddy，于是读的是那份引擎的索引与配置——报出的错误与本项目无关，
+    或更糟：按错误的配置范围执行操作，而命令本身「成功」了。
+
+    为什么仍要看 CWD：「多项目经目录链接共享同一份 .codebuddy」是受支持的用法，
+    此时两侧 realpath 相同，采用 CWD 结果不改变语义。
+
+    参数：
+        start：CWD 核对的起点；缺省用当前工作目录
+
+    返回：
+        项目根绝对路径；两侧均未命中时返回 None（**不再回退到 start**：
+        回退会让调用方无法区分「找到」与「没找到」，掩盖真实原因）
+    """
+    anchor = _project_root_from_script()
+    cwd_root = _project_root_from_cwd(start)
+    if anchor and cwd_root and os.path.realpath(anchor) == os.path.realpath(cwd_root):
+        return cwd_root
+    if anchor:
+        if cwd_root:
+            sys.stderr.write(
+                "[提示] 当前目录向上命中的 .codebuddy 与脚本所属的不是同一份，已忽略：\n"
+                "       忽略：%s\n       采用：%s\n" % (cwd_root, anchor))
+        return anchor
+    return cwd_root
 
 
 def resolve_config_path(root):
@@ -312,6 +353,10 @@ def main():
 
     workdir = args.dir or os.getcwd()
     root = find_project_root(workdir)
+    if not root:
+        raise ConfigError(
+            "未找到项目根（含 .codebuddy 的目录）。脚本锚点与当前目录（%s）向上均未命中，"
+            "请确认 .codebuddy 引擎完整。" % workdir)
 
     try:
         if args.config:
