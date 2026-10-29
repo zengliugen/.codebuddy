@@ -25,6 +25,13 @@
     扩展名硬编码为 `.py`（本技能只审 Python 源码，属技能定义而非项目偏好），
     因此黑名单模式不会把 `.json` / `.md` / 子模块指针等非源码变更纳入。
 
+    **已删除的文件不进清单**：`git status` 会把删除记为一条变更（`D` / ` D` / `MD`），
+    但文件在磁盘上已不存在。把路径交给 ruff 会得到 `E902 系统找不到指定的路径`，
+    门禁随之判定失败——于是「任何含文件删除的提交都无法通过门禁」，而删除本身
+    并没有代码可查。判定依据取两个来源的并集：工作区文件是否存在（覆盖所有普通
+    删除形态）、`git status` 的 XY 状态是否含 `D`（覆盖「文件仍存在但已被
+    `git rm --cached` 移出索引」这类工作区查不出的情形）。
+
     `include_patterns` / `exclude_patterns` 的语义是**目录/文件模式的匹配清单**，一律按
     **项目根相对路径**书写（如 `extensions/**/*.py`）。脚本内部会把 `git status` 给出的
     仓库相对路径换算为项目根相对路径后再匹配，因此**无需为了抵销仓库前缀而补 `**/`**：
@@ -338,6 +345,28 @@ def split_patterns(value):
     return [normalize(item) for item in str(value).split(",") if item.strip()]
 
 
+def is_deleted_entry(xy, absolute_path):
+    """判断一条 git 状态是否指向「已不存在的文件」。
+
+    两个来源取并集，各自覆盖对方查不出的情形：
+
+    - **工作区探针**：路径在磁盘上不存在。这是最直接的事实，覆盖所有普通删除
+      （` D` 仅工作区删除、`D ` 已暂存删除、`MD` 暂存删除后工作区又有改动）。
+    - **状态位**：XY 任一位置为 `D`。用于「文件仍在磁盘但已被 `git rm --cached`
+      移出索引」——此时文件存在，但它在本次变更里的语义是被删除，不该再审。
+
+    参数：
+        xy：`git status --porcelain` 的两字符状态码（索引位 + 工作区位）。
+        absolute_path：该文件的绝对路径（用于探测磁盘是否存在）。
+
+    返回：
+        已删除（文件不存在，或状态位含 D）时为 True。
+    """
+    if "D" in xy:
+        return True
+    return not os.path.exists(absolute_path)
+
+
 def main():
     init_stdout()
 
@@ -420,6 +449,10 @@ def main():
             continue
         # 扩展名是技能固有边界，始终生效
         if not project_rel.lower().endswith(TARGET_EXTENSION):
+            continue
+        # 已删除的文件没有代码可查；交给 ruff 只会得到 E902 让门禁假失败
+        if is_deleted_entry(xy, os.path.join(root, project_rel)):
+            excluded.append({"path": project_rel, "reason": "deleted"})
             continue
         if whitelist_mode and not matches_any(project_rel, include_regexes):
             excluded.append({"path": project_rel, "reason": "not_in_include_patterns"})
