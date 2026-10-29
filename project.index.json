@@ -143,7 +143,7 @@
       "format": "json",
       "template": {
         "version": 2,
-        "_comment": "本文件为 svn-commit 的项目配置：提交摘要的格式（pattern）、type 枚举及含义、长度上限、subject 语言、禁用结尾字符。本文件是 SVN 提交摘要约定的唯一来源：配置缺失、损坏或字段非法时校验脚本报错退出（退出码 3），不回退默认值。pattern 是判定依据（正则 + 命名组 type/scope/subject），format 仅供展示。**格式与 git_commit.config 可以不同**：SVN 侧常沿用 Subversion 客户端的既有写法，改格式只需改本文件的 format 与 pattern。",
+        "_comment": "本文件为 svn-commit 的项目配置：提交摘要的格式（pattern）、type 枚举及含义、长度上限、subject 语言、禁用结尾字符。本文件是 SVN 提交摘要约定的唯一来源：配置缺失、损坏或字段非法时校验脚本报错退出（退出码 3），不回退默认值。pattern 是判定依据（正则 + 命名组 type/scope/subject），format 仅供展示。**格式与 git_commit.config 可以不同**：SVN 侧常沿用 Subversion 客户端的既有写法，改格式只需改本文件的 format 与 pattern。**未接入 SVN 的项目保留本案的占位值即可**——校验脚本遇到占位按配置缺失处理（退出码 3），不会把「未配置」误判成「摘要写错」。",
         "commit_subject": {
           "format": "<按团队 Subversion 使用习惯填，如 [<scope>] <type>: <subject>>",
           "pattern": "<与 format 等价的正则，用 (?P<type>...)/(?P<scope>...)/(?P<subject>...) 标记字段>",

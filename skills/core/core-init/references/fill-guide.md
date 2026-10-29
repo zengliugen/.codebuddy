@@ -92,5 +92,6 @@
   - Git：`python .codebuddy/skills/vcs/vcs-router/scripts/validate_commit_subject.py --config-key git_commit.config "<按该配置 pattern 生成的摘要>"`
   - SVN：`python .codebuddy/skills/vcs/vcs-router/scripts/validate_commit_subject.py --config-key svn_commit.config "<按该配置 pattern 生成的摘要>"`。
   - **摘要形态由配置的 `commit_subject.pattern` 决定**，两侧格式可以不同；示例里不写死任何形态，
-    否则换项目/换 VCS 时示例本身就是错的。脚本退出码 3 表示 `pattern` / `types` 等字段缺失或非法。
+    否则换项目/换 VCS 时示例本身就是错的。脚本退出码 3 表示 `pattern` / `types` 缺失、非法，**或仍是占位**
+    （未接入 SVN 的项目保留索引生成的占位骨架即可，不必强行填写）。
 - 覆盖率（静态分析小目标）：`python .codebuddy/lib/csharp/skills/csharp-test-coverage/scripts/check_coverage.py <某运行时文件> --no-save`。

@@ -22,8 +22,7 @@ provider:
 ## 加载机制说明
 
 - 本文件与 `svn-merge-spec.mdc` 均为 `alwaysApply: false`。
-- 实现合并流程后，在此补充规范分项与项目配置引用（届时需同步在索引登记
-  `svn_merge.project_config`，并约定合并前是否复用 `svn_commit.project_config` 的发起权）。
+- 实现合并流程后，在此补充规范分项与项目配置引用。
 
 ## 与其他规则的关系
 

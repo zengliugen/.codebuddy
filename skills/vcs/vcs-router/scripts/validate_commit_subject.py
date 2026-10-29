@@ -53,6 +53,11 @@ class ConfigError(RuntimeError):
 
 # pattern 中允许被识别的字段名；未出现的字段不参与校验
 KNOWN_FIELDS = ("type", "scope", "subject")
+# 占位值判定：骨架模板把「待填」写成 <...>。不能简单地找 <...>——正则里的 (?P<type>...) 本身就含尖括号。
+# 判据是「整个值就是一个占位」：去空白后以 < 开头、以 > 结尾，其后最多跟一段「（...）」式说明。
+# 中段允许任意字符——占位里常嵌示例（如「按习惯填，如 [<scope>] <type>: <subject>」），
+# 用 <[^<>]*> 这种「内部不许有尖括号」的写法会漏判这类合法占位。
+PLACEHOLDER = re.compile(r"^\s*<.*>\s*(?:[（(].*[）)])?\s*$")
 # pattern 缺省示例（仅用于报错提示，不参与判定）
 PATTERN_HINT = "^(?P<type>[a-z]+)(?:\\((?P<scope>[^)]+)\\))?: (?P<subject>.+)$"
 
@@ -110,7 +115,8 @@ def resolve_config_path(codebuddy_dir, config_key):
 def format_label(commit_subject, config_path):
     """读取格式描述；缺失时回退为 pattern 原文（仍来自配置，不引入引擎默认值）。"""
     value = commit_subject.get("format")
-    if isinstance(value, str) and value.strip():
+    # 占位内容不作为有效描述（否则报错会展示「<按团队习惯填>」这类占位串，误导读者）
+    if isinstance(value, str) and value.strip() and not PLACEHOLDER.match(value.strip()):
         return value.strip()
     pattern_text = commit_subject.get("pattern")
     if isinstance(pattern_text, str) and pattern_text.strip():
@@ -150,6 +156,10 @@ def parse_types(raw_types, config_path):
                 % config_path)
         if not name:
             raise ConfigError("配置项 commit_subject.types 中存在空 type 名：%s" % config_path)
+        if PLACEHOLDER.match(name):
+            raise ConfigError(
+                "配置项 commit_subject.types 含占位 type 名，未按本项目实际取值填写：%r（%s）"
+                % (name, config_path))
         types.append((name, description))
     if not types:
         raise ConfigError("配置项 commit_subject.types 不能为空：%s" % config_path)
@@ -205,6 +215,18 @@ def load_commit_subject_config(config_key):
     # 先校验 pattern（判定依据），再取展示标签：顺序反了会让「缺 pattern」报成「缺 format」，
     # 而 format 是可选的，报错会把人引向错误的方向。
     pattern_text = commit_subject.get("pattern")
+
+    # 占位符识别：索引生成的骨架用 <...> 占位，而 < 与 > 在正则里是字面量，
+    # 直接编译会「加载成功」并在校验时判为「格式不符合」——把「未配置」伪装成「摘要写错」。
+    # 因此这里显式识别占位形态并按配置缺失处理（退出码 3），与「缺失即报错」的约定一致。
+    if isinstance(pattern_text, str) and PLACEHOLDER.match(pattern_text.strip()):
+        raise ConfigError(
+            "配置项 commit_subject.pattern 仍是占位内容，未按本项目实际格式填写：%s\n"
+            "       当前值：%s\n"
+            "       占位未填时不应提交——请先填写 format 与 pattern（两者语义等价）。"
+            % (config_path, pattern_text.strip())
+        )
+
     if not isinstance(pattern_text, str) or not pattern_text.strip():
         raise ConfigError(
             "配置项 commit_subject.pattern 必须是正则字符串（校验以它为准）：%s\n"
