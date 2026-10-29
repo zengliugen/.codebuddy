@@ -1,6 +1,8 @@
 # 提交安全规范
 
-> **规范主源**：用户主动发起、授权要求、提交/推送分离、敏感信息检查等强制条款以 `.codebuddy/rules/vcs/vcs-git-commit/submission-safety-spec.mdc`（授权与安全规范子规则）为准。本文件提供**详细安全参考**（含 Git 命令与检查流程）。
+> **规范主源**：用户主动发起、授权要求、提交/推送分离、敏感信息检查等强制条款以 `.codebuddy/rules/vcs/vcs-commit/submission-safety-spec.mdc`（授权与安全规范子规则，Git 与 SVN 共用）为准。本文件提供**详细安全参考**（含 Git 命令与检查流程）。
+>
+> Git 专属的 `.gitignore` 交叉比对与禁止行为见 `.codebuddy/rules/vcs/vcs-git-commit/git-commit-spec.mdc`。
 
 ## 用户主动发起原则（按项目配置取值）
 

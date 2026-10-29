@@ -3,11 +3,18 @@
 VCS 操作路由脚本（vcs-router 技能核心）。
 
 功能：
-- 检测指定目录（默认当前工作目录）是否为 Git 仓库：git / none。
-- 接收操作类型（--op，默认 commit），组合出路由目标技能名 git-<op>。
-- 检查路由目标技能是否存在（skills/<目标>/SKILL.md 存在则视为可路由）。
+- 检测指定目录（默认当前工作目录）属于哪种版本控制：git / svn / none。
+- 接收操作类型（--op，默认 commit），组合出路由目标技能名 vcs-<vcs>-<op>。
+- 检查路由目标技能是否存在（扫描根下任意包内存在 <目标>/SKILL.md 则视为可路由）。
 - 检测结果缓存到技能目录 .cache/vcs-route.json，缓存目录一致且未超时时直接命中，
   跳过检测命令（目录切换立即失效，默认 10 分钟超时）。缓存仅存 VCS 类型，与操作类型无关。
+
+VCS 检测顺序与判据：
+- Git：`git rev-parse --is-inside-work-tree` 返回 true，或目录下存在 .git；
+- SVN：`svn info` 退出码 0（工作副本内任意子目录均可），或目录下存在 .svn；
+- 两者都不是 → none。**先判 Git 再判 SVN**：同时具备两者标记的目录（如 Git 仓库内嵌套
+  一个 SVN 工作副本的极端情形）按 Git 处理，因为外层 git 命令的语义覆盖范围更大，
+  误判为 SVN 会让提交目标落在外层仓库之外。
 - 支持 --out 将完整路由 JSON 落文件、--quiet 让 stdout 仅输出一行（规避终端伪影污染 JSON 解析）。
 
 用法：
@@ -159,7 +166,7 @@ def is_cache_valid(cached, directory, timeout_seconds):
     cached_at = cached.get("detected_at")
     if not isinstance(cached_path, str) or not isinstance(cached_type, str) or not isinstance(cached_at, (int, float)):
         return False
-    if cached_type != "git":
+    if cached_type not in ("git", "svn"):
         return False
     if os.path.normcase(cached_path) != os.path.normcase(directory):
         return False
@@ -192,14 +199,40 @@ def detect_git(directory):
     return command_ok or os.path.isdir(os.path.join(directory, ".git"))
 
 
+def detect_svn(directory):
+    """检测是否为 SVN 工作副本：`svn info` 成功即视为工作副本（含任意子目录）。
+
+    不用 "svn status" 判定：工作副本内所有内容都已忽略时它同样返回 0，
+    但 "svn info" 才直接描述「这个目录属于某个工作副本」这件事。
+    """
+    returncode, _stdout = run_command(["svn", "info", "--non-interactive"], directory)
+    if returncode == 0:
+        return True
+    return os.path.isdir(os.path.join(directory, ".svn"))
+
+
+def detect_vcs(directory):
+    """按 Git → SVN 的顺序检测版本控制类型，返回 "git" / "svn" / "none"。
+
+    为什么 Git 优先：同时具备两者标记的目录（Git 仓库内嵌套 SVN 工作副本）中，
+    外层 Git 的语义覆盖范围更大；判成 SVN 会让提交目标落在外层仓库之外。
+    """
+    if detect_git(directory):
+        return "git"
+    if detect_svn(directory):
+        return "svn"
+    return "none"
+
+
 def route_target(vcs_type, operation):
     """VCS 类型 + 操作类型 → 路由目标技能名。none 或无操作返回空字符串。
 
-    目标技能名遵循引擎的组件命名约定 `<包名>-<语义名>`：vcs 包的提交/合并技能分别为
-    `vcs-git-commit`、`vcs-git-merge`。不能简单拼成 `<vcs>-<op>`（那会得到 `git-commit`，
-    与包化后的实际组件名不符，导致 target_exists 恒为 false）。
+    目标技能名遵循引擎的组件命名约定 `<包名>-<语义名>`：vcs 包的提交/合并技能为
+    `vcs-git-commit` / `vcs-git-merge` 与 `vcs-svn-commit` / `vcs-svn-merge`。
+    不能省掉包名前缀（那会得到 `git-commit`，与包化后的实际组件名不符，
+    导致 target_exists 恒为 false）。
     """
-    if vcs_type != "git" or not operation:
+    if vcs_type not in ("git", "svn") or not operation:
         return ""
     return f"vcs-{vcs_type}-{operation}"
 
@@ -269,7 +302,7 @@ def main(argv):
                 return 0
 
         # 缓存无效或强制刷新：执行检测
-        vcs_type = "git" if detect_git(directory) else "none"
+        vcs_type = detect_vcs(directory)
 
         # none 结果不写入缓存，避免目录初始化后旧缓存误导路由
         if vcs_type != "none":

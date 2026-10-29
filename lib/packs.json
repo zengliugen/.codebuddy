@@ -25,7 +25,7 @@
     },
     "vcs": {
       "category": "基础",
-      "description": "版本控制路由与提交、合并执行",
+      "description": "版本控制路由与提交、合并执行（Git / SVN）",
       "default": true,
       "location": "engine",
       "requires": [
@@ -35,13 +35,18 @@
         "rules": [
           "vcs-router",
           "vcs-engine-commit",
+          "vcs-commit",
           "vcs-git-commit",
-          "vcs-git-merge"
+          "vcs-git-merge",
+          "vcs-svn-commit",
+          "vcs-svn-merge"
         ],
         "skills": [
           "vcs-router",
           "vcs-git-commit",
-          "vcs-git-merge"
+          "vcs-git-merge",
+          "vcs-svn-commit",
+          "vcs-svn-merge"
         ],
         "agents": []
       }

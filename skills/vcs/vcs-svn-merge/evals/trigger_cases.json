@@ -1,0 +1,21 @@
+{
+  "skill": "vcs-svn-merge",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "svn merge",
+    "合并 svn 分支",
+    "把 feature 分支合到 trunk",
+    "svn 合并到工作副本"
+  ],
+  "should_not_trigger": [
+    "合并这两个文档",
+    "合并表格",
+    "svn update",
+    "svn commit",
+    "git merge"
+  ],
+  "near_neighbor": [
+    "svn switch 到分支",
+    "同步分支改动"
+  ]
+}

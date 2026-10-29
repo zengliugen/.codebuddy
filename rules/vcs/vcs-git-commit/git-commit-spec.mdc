@@ -1,14 +1,14 @@
 ---
-description: Git 提交特定规范子规则 —— .gitignore 检查、git 禁止行为、提交推送分离、Git 边界情况处理。由 git-commit 技能执行提交时按需加载。
+description: Git 提交特定规范子规则 —— .gitignore 检查、git 禁止行为、提交推送分离、Git 边界情况处理。由 vcs-git-commit 技能执行提交时按需加载；与 VCS 无关的摘要与授权规范见同包 vcs-commit/。
 alwaysApply: false
 enabled: true
-updatedAt: 2026-08-18T00:00:00.000Z
+updatedAt: 2026-10-29T00:00:00.000Z
 provider:
 ---
 
 # Git 提交特定规范
 
-本子规则仅适用于 Git 仓库提交（`vcs-git-commit` 技能执行时加载）。公共提交规范（摘要格式、授权安全、审查门禁）见 `vcs-router` 入口规则及对应子规则。
+本子规则仅适用于 Git 仓库提交（`vcs-git-commit` 技能执行时加载）。公共提交规范（摘要格式、授权与安全）见同包 `vcs-commit/commit-spec.mdc` 与 `vcs-commit/submission-safety-spec.mdc`；审查门禁机制见技能 `references/project-config.md` §2。
 
 ## .gitignore 检查
 

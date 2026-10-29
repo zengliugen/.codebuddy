@@ -1,6 +1,6 @@
 # 项目规则统一模式规范
 
-<!-- pack-ref-ok: csharp-code, csharp-comment, csharp-lsp, csharp-test, csharp-test-coverage, python-code, python-comment, python-test, python-env, python-lint, python-test-coverage, unity-pipeline, yao-meta-skill, grilling, vcs-router, vcs-git-commit —— 本文件是「引擎规则全景表」，如实登记各包规则的结构与规模；引用的是规则清单而非运行时调用。 -->
+<!-- pack-ref-ok: csharp-code, csharp-comment, csharp-lsp, csharp-test, csharp-test-coverage, python-code, python-comment, python-test, python-env, python-lint, python-test-coverage, unity-pipeline, yao-meta-skill, grilling, vcs-router, vcs-commit, vcs-git-commit, vcs-svn-commit, vcs-git-merge, vcs-svn-merge —— 本文件是「引擎规则全景表」，如实登记各包规则的结构与规模；引用的是规则清单而非运行时调用。 -->
 
 本项目 `.codebuddy/rules/<name>/` 下所有规则遵循统一结构，评估重组时必须对照本规范。
 
@@ -105,18 +105,21 @@ provider:
 | `tool-session-lesson-distill` | tool | 入口 | `alwaysApply: true` | 0 |
 | `unity-pipeline` | unity-pipeline | 入口 + 规范 | `alwaysApply: true / 规范 false` | 1 |
 | `vcs-engine-commit` | vcs | 底线规范 | `alwaysApply: true` | 1 |
-| `vcs-git-commit` | vcs | 规范规则 | `alwaysApply: false` | 3 |
+| `vcs-commit` | vcs | 规范规则 | `alwaysApply: false` | 2 |
+| `vcs-git-commit` | vcs | 规范规则 | `alwaysApply: false` | 1 |
+| `vcs-svn-commit` | vcs | 规范规则 | `alwaysApply: false` | 1 |
 | `vcs-git-merge` | vcs | 规范规则 | `alwaysApply: false` | 1 |
+| `vcs-svn-merge` | vcs | 规范规则 | `alwaysApply: false` | 1 |
 | `vcs-router` | vcs | 入口 + 规范 | `alwaysApply: true / 规范 false` | 0 |
 | `yao-meta-skill` | yao-meta-skill | 入口 + 规范 | `alwaysApply: true / 规范 false` | 0 |
 
-> 合计 29 个规则目录、21 条入口规则。**全库无 `paths`**：入口与底线规范一律常驻，
+> 合计 32 个规则目录、21 条入口规则。**全库无 `paths`**：入口与底线规范一律常驻，
 > 规范规则一律 `alwaysApply: false` 由入口或技能显式读取。
 >
 > `csharp-test`、`python-test` 虽与 `csharp-test-coverage`、`python-test-coverage` 同前缀，但两个覆盖率技能
 > **只在文档里交叉引用其文件名，并不 Read 其子规则**，故按底线规范常驻。判断依据是
 > **有没有技能真的去读取**，不是名称前缀是否相同。
-> 合计 29 条：入口 21、底线规范 8。**无「有技能对应的规范规则」**——规范全部随技能走，
+> 合计 32 条：入口 21、底线规范 8、随技能走的规范规则 3。**无「有技能对应的规范规则」**——规范全部随技能走，
 > 不单独成规则，避免规范与技能双份维护。
 
 > **注**：`core-rule-governance` 常驻（`alwaysApply: true`）。它约束的是

@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-10-29",
+  "capabilities": {
+    "subprocess": {
+      "decision": "approved",
+      "reviewer": "zengliugen",
+      "scope": [
+        "scripts/collect_svn_changes.py",
+        "scripts/verify_targets.py"
+      ],
+      "reason": "调用 svn status / svn info / svn log / svn propget 读取工作副本状态与修订元数据，均为只读命令；不做任何写操作（提交由 Agent 直接按流程执行）。",
+      "expires_at": "2027-10-29",
+      "evidence": []
+    }
+  }
+}

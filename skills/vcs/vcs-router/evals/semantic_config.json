@@ -6,7 +6,9 @@
         "提交代码",
         "提交一下",
         "commit",
+        "svn commit",
         "git merge",
+        "svn merge",
         "合并分支",
         "版本控制"
       ]
@@ -21,6 +23,8 @@
         "提交报告",
         "提交 bug",
         "合并文档",
+        "svn update",
+        "svn revert",
         "查看 git log",
         "怎么用"
       ]

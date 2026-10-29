@@ -1,0 +1,23 @@
+{
+  "skill": "vcs-svn-commit",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "svn commit",
+    "提交到 svn",
+    "帮我提交 SVN 代码",
+    "把工作副本的改动提交上去"
+  ],
+  "should_not_trigger": [
+    "svn update",
+    "svn revert 掉这些改动",
+    "svn switch 到分支",
+    "svn merge",
+    "查看 svn log",
+    "git commit"
+  ],
+  "near_neighbor": [
+    "提交并更新",
+    "先审查再提交",
+    "svn 合并分支"
+  ]
+}

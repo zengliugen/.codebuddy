@@ -6,10 +6,9 @@
       "decision": "approved",
       "reviewer": "zengliugen",
       "scope": [
-        "scripts/verify_staged.py",
-        "scripts/validate_commit_subject.py"
+        "scripts/verify_staged.py"
       ],
-      "reason": "调用 git 读取暂存区与提交元数据，并执行提交动作；命令参数固定或来自经校验的用户输入。",
+      "reason": "调用 git 读取暂存区与提交元数据；命令参数固定或来自经校验的用户输入。提交摘要校验脚本已移至 vcs-router 技能（两个提交技能共用），不在本技能 scope 内。",
       "expires_at": "2027-10-22",
       "evidence": [
         "reports/security_trust_report.json"

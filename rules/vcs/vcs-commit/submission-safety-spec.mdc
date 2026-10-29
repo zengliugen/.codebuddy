@@ -1,8 +1,8 @@
 ---
-description: vcs 提交授权与安全规范子规则 —— 提交/推送发起权（按项目配置，user_only 或 llm_allowed）、AskUserQuestion 授权、提交与推送分离、敏感信息检查。由 git-commit 技能执行提交时按需加载。
+description: vcs 提交授权与安全规范子规则 —— 提交/推送发起权（按项目配置，user_only 或 llm_allowed）、AskUserQuestion 授权、提交与推送分离、敏感信息检查。由 vcs-git-commit 与 vcs-svn-commit 技能执行提交时按需加载。
 alwaysApply: false
 enabled: true
-updatedAt: 2026-08-18T00:00:00.000Z
+updatedAt: 2026-10-29T00:00:00.000Z
 provider:
 ---
 
@@ -10,7 +10,7 @@ provider:
 
 ## 用户主动发起原则（按项目配置取值）
 
-发起权由**项目侧配置**决定（机制见 `git-commit/references/project-config.md` §1.5）：
+发起权由**项目侧配置**决定（机制见各提交技能 `references/project-config.md` §1.5）：
 
 | 参数 | 取值 | 语义 |
 |------|------|------|
@@ -22,9 +22,12 @@ provider:
 - **`llm_allowed`**：允许 LLM 自行发起该操作（可在合适时机自主执行）；此时**不强制** `AskUserQuestion` 授权。
 - **两参数独立**：`commit` 放开不蕴含 `push` 放开。
 - 参数缺失时按 `user_only` **从严**处理（提示补配置，不静默放开）。
+- 参数按 VCS 分别取值：Git 见 `git_commit.project_config`，SVN 见 `svn_commit.project_config`，互不继承。
 
-> **硬约束不随发起权放开**：提交与推送分离、敏感信息检查、`.gitignore` 交叉比对、VCS 互斥锁、
-> 暂存区校验、计划外文件核对等，在 `llm_allowed` 下**仍然保留**。
+> **硬约束不随发起权放开**：提交与推送分离、敏感信息检查、忽略规则交叉比对、VCS 互斥锁、
+> 待提交清单校验、计划外文件核对等，在 `llm_allowed` 下**仍然保留**。
+> 其中「忽略规则交叉比对」与「待提交清单校验」的具体命令由各 VCS 的专属规则给出
+> （Git 见 `vcs-git-commit/git-commit-spec.mdc`，SVN 见 `vcs-svn-commit/svn-commit-spec.mdc`）。
 
 ## 用户授权要求（`user_only` 模式下强制）
 
@@ -39,13 +42,17 @@ provider:
 - **超时不等于授权**。超时返回错误对象而非用户同意，不得据此执行暂存或提交。
 - 授权必须是显式的、主动的，禁止依赖隐含授权。
 - **多笔提交需一次性给出完整计划**：一次操作涉及多笔提交时，必须在**一次**授权询问中给出**全部笔数、每笔的提交摘要（type/scope/subject）与文件范围**，并在获得授权后再执行任何写操作（暂存/提交）。禁止逐笔追加询问、或在执行中途才暴露后续笔数（用户需要看到完整计划才能决定是否整体继续）。
-- **授权先于写操作与加锁**：授权是执行写操作（`git add`/`git commit`）与获取 VCS 锁的**前置条件**。所有检查、审查门禁、提交计划展示均须在授权前完成；授权后才 `acquire` 锁并执行本笔写操作（锁窗口不跨越用户交互，详见 `git-commit/references/vcs-lock.md`）。
+- **授权先于写操作与加锁**：授权是执行写操作（Git 的 `git add`/`git commit`、SVN 的 `svn add`/`svn commit`）与获取 VCS 锁的**前置条件**。所有检查、审查门禁、提交计划展示均须在授权前完成；授权后才 `acquire` 锁并执行本笔写操作（锁窗口不跨越用户交互，详见 `vcs-router` 技能的 `scripts/vcs_lock.py` 与各提交技能的 `references/vcs-lock.md`）。
 
 ## 提交与推送分离（不受发起权配置影响）
 
-- 提交（`git commit`）与推送（`git push`）必须严格分开执行，禁止在单次操作中同时完成。
+- 提交（Git 的 `git commit` / SVN 的 `svn commit`）与推送（Git 的 `git push` / SVN 的 `svn update`
+  以外的远端同步）必须严格分开执行，禁止在单次操作中同时完成。
 - `push_initiation=user_only` 时，推送需等待用户单独的推送指令；`llm_allowed` 时 LLM 可自行推送，
   但仍须与提交**分两步**执行，禁止链式组合（如 `git add && git commit && git push`）。
+- **SVN 的补充说明**：SVN 的 `svn commit` 是**直连远端**的，本地无「已提交未推送」的中间态，
+  因此 SVN 侧的「提交与推送分离」体现为：**提交前不做隐式 `svn update`/`svn revert`**，
+  且提交完成后不自动执行任何远端同步动作。
 
 ## 敏感信息检查（不受发起权配置影响）
 

@@ -89,8 +89,10 @@
 |--------|---------|--------|
 | `format_checker.config` | csharp-format-checker 项目配置 | `dotnet_format.py`、`check_eol.py` |
 | `code_review.config` | csharp-code-review 项目配置 | `collect_review_targets.py` |
-| `git_commit.config` | git-commit 项目配置 | `validate_commit_subject.py` |
+| `git_commit.config` | git-commit 项目配置 | 提交类技能共用的摘要校验脚本（`--config-key git_commit.config`） |
 | `git_commit.project_config` | git-commit 流程级配置 | LLM（SKILL.md 引用） |
+| `svn_commit.config` | svn-commit 项目配置（与 `git_commit.config` 独立） | 提交类技能共用的摘要校验脚本（`--config-key svn_commit.config`） |
+| `svn_commit.project_config` | svn-commit 流程级配置 | LLM（SKILL.md 引用） |
 | `coverage.project_config` | csharp-test-coverage 项目相关配置 | `skill_config.py`、C# 工具 |
 | `comment.project_config` | csharp-comment-checker 项目相关配置 | C# 工具 |
 | `coverage.golden_samples` / `coverage.trigger_cases` / `format_checker.trigger_cases` | 自测数据（项目专属） | 各技能 eval 脚本 |

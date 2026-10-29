@@ -1,0 +1,62 @@
+---
+description: SVN 提交执行规范索引 —— SVN 特定约束（svn:ignore 交叉比对、工作副本状态、禁止行为、SVN 边界情况）的规范入口。本文件是规范规则（不是入口规则）：不定义「必须走哪个技能」，由 vcs-svn-commit 技能按需加载同目录分项规范；提交摘要与授权安全等公共规范见同包 vcs-commit/。入口约束见同包 vcs-router.entry/。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-29T00:00:00.000Z
+provider:
+---
+
+# SVN 提交执行规范
+
+本文件是 `vcs-svn-commit` 技能的**SVN 专属执行规范**，由技能按需加载。
+
+> **为何没有入口规则**：本技能由 `vcs-router` 技能按操作类型路由拉起（路由约束见
+> `rules/vcs/vcs-router/`）。链路已固定，再建入口会形成两个入口、产生「先走哪个」的歧义，
+> 因此本技能不建 `.entry.mdc`。
+
+## 规范分项
+
+| 场景 | 文件 | 内容 |
+|---|---|---|
+| SVN 特定约束 | `svn-commit-spec.mdc` | `svn:ignore` 检查、`svn add` / `svn delete` 语义、禁止行为、SVN 边界情况（未版本化文件 / 冲突 / 锁 / 外链等） |
+
+**公共规范不在本目录**：提交摘要格式与 type 决策、授权与安全检查、提交推送分离的通用语义
+由同包 `vcs-commit/` 承载，Git 与 SVN 两个提交技能共用同一份：
+
+| 场景 | 文件 |
+|---|---|
+| 生成提交摘要 | `../vcs-commit/commit-spec.mdc` |
+| 授权与安全检查 | `../vcs-commit/submission-safety-spec.mdc` |
+
+**判据**：把 SVN 换成 Git 后依然成立的条款属公共规范（上表），否则留在本目录的
+`svn-commit-spec.mdc`。**摘要的格式与 type 取值既不属公共规范、也不属本规则**——它们由项目侧
+`svn_commit.config` 声明，且**与 Git 侧的格式可以不同**，引擎内任何位置都不得写死。
+
+## 项目配置
+
+| 配置项 | 逻辑名 | 说明 |
+|---|---|---|
+| 提交摘要参数 | `svn_commit.config` | **格式 `pattern`（判定依据）**、`format`（展示用）、type 枚举及含义、subject/scope 长度上限、subject 语言、禁用结尾字符。**与 Git 侧的格式可以不同** |
+| 流程级配置 | `svn_commit.project_config` | scope 规则、发起权取值、审查门禁参数、H1 钩子步骤 |
+
+**为什么与 Git 分开登记**：SVN 工作副本的路径体系与提交粒度与 Git 不同（例如整个目录一次性
+`svn add`），scope 映射与发起权取值需要独立约定。两份配置**互不继承**——脚本按调用方
+传入的逻辑名读取，避免「改了一处、另一处静默沿用旧值」。
+
+**项目配置是唯一事实来源**：配置缺失或字段非法时脚本报错退出（退出码 3），不回退内置默认值。
+
+## 加载机制说明
+
+- 本文件与 `svn-commit-spec.mdc` 均为 `alwaysApply: false`，由技能执行对应步骤时读取。
+- 提交摘要的 `type` 枚举、长度上限、语言均从项目侧配置读取，不在规范里写死。
+- 审查门禁的机制由技能 `references/project-config.md` §2 承载，参数由项目侧配置承载，
+  不在本目录设子规则文件。
+
+## 与其他规则的关系
+
+| 规则 | 管什么 |
+|---|---|
+| `vcs-svn-commit`（本规则） | SVN 提交的**专属约束** |
+| `vcs-commit` | 提交的**公共执行规范**（摘要格式、授权安全） |
+| `vcs-git-commit` | Git 提交的**专属约束**（结构对标本规则） |
+| `vcs-router` | 版本控制操作**路由**（本技能的入口在此） |

@@ -1,0 +1,33 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "svn commit",
+        "提交到 svn",
+        "提交到 Subversion",
+        "svn 提交",
+        "工作副本提交",
+        "提交工作副本"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "svn update",
+        "svn revert",
+        "svn switch",
+        "svn merge",
+        "svn log",
+        "svn lock",
+        "git commit"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

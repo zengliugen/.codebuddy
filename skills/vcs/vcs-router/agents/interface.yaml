@@ -1,6 +1,6 @@
 interface:
   display_name: "版本控制路由"
-  short_description: "识别版本控制操作类型并检测仓库类型，路由到对应 git 执行技能"
+  short_description: "识别版本控制操作类型并检测仓库类型（Git / SVN），路由到对应的 vcs-<vcs>-<op> 执行技能"
   default_prompt: "使用 $vcs-router 识别版本控制操作。仅做识别与路由，不执行实际操作。"
 compatibility:
   canonical_format: "agent-skills"
@@ -16,7 +16,9 @@ compatibility:
       - keyword: "提交代码"
       - keyword: "提交一下"
       - keyword: "commit"
+      - keyword: "svn commit"
       - keyword: "git merge"
+      - keyword: "svn merge"
       - keyword: "合并分支"
   execution:
     context: "inline"
@@ -27,6 +29,7 @@ compatibility:
       - "SKILL.md"
       - "scripts/route_vcs.py"
       - "scripts/vcs_lock.py"
+      - "scripts/validate_commit_subject.py"
       - "agents/interface.yaml"
   trust:
     source_tier: "local"
@@ -39,5 +42,5 @@ compatibility:
     vscode: "agent-skills-source-with-vscode-notes"
     codebuddy-code: "native"
 name: vcs-router
-version: "2.1"
+version: "2.2"
 mode: Production

@@ -1,35 +1,52 @@
 ---
-description: 版本控制操作路由规范 —— 定义操作类型识别、仓库类型检测与路由去向表。本文件是规范规则（不是入口规则）：不定义「必须经哪个技能」，那由同包 vcs-router.entry 承载。由 vcs-router 技能按需加载。
+description: 版本控制操作路由规范 —— 定义操作类型识别、版本控制类型检测（Git / SVN）与路由去向表。本文件是规范规则（不是入口规则）：不定义「必须经哪个技能」，那由同包 vcs-router.entry 承载。由 vcs-router 技能按需加载。
 alwaysApply: false
 enabled: true
-updatedAt: 2026-10-26T00:00:00.000Z
+updatedAt: 2026-10-29T00:00:00.000Z
 provider:
 ---
 
 # 版本控制操作路由规范
 
 本文件是 `vcs-router` 技能的**路由规范**，由技能按需加载。它定义路由判据——
-识别操作类型、检测仓库类型、决定去向；「必须经该技能」的入口约束见
+识别操作类型、检测版本控制类型、决定去向；「必须经该技能」的入口约束见
 同包 `vcs-router.entry/`。
 
 ## 路由判据
 
 1. **识别操作类型**：从用户请求提取 commit / merge 等操作；未显式指定时默认 commit。
 
-2. **检测仓库类型**：判断当前目录是否 Git 仓库；非 Git 仓库时终止并提示，不执行任何操作。
+2. **检测版本控制类型**：判断当前目录属于 Git 仓库、SVN 工作副本，还是两者都不是；
+   都不是时终止并提示，不执行任何操作。
 
-3. **校验目标技能存在**：目标技能不存在或为占位实现时，如实告知用户该操作暂未支持。
+3. **校验目标技能存在**：目标技能不存在时为「该操作暂未支持」，如实告知用户。
 
 4. **不支持的操作类型直接拒绝**：`amend`、`rebase`、`cherry-pick`、`revert`、`stash`、
-   分支操作等非路由类操作不在技能范围。
+   分支与标签操作、`svn update` / `svn revert` / `svn switch` 等非路由类操作不在技能范围。
+
+## 检测顺序与判据
+
+| 顺序 | 类型 | 判据 |
+|---|---|---|
+| 1 | `git` | `git rev-parse --is-inside-work-tree` 返回 true，或目录下存在 `.git` |
+| 2 | `svn` | `svn info --non-interactive` 退出码 0，或目录下存在 `.svn` |
+| 3 | `none` | 以上皆否 |
+
+**必须 Git 先于 SVN**：同时具备两者标记的目录（Git 仓库内嵌套 SVN 工作副本）中，
+外层 Git 的语义覆盖范围更大；判成 SVN 会让提交目标落在外层仓库之外。
+该顺序属**判据**，不是实现细节——调换会静默改变提交去向。
 
 ## 路由去向
 
-| 操作类型 | 目标技能 | 该技能的规范在哪 |
-|---|---|---|
-| `commit` | `vcs-git-commit` | `rules/vcs/vcs-git-commit/`（提交摘要、授权安全、Git 约束） |
-| `merge` | `vcs-git-merge` | `rules/vcs/vcs-git-merge/`（当前为占位空实现） |
-| 引擎仓库内的提交 | `vcs-git-commit` | 另需遵循 `rules/vcs/vcs-engine-commit/`（仓库归属与先子后父） |
+目标技能名恒为 `vcs-<vcs>-<op>`（包名前缀不可省），组合出下表：
+
+| 操作类型 | Git 仓库 | SVN 工作副本 | 该技能的规范在哪 |
+|---|---|---|---|
+| `commit` | `vcs-git-commit` | `vcs-svn-commit` | 公共：`rules/vcs/vcs-commit/`；专属：对应 `vcs-<vcs>-commit/` |
+| `merge` | `vcs-git-merge` | `vcs-svn-merge` | 对应 `vcs-<vcs>-merge/`（两者当前均为占位空实现） |
+| 引擎仓库内的提交 | `vcs-git-commit` | 不适用（引擎仓库恒为 Git） | 另需遵循 `rules/vcs/vcs-engine-commit/`（仓库归属与先子后父） |
+
+**占位技能被路由后**由目标技能返回「未实现占位」提示，路由链路本身不因占位而中断。
 
 ## 加载机制说明
 
@@ -43,6 +60,7 @@ provider:
 |---|---|
 | `vcs-router`（本文件） | **路由判据**：怎么识别、怎么检测、去哪里 |
 | `vcs-router.entry` | **必须经该技能**（入口约束） |
-| `vcs-git-commit` | 提交的**执行规范**：摘要格式、授权、安全检查、Git 约束 |
-| `vcs-git-merge` | 合并的**执行规范**（占位） |
+| `vcs-commit` | 提交的**公共执行规范**：摘要格式、授权与安全（Git 与 SVN 共用） |
+| `vcs-git-commit` / `vcs-svn-commit` | 各 VCS 提交的**专属约束** |
+| `vcs-git-merge` / `vcs-svn-merge` | 各 VCS 合并的**执行规范**（当前均为占位） |
 | `vcs-engine-commit` | **引擎仓库**的提交：归哪个仓库、要不要补父侧指针 |

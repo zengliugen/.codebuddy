@@ -24,9 +24,9 @@ compatibility:
       python: ">=3.8"
     artifacts:
       - "SKILL.md"
-      - "scripts/validate_commit_subject.py"
       - "scripts/verify_staged.py"
       - "agents/interface.yaml"
+      - "../../vcs-router/scripts/validate_commit_subject.py"
   trust:
     source_tier: "local"
     remote_inline_execution: "forbid"

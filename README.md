@@ -64,9 +64,11 @@
 │   │                           #            core-engine/（.codebuddy/**：内容隔离 + 登记同步）
 │   │                           #            core-rule-governance/（规则命名与分类元规则）
 │   │                           #            core-init.entry/（初始化强制入口）
-│   ├── vcs/                    #   默认包（4 条）：vcs-router/（+ vcs-router.entry/ 强制入口）
+│   ├── vcs/                    #   默认包（7 条）：vcs-router/（+ vcs-router.entry/ 强制入口）
 │   │                           #            vcs-engine-commit/（.codebuddy/**：引擎仓库提交）
-│   │                           #            vcs-git-commit/ vcs-git-merge/（提交与合并执行）
+│   │                           #            vcs-commit/（提交公共规范：摘要、授权安全）
+│   │                           #            vcs-git-commit/ vcs-svn-commit/（Git / SVN 提交专属约束）
+│   │                           #            vcs-git-merge/ vcs-svn-merge/（合并执行，均为占位）
 │   ├── tool/                   #   默认包（5 条，均为 .entry/ 入口形态）：
 │   │                           #            tool-cmd-script-writing/ tool-engine-sync/
 │   │                           #            tool-export-zipped-dir/ tool-rule-consolidation/
@@ -76,7 +78,7 @@
 │
 ├── skills/                     # 技能扫描根：engine 包真实目录 + 其余包链接
 │   ├── core/ core-init/
-│   ├── vcs/                    #   vcs-router/ git-commit/ git-merge/
+│   ├── vcs/                    #   vcs-router/ git-commit/ git-merge/ svn-commit/ svn-merge/
 │   ├── tool/                   #   cmd-script-writing/ engine-sync/ export-zipped-dir/ rule-consolidation/ session-lesson-distill/
 │   ├── project ──链接──▶ 项目侧 #   项目专有技能（.codebuddy.project/skills/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
@@ -276,7 +278,7 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 |---|---|---|---|
 | `core` | 基础 | ✅ | rules: core-language、core-project-guide、core-tooling、core-engine、core-init、core-rule-governance；skills: core-init |
 | `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
-| `vcs` | 基础 | ✅ | rules: vcs-router、vcs-engine-commit、vcs-git-commit、vcs-git-merge；skills: vcs-router、vcs-git-commit、vcs-git-merge |
+| `vcs` | 基础 | ✅ | rules: vcs-router、vcs-engine-commit、vcs-commit、vcs-git-commit、vcs-git-merge、vcs-svn-commit、vcs-svn-merge；skills: vcs-router、vcs-git-commit、vcs-git-merge、vcs-svn-commit、vcs-svn-merge |
 | `tool` | 基础 | ✅ | rules: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-rule-consolidation、tool-session-lesson-distill；skills: 同名 5 个 |
 | `csharp` | C# | ❌ | rules: csharp-code-review、csharp-comment、csharp-lsp、csharp-test、csharp-test-coverage、csharp-format-checker；skills: csharp-code-review、csharp-comment-checker、csharp-comment-generator、csharp-format-checker、csharp-lsp、csharp-test-coverage；agents: 2 个 |
 | `unity-pipeline` | 领域（本地维护） | ❌ | rules: unity-pipeline；skills: unity-pipeline |

@@ -1,0 +1,68 @@
+---
+description: 提交执行公共规范索引 —— 提交摘要格式、授权与安全检查的规范入口，由 vcs-git-commit 与 vcs-svn-commit 两个技能按需加载。本文件是规范规则（不是入口规则）：不定义「必须走哪个技能」，入口约束见同包 vcs-router.entry/。
+alwaysApply: false
+enabled: true
+updatedAt: 2026-10-29T00:00:00.000Z
+provider:
+---
+
+# 提交执行公共规范
+
+本文件是**提交流程的公共规范**，与具体版本控制系统（Git / SVN）无关，由
+`vcs-git-commit` 与 `vcs-svn-commit` 两个技能在执行对应步骤时按需加载。
+
+> **为何没有对应技能**：本规范不是某个技能的专属细则，而是两个提交执行技能的**共同前缀**
+> （`vcs-` 下 `git-commit` 与 `svn-commit` 共用的提交语义）。按治理约定，共用规范取共同前缀命名。
+> 入口约束在 `vcs-router.entry/`，路由判据在 `vcs-router/`，各 VCS 的专属约束在
+> `vcs-git-commit/`、`vcs-svn-commit/`。
+
+## 规范分项
+
+| 场景 | 文件 | 内容 |
+|---|---|---|
+| 生成提交摘要 | `commit-spec.mdc` | **判定口径**：格式由项目侧 pattern 决定、type 枚举与含义来自配置、scope 提取、subject 四项判定 |
+| 授权与安全检查 | `submission-safety-spec.mdc` | 发起权（按项目配置）、AskUserQuestion 授权、提交与推送分离、敏感信息检查 |
+
+## 归属判据：什么该写在这里
+
+| 内容性质 | 放在哪 | 例子 |
+|---|---|---|
+| 摘要**判定方法**、授权语义、敏感信息检查 | **本规则**（两套 VCS 同义） | 「按配置的 pattern 校验」「按配置的 types 顺序决策」、`commit_initiation` |
+| 某个 VCS 的忽略规则、命令、边界情况 | 对应 VCS 的规则目录 | `.gitignore` 交叉比对属 `vcs-git-commit/`；`svn:ignore` 属 `vcs-svn-commit/` |
+| **摘要的具体格式与 type 取值** | **项目侧配置**（不在引擎任何位置） | `git_commit.config` / `svn_commit.config` 的 `commit_subject.pattern` 与 `.types` |
+
+判据一：**把 Git 换成 SVN 后这句话是否依然成立**。成立 → 本规则；不成立 → 下移到 VCS 专属规则。
+
+判据二：**这句话是否在断言某种具体格式或具体取值**。是 → 移到项目侧配置（本规则只写「怎么判」）；
+否 → 可留本规则。Git 与 SVN 的摘要格式**允许不同**，把任一方的格式写进引擎都会让另一侧失效。
+
+## 项目配置
+
+| 配置项 | 作用 | Git 逻辑名 | SVN 逻辑名 |
+|---|---|---|---|
+| 提交摘要参数 | **格式 pattern**、type 枚举及含义、subject/scope 长度、subject 语言、禁用结尾字符 | `git_commit.config` | `svn_commit.config` |
+| 流程级配置 | scope 规则、发起权取值、审查门禁参数、钩子步骤 | `git_commit.project_config` | `svn_commit.project_config` |
+
+**两套配置相互独立，且摘要格式允许不同**：Git 与 SVN 在团队实践中的写法可能不一致（例如 SVN 侧
+沿用 Subversion 客户端的 `[<scope>] <type>: <subject>`）。脚本按调用方传入的逻辑名读取各自的
+`pattern` 与 `types`，不跨逻辑名复用——复用的后果是「改了一处、另一处静默沿用旧值」，
+而且因为格式本就应当可不同，这种错误不会有任何报错。
+
+**项目配置是唯一事实来源**：配置缺失或字段非法时脚本报错退出（退出码 3），不回退内置默认值。
+
+## 加载机制说明
+
+- 本文件与两个分项规范均为 `alwaysApply: false`，由技能执行对应步骤时读取。
+- 提交摘要的 `type` 枚举、长度上限、语言均从项目侧配置读取（逻辑名由技能传入），不在规范里写死。
+- 审查门禁的机制由技能 `references/project-config.md` 承载，参数由项目侧配置承载，
+  不在本目录设子规则文件。
+
+## 与其他规则的关系
+
+| 规则 | 管什么 |
+|---|---|
+| `vcs-commit`（本规则） | 提交的**公共执行规范**（与 VCS 无关） |
+| `vcs-git-commit` | Git 提交的**专属约束**（`.gitignore`、Git 边界情况） |
+| `vcs-svn-merge` / `vcs-svn-commit` | SVN 提交的**专属约束**（`svn:ignore`、工作副本状态、SVN 边界情况） |
+| `vcs-router` | 版本控制操作**路由**（两个提交技能的入口在此） |
+| `vcs-engine-commit` | 引擎仓库提交的**归属判定**（额外要求） |

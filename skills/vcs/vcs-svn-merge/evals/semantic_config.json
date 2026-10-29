@@ -1,0 +1,32 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "svn merge",
+        "合并 svn 分支",
+        "合到 trunk",
+        "svn 合并",
+        "分支合并到工作副本"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "合并文档",
+        "合并表格",
+        "合并配置",
+        "svn update",
+        "svn commit",
+        "svn switch",
+        "git merge"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

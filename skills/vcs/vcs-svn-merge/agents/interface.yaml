@@ -1,0 +1,40 @@
+interface:
+  display_name: "SVN 合并占位"
+  short_description: "SVN 合并路由目标的空实现，仅返回未实现提示"
+  default_prompt: "使用 $vcs-svn-merge 处理合并请求。当前为空实现，仅返回未实现提示，不执行任何 SVN 命令。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "svn merge"
+      - keyword: "合并 svn 分支"
+      - keyword: "把分支合到 trunk"
+      - keyword: "svn 合并"
+  execution:
+    context: "inline"
+    shell: "powershell"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"
+name: vcs-svn-merge
+version: "1.0"
+mode: "Production"

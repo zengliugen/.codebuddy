@@ -62,22 +62,26 @@ scope 的具体取值以 `references/project-config.md` §1 中的项目配置�
 
 ### 阶段四：生成提交摘要
 
-按 `<type>(<scope>): <subject>` 格式生成。**type 定义、subject 规范、授权确认方式遵循 `.codebuddy/rules/vcs/vcs-git-commit/commit-spec.mdc` 与 `submission-safety-spec.mdc` 公共子规则**，近似 type 的详细区分规则见 `references/commit-spec.md`。
+按**项目侧配置的 `commit_subject.pattern`** 生成摘要（格式不写死在引擎里）。**判定口径、授权方式遵循 `.codebuddy/rules/vcs/vcs-commit/commit-spec.mdc` 与 `submission-safety-spec.mdc` 公共子规则**（Git 与 SVN 共用同一份），近似 type 的区分思路见 `references/commit-spec.md`。
 
-默认 type 枚举（读取自项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`，索引逻辑名 `git_commit.config`，目标项目可调整）：
+**摘要格式与 type 枚举一律读取项目侧配置**（`.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`，
+索引逻辑名 `git_commit.config`），本文件与 SKILL.md **都不预置任何 type 清单或格式**：
 
-| 类型 | 说明 | 类型 | 说明 |
-|------|------|------|------|
-| `feat` | 新功能 | `fix` | Bug 修复 |
-| `docs` | 文档变更 | `style` | 代码格式调整 |
-| `refactor` | 代码重构 | `perf` | 性能优化 |
-| `test` | 测试 | `chore` | 构建/工具链 |
-| `ci` | CI/CD | `revert` | 回退提交 |
+| 从配置读什么 | 用来做什么 |
+|---|---|
+| `commit_subject.pattern` | 判定摘要是否合规的唯一依据（正则 + 命名组） |
+| `commit_subject.format` | 展示给用户看的格式描述（与 pattern 不一致时以 pattern 为准） |
+| `commit_subject.types` | type 枚举**及其含义**；**数组顺序即决策优先级** |
+| `commit_subject.subject_max_len` / `scope_max_len` | 长度上限 |
+| `commit_subject.subject_language` / `forbid_trailing` | 语言与禁用结尾字符 |
 
-**生成后自动化校验**：每条提交摘要生成后，运行格式校验脚本确认合规。type 枚举、subject 长度上限、scope 长度上限、subject 语言均读取项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json`（索引逻辑名 `git_commit.config`，配置为唯一来源，缺失或字段非法时脚本报错退出码 3），无句号结尾为通用约定：
+> **不要把本文件或历史提交里的写法当作本项目格式**：Git 与 SVN 的摘要格式**允许不同**，
+> 两份配置互不继承。选 type 时按配置数组顺序逐个比对 `description`，第一个命中即选它。
+
+**生成后自动化校验**：每条提交摘要生成后，运行格式校验脚本确认合规。脚本的**格式判定完全由配置的 `pattern` 驱动**（不认引擎里任何写死的形态），配置缺失或字段非法时报错退出码 3。脚本位于 `vcs-router` 技能（Git 与 SVN 共用一份），**必须显式传 `--config-key git_commit.config`**——该参数不设默认值，漏传即参数错误，不存在「静默读了另一份配置」的可能：
 
 ```bash
-python .codebuddy/skills/vcs/vcs-git-commit/scripts/validate_commit_subject.py "<type>(<scope>): <subject>"
+python .codebuddy/skills/vcs/vcs-router/scripts/validate_commit_subject.py --config-key git_commit.config "<按本项目 pattern 生成的摘要>"
 ```
 
 校验失败（退出码 1）时，按错误提示修正后重新校验；全部提交摘要校验通过后进入阶段五。

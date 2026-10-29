@@ -14,8 +14,12 @@
 
 ## 0. 关联配置
 
-提交摘要确定性参数由项目侧配置承载（索引逻辑名 `git_commit.config`），脚本（`validate_commit_subject.py`）直接读取。
+提交摘要的**格式与全部取值**由项目侧配置承载（索引逻辑名 `git_commit.config`），脚本
+（`vcs-router/scripts/validate_commit_subject.py --config-key git_commit.config`）直接读取。
 **配置为唯一事实来源**：文件缺失、损坏或字段非法时报错退出（退出码 3），不回退内置默认值。
+
+**引擎不规定摘要长什么样**：格式由配置的 `commit_subject.pattern`（正则 + 命名组）声明，
+type 枚举与含义由 `commit_subject.types` 声明。Git 与 SVN 的格式**允许不同**，两者各自读自己的配置。
 
 ## 1. Scope 规则（机制）
 

@@ -15,27 +15,27 @@ metadata:
 ## 与 vcs-router 的关系
 `vcs-router` 是提交操作的**统一入口**：用户提交请求先由 vcs-router 检测仓库类型并路由，本技能作为 Git 仓库的**提交执行者**。用户显式指定 Git 上下文（如"git commit"）时，本技能也可直接触发。
 
-**入口约束**在 `.codebuddy/rules/vcs/vcs-router.entry/vcs-router.entry.mdc`（始终生效，要求提交必须经 `vcs-router` 路由）；**路由判据**在 `.codebuddy/rules/vcs/vcs-router/RULE.mdc`。**执行规范**在 `.codebuddy/rules/vcs/vcs-git-commit/`，按需加载同目录分项：`commit-spec.mdc`（提交摘要）、`submission-safety-spec.mdc`（授权与安全）、`git-commit-spec.mdc`（Git 特定安全约束）。本技能执行时遵循上述规则，本文件仅保留 Git 特定流程与命令。
+**入口约束**在 `.codebuddy/rules/vcs/vcs-router.entry/vcs-router.entry.mdc`（始终生效，要求提交必须经 `vcs-router` 路由）；**路由判据**在 `.codebuddy/rules/vcs/vcs-router/RULE.mdc`。**公共执行规范**（摘要格式、授权与安全）在 `.codebuddy/rules/vcs/vcs-commit/`，由本技能与 `vcs-svn-commit` 共用同一份；**Git 专属约束**在 `.codebuddy/rules/vcs/vcs-git-commit/git-commit-spec.mdc`。本技能执行时遵循上述规则，本文件仅保留 Git 特定流程与命令。
 
 **提交前审查门禁不在规则目录**：其**机制**由本技能 `references/project-config.md` §2 承载，**参数**由项目侧配置（经索引 `git_commit.project_config` 定位）承载；作为 §3 H1 暂存前的**首个步骤**执行（见阶段五）。
 
-**项目可配置项（均外置到项目侧 `.codebuddy.project/`，经 `.codebuddy/project.index.json` 定位）**：提交摘要确定性参数（type 枚举、subject/scope 长度、subject 语言）见索引逻辑名 `git_commit.config`；流程级配置（scope 规则、审查门禁参数、钩子步骤取值）见逻辑名 `git_commit.project_config`。目标项目只改项目侧配置，不改本技能与规则文件。
+**项目可配置项（均外置到项目侧 `.codebuddy.project/`，经 `.codebuddy/project.index.json` 定位）**：提交摘要确定性参数（**格式 `pattern`**、type 枚举及含义、subject/scope 长度、subject 语言、禁用结尾字符）见索引逻辑名 `git_commit.config`；流程级配置（scope 规则、审查门禁参数、钩子步骤取值）见逻辑名 `git_commit.project_config`。目标项目只改项目侧配置，不改本技能与规则文件。
 
 ## 核心契约
 | 维度 | 定义 |
 |------|------|
 | 拥有的任务 | Git 仓库的 `git commit` 标准化提交流程（变更分析 → 提交计划 → 项目专有钩子 → 安全检查 → 用户授权 → 执行提交） |
-| 输出 | 符合 `<type>(<scope>): <subject>` 格式的提交，附带安全检查与代码审查证据 |
+| 输出 | 符合**项目侧配置 `commit_subject.pattern`** 的提交摘要（格式由配置决定，引擎不预设形态），附带安全检查与代码审查证据 |
 | 排除 | `git commit --amend`、`git rebase`、`git cherry-pick`、`git revert`、`git stash`、分支操作、`git merge` |
-| 提交规范 | 入口约束见 `rules/vcs/vcs-router.entry/`（始终生效）；执行规范见 `rules/vcs/vcs-git-commit/`（`commit-spec`、`submission-safety-spec`、`git-commit-spec`，按需加载）；审查门禁机制见本技能 `references/project-config.md` §2（参数见项目侧 `project-config.md`） |
+| 提交规范 | 入口约束见 `rules/vcs/vcs-router.entry/`（始终生效）；公共规范见 `rules/vcs/vcs-commit/`（`commit-spec`、`submission-safety-spec`）；Git 专属约束见 `rules/vcs/vcs-git-commit/git-commit-spec.mdc`；审查门禁机制见本技能 `references/project-config.md` §2（参数见项目侧 `project-config.md`） |
 
 ## 参考文献
 | 文件 | 内容 |
 |------|------|
-| `references/commit-spec.md` | 提交摘要详细规范：近似 type 区分规则、subject 正确/错误示例、提交正文、提交信息的传入方式（`-F` 文件传参、`@` 污染成因）、多模块拆分与编排顺序 |
+| `references/commit-spec.md` | 提交摘要详细规范（Git 副本，供本技能直接查阅）：近似 type 区分规则、subject 正确/错误示例、提交正文、提交信息的传入方式（`-F` 文件传参、`@` 污染成因）、多模块拆分与编排顺序 |
 | `references/submission-safety.md` | 安全规范：提交/推送发起权（按项目配置）、授权要求、提交推送分离、敏感信息检查、.gitignore 检查流程 |
 | `references/project-config.md` | **引擎侧机制**：§2 审查门禁机制（触发时机/审查对象/派发要素/阻塞规则）、§3 钩子步骤字段语义与执行规则、§3.1 外部校验命令执行机制。**项目参数**外置到项目侧（索引 `git_commit.project_config`）；**引擎不提供任何默认值** |
-| 项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json` | 提交摘要确定性配置：type 枚举、subject_max_len、scope_max_len、subject_language（索引 `git_commit.config`） |
+| 项目侧 `.codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json` | 提交摘要确定性配置：**`pattern`（正则，判定依据）**、`format`、types（含含义）、subject_max_len、scope_max_len、subject_language、forbid_trailing（索引 `git_commit.config`） |
 | `references/vcs-lock.md` | 多会话防冲突：VCS 写操作互斥锁机制、命令用法、暂存区校验，集成到阶段七 |
 
 接口契约定义在 `agents/interface.yaml`，包含输入/输出/排除的完整契约。
@@ -56,7 +56,7 @@ metadata:
 | 目录 | 用途 | 文件数 |
 |------|------|--------|
 | `references/` | 按需加载的详细参考文档（含契约、指南与示例） | 6 |
-| `scripts/` | 确定性执行脚本，供本技能直接调用 | 2 |
+| `scripts/` | 确定性执行脚本，供本技能直接调用（提交摘要校验脚本已移至 `vcs-router` 技能，两个提交技能共用） | 1 |
 | `evals/` | 触发评估用例与语义配置，供 trigger_eval 复跑 | 6 |
 | `reports/` | 质量与风险评估报告（输出风险画像、信任报告等） | 1 |
 | `agents/` | 接口契约与子代理定义 | 1 |

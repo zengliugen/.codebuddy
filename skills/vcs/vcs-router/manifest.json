@@ -1,6 +1,6 @@
 {
   "name": "vcs-router",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "owner": "zengliugen",
   "updated_at": "2026-10-29",
   "review_due": "2027-01-29",
@@ -14,9 +14,9 @@
     "openai",
     "claude",
     "generic",
-    "agent-skills-compatible",
     "vscode",
-    "codebuddy-code"
+    "codebuddy-code",
+    "agent-skills-compatible"
   ],
   "factory_components": [
     "agents",

@@ -105,24 +105,23 @@
       "path": ".codebuddy.project/configs/skills/vcs/vcs-git-commit/config.json",
       "format": "json",
       "template": {
-        "version": 1,
-        "_comment": "本文件为 git-commit 的项目配置：提交摘要的 type 枚举、subject/scope 长度上限与 subject 语言。本文件是提交摘要约定的唯一来源：配置缺失、损坏或字段非法时校验脚本报错退出（退出码 3），不回退默认值。",
+        "version": 2,
+        "_comment": "本文件为 git-commit 的项目配置：提交摘要的格式（pattern）、type 枚举及含义、长度上限、subject 语言、禁用结尾字符。本文件是 Git 提交摘要约定的唯一来源：配置缺失、损坏或字段非法时校验脚本报错退出（退出码 3），不回退默认值。pattern 是判定依据（正则 + 命名组 type/scope/subject），format 仅用于展示；两者不一致时以 pattern 为准。**与 svn_commit.config 相互独立**——两者的摘要格式允许不同。",
         "commit_subject": {
+          "format": "<type>(<scope>): <subject>",
+          "pattern": "^(?P<type>[a-z]+)(?:\\((?P<scope>[^)]+)\\))?: (?P<subject>.+)$",
           "types": [
-            "feat",
-            "fix",
-            "docs",
-            "style",
-            "refactor",
-            "perf",
-            "test",
-            "chore",
-            "ci",
-            "revert"
+            {
+              "name": "feat",
+              "description": "<该 type 的含义，按项目约定填写>"
+            }
           ],
           "subject_max_len": 50,
           "scope_max_len": 40,
-          "subject_language": "zh"
+          "subject_language": "zh",
+          "forbid_trailing": [
+            "<不允许的结尾字符，如句号>"
+          ]
         }
       }
     },
@@ -134,6 +133,43 @@
         "## 0. 关联配置",
         "## 1. Scope 规则（项目路径 → scope 映射）",
         "## 2. 提交 / 推送的发起权（参数）",
+        "## 3. 提交前审查门禁（参数）",
+        "## 4. H1 钩子步骤",
+        "## 5. 项目专有检查说明"
+      ]
+    },
+    "svn_commit.config": {
+      "path": ".codebuddy.project/configs/skills/vcs/vcs-svn-commit/config.json",
+      "format": "json",
+      "template": {
+        "version": 2,
+        "_comment": "本文件为 svn-commit 的项目配置：提交摘要的格式（pattern）、type 枚举及含义、长度上限、subject 语言、禁用结尾字符。本文件是 SVN 提交摘要约定的唯一来源：配置缺失、损坏或字段非法时校验脚本报错退出（退出码 3），不回退默认值。pattern 是判定依据（正则 + 命名组 type/scope/subject），format 仅供展示。**格式与 git_commit.config 可以不同**：SVN 侧常沿用 Subversion 客户端的既有写法，改格式只需改本文件的 format 与 pattern。",
+        "commit_subject": {
+          "format": "<按团队 Subversion 使用习惯填，如 [<scope>] <type>: <subject>>",
+          "pattern": "<与 format 等价的正则，用 (?P<type>...)/(?P<scope>...)/(?P<subject>...) 标记字段>",
+          "types": [
+            {
+              "name": "feat",
+              "description": "<该 type 的含义，按项目约定填写>"
+            }
+          ],
+          "subject_max_len": 50,
+          "scope_max_len": 40,
+          "subject_language": "zh",
+          "forbid_trailing": [
+            "<不允许的结尾字符，如句号>"
+          ]
+        }
+      }
+    },
+    "svn_commit.project_config": {
+      "path": ".codebuddy.project/configs/skills/vcs/vcs-svn-commit/project-config.md",
+      "format": "markdown",
+      "template_outline": [
+        "# 版本控制项目配置（SVN project-config）",
+        "## 0. 关联配置",
+        "## 1. Scope 规则（项目路径 → scope 映射）",
+        "## 2. 提交的发起权（参数）",
         "## 3. 提交前审查门禁（参数）",
         "## 4. H1 钩子步骤",
         "## 5. 项目专有检查说明"
