@@ -22,7 +22,9 @@ rules/<pack>/
 ```
 
 引擎侧（`.codebuddy/rules/<pack>/`）与项目侧（`.codebuddy.project/rules/project/`）
-布局同构，差异只在项目侧的 `project-` 前缀（见 `classification-spec.mdc` §2.4）。
+布局同构，差异有二：项目侧组件名加 `project-` 前缀；项目侧允许再按「族」分组一层，
+即入口规则落 `.codebuddy.project/rules/project/<族>/` 下（族名取技能名共同前缀，
+同时就是规范目录名）。引擎侧已有包层分组，不需此层。详见 `classification-spec.mdc` §2.4。
 
 **入口规则必须独占目录**，目录名与文件主干一致（`core-init.entry/core-init.entry.mdc`）。
 理由：入口与规范职责不同、加载方式不同，混在同一目录会让「哪些是入口、哪些是规范」
@@ -42,7 +44,8 @@ rules/<pack>/
      `alwaysApply: true`，**不写 `paths`**
    - 规范规则 → 目录 `<规则名>/` 下建 `RULE.mdc` 或 `<主题>.mdc`，固定 `alwaysApply: false`，
      **不写 `paths`**；无技能的底线型则 `alwaysApply: true`，同样不写 `paths`
-   - 项目侧组件 → 路径基准换成 `.codebuddy.project/rules/project/`，名称加 `project-` 前缀
+   - 项目侧组件 → 路径基准换成 `.codebuddy.project/rules/project/<族>/`（族目录取规范名的
+     共同前缀），名称加 `project-` 前缀
 4. **登记**：引擎侧在 `lib/packs.json` 对应包的 `comps.rules` 追加规则名；
    项目侧因该包内容由项目自行管理，只按 `classification-spec.mdc` §2.4 命名，不登记 `packs.json`。
 5. **同步引用**：全库检索旧名，改掉技能文档、README、规则全景表、项目索引中的引用。

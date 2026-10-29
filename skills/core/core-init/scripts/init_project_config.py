@@ -390,7 +390,8 @@ def build_project_skills_targets(project_root):
          "#   <pack>/     引擎可选包的组件链接（由 pack_install.py 创建，勿手工增删）\n"
          "#   project/    项目专有技能（真实目录，随项目入库）\n"
          "# 项目专有技能请放 .codebuddy.project/skills/project/<技能名>/SKILL.md，\n"
-         "# 经 .codebuddy/skills/project 链接被加载。\n"),
+         "# 或按族收纳为 skills/project/<族>/<技能名>/SKILL.md（族名取技能名共同前缀），\n"
+         "# 两种形态都经 .codebuddy/skills/project 链接被加载。\n"),
     ]
 
 
@@ -512,6 +513,9 @@ def readme_content(project_config_root):
 
 项目专有技能放在本目录的 `skills/project/<技能名>/SKILL.md`（随项目入库），
 经软链接 `.codebuddy/skills/project` 被 CodeBuddy 自动加载（详见 `skills/README.md`）。
+
+技能较多时可按「族」收纳一层：`skills/project/<族>/<技能名>/SKILL.md`，族名取同族技能名的
+共同前缀，与 `rules/project/<族>/` 一一对应。技能扫描逐层递归，两种形态等效，可按需迁移。
 这样与 `.codebuddy` 引擎解耦：引擎可 submodule 化、多项目共享，项目专有内容只随本仓库版本控制、不进入引擎。
 
 ## 维护约定

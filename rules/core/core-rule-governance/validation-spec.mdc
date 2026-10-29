@@ -55,7 +55,7 @@ provider:
 |---|---|
 | 项 8 | 组件名必须为 `<包名>-` 开头，或等于包名（命名约定） |
 | 项 9 | ① 入口目录 `<名>.entry/` 内必须有同名 `<名>.entry.mdc`；② 入口规则必须有对应技能（或为其共同前缀）；③ 入口规则必须 `alwaysApply: true`；④ `RULE.mdc` 若 `alwaysApply: true` 则不得有同名技能（底线规范例外） |
-| 项 10 | 项目侧 `.codebuddy.project/rules/project/` 与 `.codebuddy.project/skills/project/` 同样适用项 8 与项 9 的命名与落位规则 |
+| 项 10 | 项目侧 `.codebuddy.project/rules/project/`、`skills/project/`、`agents/project/` 同样适用项 8 与项 9 的命名与落位规则。组件**按目录内容递归识别**（`.entry` 后缀 → 入口规则、含 `SKILL.md` → 技能、含 `RULE.mdc` → 规范规则、其余为族分组层），因此「再按族嵌套一层」不影响判定 |
 | 项 11 | 触发字段：全库（引擎侧 + 项目侧）任何 `*.mdc` 的 frontmatter 均不得出现 `paths` 键；入口规则必须声明 frontmatter 且 `alwaysApply: true`；子规则不得 `alwaysApply: true`。只检查 frontmatter，正文引述 `paths` 字样不误报；`alwaysApply: true  # 注释` 与 `"true"` 写法均视为合规 |
 | 项 12 | 技能激活：`agents/interface.yaml` 的 `activation.mode` 不得为 `path_scoped`，`activation.paths` 必须为空。引擎侧与项目侧技能同规；`evals/`、`reports/`、`examples/`、`.previews/`、`tests/fixtures/` 下的样例不参与 |
 

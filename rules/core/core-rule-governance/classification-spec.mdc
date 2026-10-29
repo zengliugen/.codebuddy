@@ -110,19 +110,40 @@ provider:
 ### 2.4 项目侧规则与技能
 
 项目专有组件位于 `.codebuddy.project/<类型>/project/`，与引擎侧**同一布局**，
-组件名加 `project-` 前缀（与 `lib/packs.json` 中 `project` 包的命名约定一致）：
+组件名加 `project-` 前缀（与 `lib/packs.json` 中 `project` 包的命名约定一致）。
+
+**项目侧允许再按「族」分组一层**。族名取技能名的**共同前缀**，即规范目录名；同一族的入口规则、
+规范规则与技能全部收进该族目录。引擎侧的包层已承担分组职责，故引擎侧没有这一层：
 
 ```
 .codebuddy.project/rules/project/
-├── project-<技能名>.entry/project-<技能名>.entry.mdc
-└── project-<主题>/RULE.mdc
+└── project-<主题>/                                    # 族目录（＝规范目录）
+    ├── RULE.mdc
+    ├── <主题>-spec.mdc
+    └── project-<技能名>.entry/
+        └── project-<技能名>.entry.mdc
+
+.codebuddy.project/skills/project/
+└── project-<主题>/                                    # 同名族目录
+    └── project-<技能名>/
+        └── SKILL.md
+
+.codebuddy.project/agents/project/
+└── project-<主题>/                                    # 同名族目录
+    └── project-<代理名>.md
 ```
 
 - 入口规则名仍是**技能名**：技能 `project-extension-capability-guard` → 入口
-  `project-extension-capability-guard.entry/`。
-- 规范目录取技能名的**共同前缀**：`project-extension-capability/`。
-- 技能同理：`.codebuddy.project/skills/project/project-<主题>/`，`SKILL.md` 与
-  `manifest.json` 的 `name` 字段、`agents/interface.yaml` 的 `name` 字段同步改名。
+  `project-extension-capability-guard.entry/`，但置于族目录 `project-extension-capability/` 内。
+- 规范目录取技能名的**共同前缀**：`project-extension-capability/`——它同时就是族目录，
+  故规范正文路径不因收纳而改变，只有入口目录下沉一层。
+- 技能与代理同理：置于同名族目录下；`SKILL.md` 与 `manifest.json` 的 `name` 字段、
+  `agents/interface.yaml` 的 `name` 字段仍是**技能/代理名**，与族目录名无关。
+- **只有入口、无规范规则的族**仍在族目录下建 `.entry/`，不退化为 `rules/project/<名>.entry/`。
+- 三类加载机制均已实测支持嵌套：规则扫描递归无深度上限；技能扫描逐层递归、上限 5 层
+  （族目录 + 技能目录共 2 层，余量充足）；代理扫描递归收集 `*.md`。
+- 校验见 `check_manifest.py` 项 10：组件按目录内容（`SKILL.md` / `RULE.mdc` / `.entry` 后缀）
+  递归识别，不看层级。
 
 ## 三、`RULE.mdc` 的两种角色
 

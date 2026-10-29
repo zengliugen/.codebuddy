@@ -547,6 +547,47 @@ def check_trigger_fields(codebuddy_dir, project_root):
     return problems
 
 
+def iter_project_components(root):
+    """递归列出项目侧组件目录，返回 [(种类, 绝对路径)]，种类为 entry / rule / skill。
+
+    项目侧 `<类型>/project/` 下允许再按「族」分组，把入口规则、规范规则与技能收进同一族目录，
+    组件因此可能不在第一层，不能用单层 listdir 判定。识别规则：
+      - `<名>.entry/`   → 入口规则（不再深入）；
+      - 含 `SKILL.md`   → 技能（不再深入，避免把 references/ 等子目录误判为技能）；
+      - 含 `RULE.mdc`   → 规范规则（继续深入，其内可挂 `.entry/` 子目录）；
+      - 其余目录视为分组层，继续深入。
+
+    参数：
+        root：组件根目录（如 `.codebuddy.project/rules/project`）。
+
+    返回：
+        [(种类, 绝对路径)]，按路径排序；根目录不存在时返回空列表。
+    """
+    if not os.path.isdir(root):
+        return []
+    found = []
+    stack = [root]
+    while stack:
+        current = stack.pop()
+        if os.path.basename(current).endswith(".entry"):
+            found.append(("entry", current))
+            continue
+        if os.path.isfile(os.path.join(current, "SKILL.md")):
+            found.append(("skill", current))
+            continue
+        if os.path.isfile(os.path.join(current, "RULE.mdc")):
+            found.append(("rule", current))
+        try:
+            children = sorted(os.listdir(current))
+        except OSError:
+            continue
+        for child in children:
+            full = os.path.join(current, child)
+            if os.path.isdir(full):
+                stack.append(full)
+    return sorted(found, key=lambda item: item[1])
+
+
 def check_project_components(project_root):
     """校验项目专有包的组件命名与落位（校验项 10）。
 
@@ -567,44 +608,39 @@ def check_project_components(project_root):
     skills_root = os.path.join(project_root, ".codebuddy.project", "skills", "project")
 
     skills = set()
-    if os.path.isdir(skills_root):
-        for name in sorted(os.listdir(skills_root)):
-            full = os.path.join(skills_root, name)
-            if not os.path.isdir(full):
-                continue
-            rel = ".codebuddy.project/skills/project/" + name
-            if not name.startswith("project-"):
-                problems.append("项目侧技能命名不合规：%s（应以 project- 开头）" % rel)
-            skills.add(name)
-            skill_md = os.path.join(full, "SKILL.md")
-            if not os.path.isfile(skill_md):
-                continue
-            try:
-                with open(skill_md, "r", encoding="utf-8") as handle:
-                    text = handle.read()
-            except OSError:
-                continue
-            declared = None
-            if text.startswith("---"):
-                end = text.find("\n---", 3)
-                head = text[:end] if end != -1 else ""
-                for line in head.splitlines():
-                    if line.startswith("name:"):
-                        declared = line[len("name:"):].strip()
-                        break
-            if declared and declared != name:
-                problems.append("项目侧技能 SKILL.md 的 name 与目录名不一致：%s（name=%s）"
-                                % (rel, declared))
+    for kind, full in iter_project_components(skills_root):
+        if kind != "skill":
+            continue
+        name = os.path.basename(full)
+        rel = os.path.relpath(full, project_root).replace("\\", "/")
+        if not name.startswith("project-"):
+            problems.append("项目侧技能命名不合规：%s（应以 project- 开头）" % rel)
+        skills.add(name)
+        skill_md = os.path.join(full, "SKILL.md")
+        try:
+            with open(skill_md, "r", encoding="utf-8") as handle:
+                text = handle.read()
+        except OSError:
+            continue
+        declared = None
+        if text.startswith("---"):
+            end = text.find("\n---", 3)
+            head = text[:end] if end != -1 else ""
+            for line in head.splitlines():
+                if line.startswith("name:"):
+                    declared = line[len("name:"):].strip()
+                    break
+        if declared and declared != name:
+            problems.append("项目侧技能 SKILL.md 的 name 与目录名不一致：%s（name=%s）"
+                            % (os.path.relpath(full, project_root).replace("\\", "/"), declared))
 
     if not os.path.isdir(rules_root):
         return problems
 
-    for name in sorted(os.listdir(rules_root)):
-        full = os.path.join(rules_root, name)
-        if not os.path.isdir(full):
-            continue
-        rel = ".codebuddy.project/rules/project/" + name
-        if name.endswith(".entry"):
+    for kind, full in iter_project_components(rules_root):
+        name = os.path.basename(full)
+        rel = os.path.relpath(full, project_root).replace("\\", "/")
+        if kind == "entry":
             rule_name = name[: -len(".entry")]
             if not rule_name.startswith("project-"):
                 problems.append("项目侧入口规则命名不合规：%s（应以 project- 开头）" % rel)
@@ -619,6 +655,8 @@ def check_project_components(project_root):
                                 % (rel, rule_name))
             continue
 
+        if kind != "rule":
+            continue
         if not name.startswith("project-"):
             problems.append("项目侧规则命名不合规：%s（应以 project- 开头）" % rel)
         rule_file = os.path.join(full, "RULE.mdc")

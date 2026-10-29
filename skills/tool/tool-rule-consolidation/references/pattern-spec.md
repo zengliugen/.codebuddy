@@ -126,7 +126,9 @@ provider:
 ### 项目侧规则（`.codebuddy.project/rules/project/`）
 
 项目专有规则与引擎侧**同构**（入口独占目录 + 规范目录），组件名统一加 `project-` 前缀，
-由 `check_manifest.py` 项 10 校验。清单如下：
+由 `check_manifest.py` 项 10 校验。项目侧允许再按「族」分组：入口目录下沉进以规范名命名的族目录
+（`rules/project/<族>/<入口名>.entry/`），故下表「规则」列是组件名、不带层级，实际路径见
+`classification-spec.mdc` §2.4。清单如下：
 
 | 规则 | 类型 | 触发方式 | 对应技能 | 子规范 |
 |---|---|---|---|---|

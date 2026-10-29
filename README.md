@@ -145,7 +145,7 @@
 | `.codebuddy/skills/**/tools/**/<工具>.json` | 引擎 | **分层配置的通用部分**（规则、算法参数等） |
 | `.codebuddy.project/` | 项目 | 项目侧内容根：`configs/` 配置、`caches/` 运行时产物（不入库）、`store/` 持久化结果、`docs/` 技能产出的项目文档（如 devflow 能力文档）、`skills/` 项目专有技能（含 `settings.json` 源文件）；随项目独立维护 |
 | `.codebuddy/settings.json` | 项目（链接） | **软链接** → `.codebuddy.project/configs/settings.json`（由项目侧创建，**不入本库**） |
-| `.codebuddy.project/<类型>/project/` | 项目 | **项目专有包**内容（与其他包同构）：`rules/project/`、`skills/project/`、`agents/project/`，经 `.codebuddy/<类型>/project` 链接被加载，**不入本库** |
+| `.codebuddy.project/<类型>/project/` | 项目 | **项目专有包**内容（与其他包同构）：`rules/project/`、`skills/project/`、`agents/project/`，经 `.codebuddy/<类型>/project` 链接被加载，**不入本库**。内部允许再按「族」分组，组件可下沉一层（规则加载递归、技能扫描逐层递归、代理扫描递归） |
 | `.codebuddy.project/skills/` | 项目 | 可选包在项目侧的组件链接（由 setup 创建） |
 | `.codebuddy/models.json` / `settings.local.json` | 机器 | 机器级/本机级；不入库 |
 
@@ -345,6 +345,12 @@ python .codebuddy/scripts/pack_install.py verify --repair  # 修复漂移
 .codebuddy.project/rules/project/my-rule/RULE.mdc
 .codebuddy.project/skills/project/my-skill/SKILL.md
 .codebuddy.project/agents/project/my-agent.md
+
+# 按「族」收纳后的示例：同一族的规范规则、入口规则、技能、代理收进同名族目录
+.codebuddy.project/rules/project/my-family/RULE.mdc
+.codebuddy.project/rules/project/my-family/my-family-guard.entry/my-family-guard.entry.mdc
+.codebuddy.project/skills/project/my-family/my-family-guard/SKILL.md
+.codebuddy.project/agents/project/my-family/my-family-helper.md
 ```
 
 ## 仓库更新（update_repo.py）
