@@ -15,9 +15,9 @@
 
 | 组件 | 来源 | 版本 | 维护档位 | 可否修改 |
 |------|------|------|---------|---------|
-| `lib/yao-meta-skill/` | 上游 yao-meta-skill（skill 工程化工具链） | 2.1.0 | 只读 vendor | 仅允许最小可行性补丁，须记录在 `references/cli-changelog.md` |
-| `lib/unity-pipeline/` | `com.unity.pipeline` 0.9.0-exp.1 | 2.0 | **本地维护** | 允许本地改造：正文已中文化，补丁记录在 `references/cli-changelog.md` |
-| `lib/grilling/` | 源出上游 grilling（方案拷问） | 2.0 | **本地维护** | 允许本地改造：正文、参考文档、评测与治理产物均归本仓库维护；改动记录在 `references/cli-changelog.md` |
+| `lib/yao-meta-skill/` | 上游 yao-meta-skill（skill 工程化工具链） | 2.1.0 | 只读 vendor | 仅允许最小可行性补丁，须记录在技能根目录 `CHANGELOG.md` |
+| `lib/unity-pipeline/` | `com.unity.pipeline` 0.9.0-exp.1 | 2.0 | **本地维护** | 允许本地改造：正文已中文化，改动记录在技能根目录 `CHANGELOG.md` |
+| `lib/grilling/` | 源出上游 grilling（方案拷问） | 2.0 | **本地维护** | 允许本地改造：正文、参考文档、评测与治理产物均归本仓库维护；改动记录在技能根目录 `CHANGELOG.md` |
 
 **为什么 `yao-meta-skill` 不做中文转换**：它的触发评估与回归测试依赖原文措辞（`evals/semantic_config.json` 的
 中英短语权重、`tests/` 快照），翻译会使工具链失效并导致上游 `git pull` 永久冲突。
