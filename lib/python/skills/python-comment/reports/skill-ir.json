@@ -1,0 +1,88 @@
+{
+  "schema_version": "2.0.0",
+  "name": "python-comment",
+  "title": "Python 注释检查",
+  "job_to_be_done": "Python 注释与 docstring 检查修复技能。当用户要求\"检查注释是否规范\"、\"docstring 怎么写\"、\"补全缺失的 docstring\"、\"注释和代码对不上\"、\"统一注释风格\"、或需要在 Python 文件里添加/修正模块、类、函数注释时触发。要求注释全中文、全角标点（与语言规范一致，不出现中文配半角标点的混排）；按 google 风格给出 docstring 结构，段标题写 Args：/Returns：/Raises：全角冒号；可机械判定的部分（有无 docstring、摘要与正文间空行）交给 ruff 的 D 系列规则，首行标点因工具只认 ASCII 而改由本技能保证。修复模式可逐项补全或修正，并保证修复后能通过 ruff 检查。",
+  "trigger_surface": {
+    "description": "Python 注释与 docstring 检查修复技能。当用户要求\"检查注释是否规范\"、\"docstring 怎么写\"、\"补全缺失的 docstring\"、\"注释和代码对不上\"、\"统一注释风格\"、或需要在 Python 文件里添加/修正模块、类、函数注释时触发。要求注释全中文、全角标点（与语言规范一致，不出现中文配半角标点的混排）；按 google 风格给出 docstring 结构，段标题写 Args：/Returns：/Raises：全角冒号；可机械判定的部分（有无 docstring、摘要与正文间空行）交给 ruff 的 D 系列规则，首行标点因工具只认 ASCII 而改由本技能保证。修复模式可逐项补全或修正，并保证修复后能通过 ruff 检查。",
+    "should_trigger": [
+      "检查注释是否规范",
+      "docstring 该怎么写",
+      "补全缺失的 docstring",
+      "注释和代码对不上了",
+      "统一注释风格",
+      "这个函数缺注释，补一下",
+      "python-comment 检查 overrides.py",
+      "Args 段怎么写"
+    ],
+    "should_not_trigger": [
+      "审查这段代码逻辑",
+      "跑一下 ruff",
+      "格式化 Python 代码",
+      "建 Python 环境",
+      "统计测试覆盖率"
+    ],
+    "edge_cases": [
+      "检查代码质量",
+      "注释里有个错别字",
+      "代码符合规范吗"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\guide.md"
+    ],
+    "scripts": [],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger\\blind-run-report.md",
+      "evals\\trigger\\eval-summary.md",
+      "evals\\trigger\\trigger-eval-cases.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "low",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

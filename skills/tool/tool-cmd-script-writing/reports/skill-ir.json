@@ -1,0 +1,86 @@
+{
+  "schema_version": "2.0.0",
+  "name": "tool-cmd-script-writing",
+  "title": "CMD Batch Script Writing",
+  "job_to_be_done": "编写与修复 Windows CMD 批处理脚本（.cmd/.bat）。当用户要求写 cmd/bat 脚本、修复中文乱码、遇到 echo 报 is not recognized、批处理 goto 出错，或编写链接/构建/清理/发布脚本时触发。",
+  "trigger_surface": {
+    "description": "编写与修复 Windows CMD 批处理脚本（.cmd/.bat）。当用户要求写 cmd/bat 脚本、修复中文乱码、遇到 echo 报 is not recognized、批处理 goto 出错，或编写链接/构建/清理/发布脚本时触发。",
+    "should_trigger": [
+      "写一个 cmd 脚本",
+      "修复 cmd 中文乱码",
+      "这个 bat 报 is not recognized",
+      "批处理 goto 出错",
+      "写一个 mklink 链接脚本",
+      "cmd 脚本乱码而且 goto 也有问题"
+    ],
+    "should_not_trigger": [
+      "写一个 bash 脚本",
+      "写个 powershell 脚本",
+      "写个 python 脚本"
+    ],
+    "edge_cases": [
+      "写个 shell 脚本",
+      "写个 python 批处理工具"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\contract.md",
+      "references\\goto-pitfall.md",
+      "references\\guide.md",
+      "references\\path-handling.md",
+      "references\\utf8-garbled.md",
+      "references\\verification-env.md"
+    ],
+    "scripts": [
+      "scripts\\check_cmd_trailing.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "personal"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "scaffold",
+    "review_cadence": "per-release",
+    "review_due": "2026-11-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

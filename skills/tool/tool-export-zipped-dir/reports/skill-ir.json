@@ -1,0 +1,81 @@
+{
+  "schema_version": "2.0.0",
+  "name": "tool-export-zipped-dir",
+  "title": "Directory Zip Export",
+  "job_to_be_done": "导出任意目录为 zip 压缩包。当用户要求\"导出目录\"、\"打包目录\"、\"压缩目录\"、\"将 XXX 导出到下载目录\"时触发。目录位于 git 仓库内时自动忽略被 gitignore 忽略的文件，可通过 --force 强制包含特定文件（如根目录配置 json）；目录不在任何 git 仓库内时（如 .codebuddy 被单独复制到其他位置）自动退化为全量导出，仅跳过通用构建产物。不处理单文件导出。",
+  "trigger_surface": {
+    "description": "导出任意目录为 zip 压缩包。当用户要求\"导出目录\"、\"打包目录\"、\"压缩目录\"、\"将 XXX 导出到下载目录\"时触发。目录位于 git 仓库内时自动忽略被 gitignore 忽略的文件，可通过 --force 强制包含特定文件（如根目录配置 json）；目录不在任何 git 仓库内时（如 .codebuddy 被单独复制到其他位置）自动退化为全量导出，仅跳过通用构建产物。不处理单文件导出。",
+    "should_trigger": [
+      "导出这个目录",
+      "打包目录成 zip",
+      "压缩 .codebuddy 目录",
+      "导出到下载目录",
+      "把目录打包但保留被忽略的配置"
+    ],
+    "should_not_trigger": [
+      "导出这个文件",
+      "复制单个文件到下载",
+      "删除目录"
+    ],
+    "edge_cases": [
+      "导出单个文件到下载",
+      "压缩这个 zip 包"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\contract.md"
+    ],
+    "scripts": [
+      "scripts\\export_zipped_dir.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": "2.0.0",
+  "name": "unity-pipeline",
+  "title": "Unity 管线驱动",
+  "job_to_be_done": "通过命令行打开 Unity 项目并驱动运行中的 Editor 或 Player。当需要启动 Unity 项目、控制实时实例、自动化编译/测试、无头重编译，或应用运行时方法重载时使用。",
+  "trigger_surface": {
+    "description": "通过命令行打开 Unity 项目并驱动运行中的 Editor 或 Player。当需要启动 Unity 项目、控制实时实例、自动化编译/测试、无头重编译，或应用运行时方法重载时使用。",
+    "should_trigger": [
+      "打开 Unity 项目",
+      "驱动 Unity 编辑器重编译",
+      "跑 Unity 测试",
+      "应用运行时代码重载",
+      "评估一段 C# 代码",
+      "打开 Unity 并跑测试",
+      "重编译后立即跑测试"
+    ],
+    "should_not_trigger": [
+      "打开 Unreal 项目",
+      "打开 Godot 项目",
+      "写一段 C# 代码"
+    ],
+    "edge_cases": [
+      "Unity 版本是多少"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\advanced-commands.md",
+      "references\\commands.md",
+      "references\\contract.md"
+    ],
+    "scripts": [
+      "scripts\\check_unity_cli.py",
+      "scripts\\unity_test_summary.py",
+      "scripts\\unity_version_check.py",
+      "scripts\\unity_wait.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger\\trigger-eval-cases.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "monthly",
+    "review_due": "2026-11-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

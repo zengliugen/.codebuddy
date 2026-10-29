@@ -1,0 +1,94 @@
+{
+  "schema_version": "2.0.0",
+  "name": "tool-engine-sync",
+  "title": "引擎同步",
+  "job_to_be_done": "引擎仓库更新同步技能。当用户要求\"更新引擎到最新并同步项目侧\"、\"升级 .codebuddy 引擎\"、\"引擎有更新看看要同步什么\"、\"同步引擎新技能/新规则到项目\"、\"/engine-sync\"，或引擎子模块指针前移后需要落实项目侧影响时触发。执行引擎仓库快进更新，对比前后两个版本的「项目侧契约」（索引 files / rule_shells / artifacts / root_symlinks 与包注册表包/组件）变化，产出影响清单（必须处理 / 建议处理 / 仅告知），经用户确认后落实：迁移路径变更、生成缺失骨架、重建包链接、提示新增技能与规则、清理残留。不做版本控制提交与推送、不创建新技能、不审查代码。",
+  "trigger_surface": {
+    "description": "引擎仓库更新同步技能。当用户要求\"更新引擎到最新并同步项目侧\"、\"升级 .codebuddy 引擎\"、\"引擎有更新看看要同步什么\"、\"同步引擎新技能/新规则到项目\"、\"/engine-sync\"，或引擎子模块指针前移后需要落实项目侧影响时触发。执行引擎仓库快进更新，对比前后两个版本的「项目侧契约」（索引 files / rule_shells / artifacts / root_symlinks 与包注册表包/组件）变化，产出影响清单（必须处理 / 建议处理 / 仅告知），经用户确认后落实：迁移路径变更、生成缺失骨架、重建包链接、提示新增技能与规则、清理残留。不做版本控制提交与推送、不创建新技能、不审查代码。",
+    "should_trigger": [
+      "更新引擎并同步项目侧",
+      "引擎有更新看看要同步什么",
+      "升级一下 .codebuddy 引擎",
+      "同步引擎的新技能到项目里",
+      "子模块指针更新了项目侧还要做什么",
+      "引擎改了配置目录结构项目这边怎么跟",
+      "更新引擎后提示下有哪些新技能",
+      "引擎 pull 完了检查下项目侧有没有要同步的"
+    ],
+    "should_not_trigger": [
+      "新项目接入 codebuddy 初始化配置",
+      "新建一个技能用于导出报表",
+      "提交引擎仓库变更",
+      "把这条规则拆成子规则",
+      "审查这次 C# 变更",
+      "看看引擎有没有新版本",
+      "同步一下 git 远程分支"
+    ],
+    "edge_cases": [
+      "生成项目侧配置骨架",
+      "检查可选包安装状态",
+      "更新引擎子模块指针"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\guide.md",
+      "references\\impact-model.md",
+      "references\\sync-playbook.md"
+    ],
+    "scripts": [
+      "scripts\\analyze_impact.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger\\eval-summary.md",
+      "evals\\trigger\\should-not-trigger.md",
+      "evals\\trigger\\should-trigger.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

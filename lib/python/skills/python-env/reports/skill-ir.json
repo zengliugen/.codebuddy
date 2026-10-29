@@ -1,0 +1,90 @@
+{
+  "schema_version": "2.0.0",
+  "name": "python-env",
+  "title": "Python 工具环境",
+  "job_to_be_done": "Python 工具环境与应用解释器管理技能（基于 uv 与包内锁定文件）。当用户要求\"建 Python 检查环境\"、\"装 ruff\"、\"检查 Python 环境是否就绪\"、\"重建工具环境\"、\"python-env ensure\"、\"python-env check\"、\"应用解释器在哪\"、或提交前的 Python 检查因环境缺失而失败时触发。用一个只有两个依赖（ruff、coverage）的独立虚拟环境承载检查工具，与被检项目自身的运行环境物理隔离；依赖定义与锁定在引擎包内 lib/python/envs/（pyproject.toml 加 uv.lock），由 uv 物化到项目侧 .codebuddy.project/envs/python，删除后数秒可重建且支持离线。同时负责按四级顺序探测应用解释器（配置、VIRTUAL_ENV、项目根候选目录、启动器），每级都校验目标解释器能 import ok，避免\"解释器能跑但测试全部跳过仍报成功\"的静默失败。",
+  "trigger_surface": {
+    "description": "Python 工具环境与应用解释器管理技能（基于 uv 与包内锁定文件）。当用户要求\"建 Python 检查环境\"、\"装 ruff\"、\"检查 Python 环境是否就绪\"、\"重建工具环境\"、\"python-env ensure\"、\"python-env check\"、\"应用解释器在哪\"、或提交前的 Python 检查因环境缺失而失败时触发。用一个只有两个依赖（ruff、coverage）的独立虚拟环境承载检查工具，与被检项目自身的运行环境物理隔离；依赖定义与锁定在引擎包内 lib/python/envs/（pyproject.toml 加 uv.lock），由 uv 物化到项目侧 .codebuddy.project/envs/python，删除后数秒可重建且支持离线。同时负责按四级顺序探测应用解释器（配置、VIRTUAL_ENV、项目根候选目录、启动器），每级都校验目标解释器能 import ok，避免\"解释器能跑但测试全部跳过仍报成功\"的静默失败。",
+    "should_trigger": [
+      "建一下 Python 检查环境",
+      "装个 ruff",
+      "工具环境就绪了吗",
+      "重建工具环境",
+      "应用解释器在哪",
+      "python-env check",
+      "这个环境跟锁定文件一致吗",
+      "Python 环境怎么初始化"
+    ],
+    "should_not_trigger": [
+      "检查这段代码有没有问题",
+      "跑一下 ruff",
+      "把代码格式化",
+      "写个单元测试",
+      "审查这个函数"
+    ],
+    "edge_cases": [
+      "检查 Python 代码规范",
+      "修复注释格式",
+      "统计测试覆盖率"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\guide.md"
+    ],
+    "scripts": [
+      "scripts\\env.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger\\blind-run-report.md",
+      "evals\\trigger\\eval-summary.md",
+      "evals\\trigger\\trigger-eval-cases.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

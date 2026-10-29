@@ -1,0 +1,78 @@
+{
+  "schema_version": "2.0.0",
+  "name": "vcs-git-merge",
+  "title": "Git 合并占位",
+  "job_to_be_done": "Git 合并占位技能（空实现）。当用户要求合并 Git 分支（\"git merge\"、\"合并分支\"、\"把 XX 合到 main\"，或由 vcs-router 技能路由）时触发。当前未实现 git merge 流程，本技能仅返回提示，不执行任何 git 操作。不支持 git rebase、git cherry-pick 等非 merge 操作。",
+  "trigger_surface": {
+    "description": "Git 合并占位技能（空实现）。当用户要求合并 Git 分支（\"git merge\"、\"合并分支\"、\"把 XX 合到 main\"，或由 vcs-router 技能路由）时触发。当前未实现 git merge 流程，本技能仅返回提示，不执行任何 git 操作。不支持 git rebase、git cherry-pick 等非 merge 操作。",
+    "should_trigger": [
+      "合并分支",
+      "git merge main",
+      "把 feature 合到 main",
+      "合并分支前先看看差异"
+    ],
+    "should_not_trigger": [
+      "合并这两个文档",
+      "合并表格",
+      "rebase 分支",
+      "提交代码"
+    ],
+    "edge_cases": [
+      "合并配置文件",
+      "rebase 到 main"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\contract.md"
+    ],
+    "scripts": [],
+    "assets": [],
+    "reports": [
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "low",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

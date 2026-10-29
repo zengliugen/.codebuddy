@@ -1,0 +1,89 @@
+{
+  "schema_version": "2.0.0",
+  "name": "core-init",
+  "title": "引擎接入与包管理",
+  "job_to_be_done": "项目配置初始化与可选包管理技能。当新项目拉取（或以 submodule 接入）本 .codebuddy 引擎后需要接入配置，或需要查看/追加安装/移除引擎可选包时触发；用户说\"初始化配置\"、\"接入 codebuddy\"、\"生成项目配置\"、\"配置骨架\"、\"新项目接入\"、\"装了哪些包\"、\"装个 XX 包\"、\"卸载 XX 包\"时调用。运行先做只读状态检测（--status：是否已初始化、缺失配置与产物目录、已装/未装可选包、链接是否漂移），再据现状用 AskUserQuestion 询问意图，可选动作包括生成配置骨架（依据 .codebuddy/project.index.json 生成 configs/ 占位骨架、caches/ 产物目录、store/ 骨架、.gitignore、清理入口、项目专有包目录与 settings.json 软链接）、按项目情况填写配置、列出已安装包、追加安装包、移除包、修复链接漂移。不含任何项目专有值。",
+  "trigger_surface": {
+    "description": "项目配置初始化与可选包管理技能。当新项目拉取（或以 submodule 接入）本 .codebuddy 引擎后需要接入配置，或需要查看/追加安装/移除引擎可选包时触发；用户说\"初始化配置\"、\"接入 codebuddy\"、\"生成项目配置\"、\"配置骨架\"、\"新项目接入\"、\"装了哪些包\"、\"装个 XX 包\"、\"卸载 XX 包\"时调用。运行先做只读状态检测（--status：是否已初始化、缺失配置与产物目录、已装/未装可选包、链接是否漂移），再据现状用 AskUserQuestion 询问意图，可选动作包括生成配置骨架（依据 .codebuddy/project.index.json 生成 configs/ 占位骨架、caches/ 产物目录、store/ 骨架、.gitignore、清理入口、项目专有包目录与 settings.json 软链接）、按项目情况填写配置、列出已安装包、追加安装包、移除包、修复链接漂移。不含任何项目专有值。",
+    "should_trigger": [
+      "初始化项目配置",
+      "接入 codebuddy",
+      "生成配置骨架",
+      "装了哪些包",
+      "安装 csharp 包",
+      "卸载 grilling 包",
+      "检查链接是否漂移",
+      "看看现在装了哪些包再决定装什么"
+    ],
+    "should_not_trigger": [
+      "初始化一个 git 仓库",
+      "npm install",
+      "生成 README",
+      "配置编译器"
+    ],
+    "edge_cases": [
+      "安装一个 npm 包",
+      "生成项目文档"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\contract.md",
+      "references\\fill-guide.md",
+      "references\\guide.md",
+      "references\\index-spec.md"
+    ],
+    "scripts": [
+      "scripts\\init_project_config.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger\\trigger-eval-cases.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

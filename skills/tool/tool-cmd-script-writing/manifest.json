@@ -1,0 +1,28 @@
+{
+  "name": "tool-cmd-script-writing",
+  "version": "1.0.0",
+  "owner": "zengliugen",
+  "updated_at": "2026-10-29",
+  "review_due": "2026-11-29",
+  "status": "active",
+  "maturity_tier": "scaffold",
+  "lifecycle_stage": "scaffold",
+  "context_budget_tier": "scaffold",
+  "review_cadence": "per-release",
+  "skill_ir_source": "reports/skill-ir.json",
+  "target_platforms": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "factory_components": [
+    "agents",
+    "references",
+    "scripts",
+    "evals",
+    "reports"
+  ]
+}

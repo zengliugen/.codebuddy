@@ -1,0 +1,94 @@
+{
+  "schema_version": "2.0.0",
+  "name": "csharp-test-coverage",
+  "title": "C# Test Coverage",
+  "job_to_be_done": "C# 测试覆盖率检查技能。对指定目录/文件/包做测试覆盖率分析：静态分析（Roslyn 解析运行时成员与 Tests/ 引用的映射，识别零引用成员）为主，Unity Code Coverage 真实采集为辅，双路可合并并标出分歧项。当用户要求\"检查测试覆盖率\"、\"看看哪些代码没有测试\"、\"找出未覆盖的成员/文件\"、\"零测试代码\"、\"跑一次覆盖率\"、\"未覆盖清单\"，或要求为缺失测试生成骨架时，应主动调用此技能。扫描完成后必须询问是否生成 Test 骨架（默认不生成）；骨架需编译验证（已安装可选包 unity-pipeline 时经其 recompile，未安装时用 dotnet build）。真实采集全程不关闭编辑器，状态读取一律走 unity command \"script eval\" 读内存值，禁止读 Settings.json 判断开关。",
+  "trigger_surface": {
+    "description": "C# 测试覆盖率检查技能。对指定目录/文件/包做测试覆盖率分析：静态分析（Roslyn 解析运行时成员与 Tests/ 引用的映射，识别零引用成员）为主，Unity Code Coverage 真实采集为辅，双路可合并并标出分歧项。当用户要求\"检查测试覆盖率\"、\"看看哪些代码没有测试\"、\"找出未覆盖的成员/文件\"、\"零测试代码\"、\"跑一次覆盖率\"、\"未覆盖清单\"，或要求为缺失测试生成骨架时，应主动调用此技能。扫描完成后必须询问是否生成 Test 骨架（默认不生成）；骨架需编译验证（已安装可选包 unity-pipeline 时经其 recompile，未安装时用 dotnet build）。真实采集全程不关闭编辑器，状态读取一律走 unity command \"script eval\" 读内存值，禁止读 Settings.json 判断开关。",
+    "should_trigger": [
+      "检查测试覆盖率",
+      "哪些代码没有测试",
+      "找出未覆盖的成员",
+      "跑一次覆盖率",
+      "生成未覆盖清单",
+      "为缺失测试生成骨架",
+      "跑测试并看看覆盖率",
+      "哪些测试没覆盖到"
+    ],
+    "should_not_trigger": [
+      "跑一下单元测试",
+      "运行所有测试",
+      "修一个失败的测试",
+      "审查代码"
+    ],
+    "edge_cases": [
+      "写个单元测试",
+      "检查代码质量"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\check-scope.md",
+      "references\\config-guide.md",
+      "references\\contract.md",
+      "references\\guide.md",
+      "references\\limitations.md",
+      "references\\real-coverage-guide.md"
+    ],
+    "scripts": [
+      "scripts\\check_coverage.py",
+      "scripts\\collect_real_coverage.py",
+      "scripts\\generate_skeletons.py",
+      "scripts\\parse_unity_coverage.py",
+      "scripts\\skill_config.py",
+      "scripts\\trigger_eval.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

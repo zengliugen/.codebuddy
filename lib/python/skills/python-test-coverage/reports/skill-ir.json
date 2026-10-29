@@ -1,0 +1,90 @@
+{
+  "schema_version": "2.0.0",
+  "name": "python-test-coverage",
+  "title": "Python 测试覆盖率",
+  "job_to_be_done": "Python 测试覆盖率采集技能（在被测代码的运行环境中执行，并校验测试确实跑过）。当用户要求\"统计测试覆盖率\"、\"跑一下覆盖率\"、\"coverage report\"、\"看看扩展代码的测试覆盖情况\"、\"这次改动有没有测试覆盖\"、或需要验证新增代码是否被测试覆盖时触发。用应用环境的解释器执行测试（被测代码需要框架等运行依赖），coverage 装在工具环境通过 PYTHONPATH 注入；测试用逐文件显式传路径而非 discover（后者会静默漏测）。关键设计是断言实际执行用例数大于零——用错环境时用例会全部跳过而测试框架仍返回成功、覆盖率报 0%，看起来像\"代码确实没覆盖\"，比报错更难发现。报告落项目侧缓存目录。",
+  "trigger_surface": {
+    "description": "Python 测试覆盖率采集技能（在被测代码的运行环境中执行，并校验测试确实跑过）。当用户要求\"统计测试覆盖率\"、\"跑一下覆盖率\"、\"coverage report\"、\"看看扩展代码的测试覆盖情况\"、\"这次改动有没有测试覆盖\"、或需要验证新增代码是否被测试覆盖时触发。用应用环境的解释器执行测试（被测代码需要框架等运行依赖），coverage 装在工具环境通过 PYTHONPATH 注入；测试用逐文件显式传路径而非 discover（后者会静默漏测）。关键设计是断言实际执行用例数大于零——用错环境时用例会全部跳过而测试框架仍返回成功、覆盖率报 0%，看起来像\"代码确实没覆盖\"，比报错更难发现。报告落项目侧缓存目录。",
+    "should_trigger": [
+      "统计测试覆盖率",
+      "跑一下覆盖率",
+      "coverage report 看看",
+      "扩展代码的测试覆盖情况",
+      "这次改动有没有测试覆盖",
+      "python-test-coverage 跑一遍",
+      "分支覆盖率多少",
+      "测试真的跑了吗"
+    ],
+    "should_not_trigger": [
+      "审查这段代码",
+      "跑一下 ruff",
+      "格式化 Python 代码",
+      "建 Python 环境",
+      "帮我写个单元测试"
+    ],
+    "edge_cases": [
+      "跑一下测试",
+      "检查注释是否规范",
+      "代码质量如何"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\guide.md"
+    ],
+    "scripts": [
+      "scripts\\run_coverage.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger\\blind-run-report.md",
+      "evals\\trigger\\eval-summary.md",
+      "evals\\trigger\\trigger-eval-cases.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "schema_version": "2.0.0",
+  "name": "tool-session-lesson-distill",
+  "title": "会话经验固化",
+  "job_to_be_done": "会话经验固化技能。当用户要求把本次会话的经验沉淀下来（如\"把这次的经验固化一下\"、\"沉淀到技能里\"、\"复盘这次踩的坑\"、\"/session-lesson-distill\"），或会话中出现明确的可复用经验信号（用户纠正了做法、同类问题重复出现、发现技能/规则文档与实际实现不符、复杂任务收尾）时触发。从当前会话提取可复用经验（教训、约定、坑、验证方式、流程改进），按证据溯源映射到本次会话实际使用过的技能（.codebuddy/skills/**）与规则（.codebuddy/rules/**），先产出固化清单，经用户确认后写回。不创建新技能、不执行代码审查、不执行版本控制提交。",
+  "trigger_surface": {
+    "description": "会话经验固化技能。当用户要求把本次会话的经验沉淀下来（如\"把这次的经验固化一下\"、\"沉淀到技能里\"、\"复盘这次踩的坑\"、\"/session-lesson-distill\"），或会话中出现明确的可复用经验信号（用户纠正了做法、同类问题重复出现、发现技能/规则文档与实际实现不符、复杂任务收尾）时触发。从当前会话提取可复用经验（教训、约定、坑、验证方式、流程改进），按证据溯源映射到本次会话实际使用过的技能（.codebuddy/skills/**）与规则（.codebuddy/rules/**），先产出固化清单，经用户确认后写回。不创建新技能、不执行代码审查、不执行版本控制提交。",
+    "should_trigger": [
+      "把这次的经验固化一下",
+      "沉淀到技能里",
+      "复盘这次踩的坑",
+      "把经验写回规则",
+      "这次踩坑要不要记下来"
+    ],
+    "should_not_trigger": [
+      "总结一下这次会话",
+      "生成一个文档",
+      "审查代码",
+      "提交代码"
+    ],
+    "edge_cases": [
+      "写个会话总结",
+      "沉淀一份文档"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\contract.md",
+      "references\\guide.md",
+      "references\\lesson-extraction.md",
+      "references\\target-mapping.md",
+      "references\\write-back-rules.md"
+    ],
+    "scripts": [
+      "scripts\\list_targets.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger\\eval-summary.md",
+      "evals\\trigger\\should-not-trigger.md",
+      "evals\\trigger\\should-trigger.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}

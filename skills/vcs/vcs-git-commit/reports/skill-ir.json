@@ -1,0 +1,93 @@
+{
+  "schema_version": "2.0.0",
+  "name": "vcs-git-commit",
+  "title": "Git 提交执行",
+  "job_to_be_done": "Git 提交执行技能。当用户要求提交 Git 代码（\"git commit\"、\"提交到 git\"，或由 vcs-router 技能路由）时触发，分析 Git 变更并生成标准化提交摘要，提交前按项目配置自动触发代码审查门禁（文件模式与阻塞级别均按项目配置）。不支持 amend、rebase、cherry-pick、revert、stash、merge、分支操作。",
+  "trigger_surface": {
+    "description": "Git 提交执行技能。当用户要求提交 Git 代码（\"git commit\"、\"提交到 git\"，或由 vcs-router 技能路由）时触发，分析 Git 变更并生成标准化提交摘要，提交前按项目配置自动触发代码审查门禁（文件模式与阻塞级别均按项目配置）。不支持 amend、rebase、cherry-pick、revert、stash、merge、分支操作。",
+    "should_trigger": [
+      "提交代码",
+      "帮我 commit",
+      "git commit",
+      "提交这次的变更"
+    ],
+    "should_not_trigger": [
+      "git push",
+      "切换分支",
+      "rebase 到 main",
+      "stash 一下",
+      "查看 git log"
+    ],
+    "edge_cases": [
+      "提交并推送",
+      "先审查再提交",
+      "合并分支"
+    ]
+  },
+  "workflow": {
+    "steps": [
+      "Understand the request.",
+      "Execute the main task.",
+      "Validate the result."
+    ],
+    "decision_points": [],
+    "failure_modes": []
+  },
+  "resources": {
+    "references": [
+      "references\\commit-spec.md",
+      "references\\contract.md",
+      "references\\guide.md",
+      "references\\project-config.md",
+      "references\\submission-safety.md",
+      "references\\vcs-lock.md"
+    ],
+    "scripts": [
+      "scripts\\validate_commit_subject.py",
+      "scripts\\verify_staged.py"
+    ],
+    "assets": [],
+    "reports": [
+      "reports/output-risk-profile.md",
+      "reports/security_trust_report.json",
+      "reports/security_trust_report.md"
+    ]
+  },
+  "eval_plan": {
+    "trigger": [
+      "evals\\semantic_config.json",
+      "evals\\trigger\\eval-summary.md",
+      "evals\\trigger\\should-not-trigger.md",
+      "evals\\trigger\\should-trigger.md",
+      "evals\\trigger\\trigger-eval-cases.md",
+      "evals\\trigger_cases.json"
+    ],
+    "output": [],
+    "adversarial": [],
+    "baseline": "without_skill"
+  },
+  "risk": {
+    "output_risk": "low",
+    "execution_risk": "medium",
+    "trust_boundary": "team"
+  },
+  "governance": {
+    "owner": "zengliugen",
+    "maturity": "production",
+    "review_cadence": "quarterly",
+    "review_due": "2027-01-29"
+  },
+  "targets": [
+    "openai",
+    "claude",
+    "generic",
+    "vscode",
+    "codebuddy-code",
+    "agent-skills-compatible"
+  ],
+  "source_files": [
+    "SKILL.md",
+    "manifest.json",
+    "agents/interface.yaml"
+  ]
+}
