@@ -83,7 +83,15 @@ def compute_score(root: Path, manifest: dict, frontmatter: dict, skill_text: str
 
     if frontmatter.get("description"):
         breakdown["boundary_and_eval"] += 5
-    if any(marker in skill_text.lower() for marker in ("do not use", "out of scope", "should not trigger", "do not")):
+    lowered = skill_text.lower()
+    boundary_markers = (
+        "do not use", "out of scope", "should not trigger", "do not",
+        # 中文等价表述：本项目的文档语言规范要求正文为简体中文，
+        # 仅匹配英文标记会系统性低估所有中文技能，故补齐中文边界表述。
+        "不适用", "不在此范围", "不应触发", "不要用", "禁止",
+        "排除", "不支持", "不处理", "不负责", "不在本技能",
+    )
+    if any(marker in lowered for marker in boundary_markers):
         breakdown["boundary_and_eval"] += 10
     if has_files(root / "evals"):
         breakdown["boundary_and_eval"] += 10

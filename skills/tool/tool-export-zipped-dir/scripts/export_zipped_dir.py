@@ -26,10 +26,15 @@ SKIP_FILES = {".DS_Store", "Thumbs.db", "desktop.ini"}
 
 
 def find_repo_root(start):
-    """向上查找 git 仓库根目录；找不到时返回 None，由调用方决定退化为非 git 模式。"""
+    """向上查找 git 仓库根目录；找不到时返回 None，由调用方决定退化为非 git 模式。
+
+    ``.git`` 可能是**目录**（普通仓库），也可能是**文件**（submodule / worktree 的 gitfile，
+    内容为 ``gitdir: <路径>``）。两种都要认——只判断目录会把 submodule 内的工作目录
+    误判为「不在 git 仓库中」，导出时退化成全量模式，连带把被 gitignore 的产物打包进去。
+    """
     current = os.path.abspath(start)
     while True:
-        if os.path.isdir(os.path.join(current, ".git")):
+        if os.path.exists(os.path.join(current, ".git")):
             return current
         parent = os.path.dirname(current)
         if parent == current:

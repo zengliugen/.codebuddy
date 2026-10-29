@@ -82,10 +82,16 @@ def find_codebuddy_dir(start):
 
 
 def find_project_root(start):
-    """自 start 向上查找含 .git 或 .codebuddy 的目录作为项目根，找不到则返回 start。"""
+    """自 start 向上查找**含 .codebuddy 子目录**的目录作为项目根，找不到则返回 start。
+
+    只认 .codebuddy 锚点，**不以 .git 为锚**：.codebuddy 自身是独立 git 仓库时
+    （引擎以「独立 git 检出」形态挂载，.codebuddy/.git 是目录而非 submodule 的 gitfile），
+    同时匹配 .git 会让向上查找先命中 .codebuddy 本身，项目根被误判，
+    配置路径随之拼成 .codebuddy/.codebuddy.project/...，所有项目侧配置都读不到。
+    """
     current = os.path.abspath(start)
     while True:
-        if os.path.isdir(os.path.join(current, ".git")) or os.path.isdir(os.path.join(current, ".codebuddy")):
+        if os.path.isdir(os.path.join(current, ".codebuddy")):
             return current
         parent = os.path.dirname(current)
         if parent == current:

@@ -149,8 +149,40 @@ provider:
 | **不内置任何默认值** | 脚本不得为配置字段提供默认值（通用的也不行）；配置是唯一事实来源 |
 | **报错信息可操作** | 错误消息须指明缺失的配置路径/字段名，并给出补齐位置（如配置指南文档、`core-init` 技能） |
 | **路径可覆盖** | 提供命令行参数（如 `--config`）允许显式指定配置路径 |
-| **定位须用锚点 + 索引** | 推导项目根时向上查找**锚点标志**（`.git`、`.codebuddy`、`.editorconfig`）而非硬编码向上层数；再由 `.codebuddy/project.index.json` 按**逻辑名**取项目侧配置路径。索引内**禁止绝对路径**（跨项目共享前提），脚本须校验并拒绝绝对路径 |
+| **定位须用锚点 + 索引** | 推导项目根时向上查找**锚点标志**而非硬编码向上层数；再由 `.codebuddy/project.index.json` 按**逻辑名**取项目侧配置路径。索引内**禁止绝对路径**（跨项目共享前提），脚本须校验并拒绝绝对路径 |
+| **项目根锚点只能认 `.codebuddy`** | 向上查找**含 `.codebuddy` 子目录**的目录即为项目根。**禁止把 `.git` 与 `.codebuddy` 并列为锚点**——见下方说明 |
 | **分层合并** | 分层配置（引擎通用 + 项目侧）读取时**深度合并**：字典递归覆盖、数组取并集、标量项目侧优先 |
+
+**为什么 `.git` 不能做项目根锚点**：
+
+`.codebuddy` 挂进项目有两种形态，`.git` 的存在形式随之不同：
+
+| 挂载形态 | `.codebuddy/.git` | 以 `.git` 为锚的后果 |
+|---|---|---|
+| **git submodule** | **文件**（gitfile，内容 `gitdir: ../../.git/modules/...`） | 向上查找不会在 `.codebuddy` 内命中，碰巧正常 |
+| **独立 git 检出** | **目录** | 向上查找**先命中 `.codebuddy` 自身**，项目根被误判成 `.codebuddy` |
+
+误判后所有经索引拼出的路径都变成 `.codebuddy/.codebuddy.project/...`，**项目侧配置一个都读不到**，
+表现为技能报「未找到项目侧配置」——而这与「配置没写」的现象完全一样，极易误诊。
+
+**正确写法**（只认 `.codebuddy` 子目录，命中即取其父目录）：
+
+```python
+def find_project_root(start):
+    current = os.path.abspath(start)
+    while True:
+        if os.path.isdir(os.path.join(current, ".codebuddy")):
+            return current          # 该目录本身即项目根
+        parent = os.path.dirname(current)
+        if parent == current:
+            break                   # 到盘符根仍未命中，由调用方决定报错或回退
+        current = parent
+    return None
+```
+
+**反向陷阱**：若脚本确需判断「是否在 git 仓库内」（如导出时按 gitignore 过滤），
+`.git` 必须用 `os.path.exists()` 而非 `os.path.isdir()`——submodule 与 worktree 的 `.git` 是文件。
+两个方向都错在「把 `.git` 的两种形态当成一种」。
 
 **配置文件头的 `_comment` 示例**：
 
