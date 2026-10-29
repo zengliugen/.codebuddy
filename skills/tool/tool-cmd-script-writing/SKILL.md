@@ -1,6 +1,6 @@
 ---
 name: tool-cmd-script-writing
-description: 编写与修复 Windows CMD 批处理脚本（.cmd/.bat）。当用户要求"写一个 cmd/bat 脚本"、"修复 cmd 乱码"、"cmd 脚本中文乱码"、"echo 报 is not recognized"、"批处理 goto 出错"、"写一个链接（mklink/硬链接）/构建/批处理脚本"时触发。核心能力：规避 chcp 65001 下的 UTF-8 中文乱码（行尾 ASCII 规则）、正确处理 goto 与括号块作用域、路径参数处理（去引号、尾部反斜杠、%~dp0）。覆盖 Windows 批处理脚本的规范编写与乱码/语法陷阱修复。
+description: 编写与修复 Windows CMD 批处理脚本（.cmd/.bat）。当用户要求写 cmd/bat 脚本、修复中文乱码、遇到 echo 报 is not recognized、批处理 goto 出错，或编写链接/构建/清理/发布脚本时触发。
 license: MIT
 mode: Scaffold
 metadata:
@@ -8,9 +8,6 @@ metadata:
   version: "1.0"
   skills_os: "2.0"
 ---
-
-## 运行模式
-`Scaffold` —— 个人/团队轻量复用技能，保持最小结构，重点放在正确性经验而非功能膨胀。
 
 ## 核心契约
 | 维度 | 定义 |
@@ -35,7 +32,7 @@ metadata:
 
 ## 技能包结构
 
-本技能目录下各子目录的用途如下，均在 SKILL.md 之外按需读取：
+各子目录用途如下，均在 SKILL.md 之外按需读取：
 
 | 目录 | 用途 | 文件数 |
 |------|------|--------|

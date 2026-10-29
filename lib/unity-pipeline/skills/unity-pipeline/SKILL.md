@@ -1,6 +1,6 @@
 ---
 name: unity-pipeline
-description: 通过命令行打开 Unity 项目并驱动正在运行的 Unity Editor 或开发版 Player。项目启动使用 Unity CLI 内置的 `unity open` 命令（非 pipeline 包提供）；实例控制依赖 unity-pipeline 包（`unity pipeline` / `unity command`）。当智能体需要打开/启动 Unity 项目、控制实时 Unity 实例、自动化 Unity 测试（运行/列出/重编译）、无头重编译脚本、评估 C# 代码，或应用运行时代码重载（`script.methodreload reload` / `reload_editor` / `reload_player`）时使用。前提：`unity` CLI 未安装时，技能通过内置离线安装包自动安装（`tools/unity-cli-offline/install.ps1`，离线优先 + 在线回退）。
+description: 通过命令行打开 Unity 项目并驱动运行中的 Editor 或 Player。当需要启动 Unity 项目、控制实时实例、自动化编译/测试、无头重编译，或应用运行时方法重载时使用。
 license: MIT
 mode: Production
 metadata:
@@ -26,7 +26,7 @@ python .codebuddy/lib/unity-pipeline/skills/unity-pipeline/scripts/check_unity_c
 ```
 
 通过后缓存 24 小时（按 `unity` 路径与版本指纹失效，失败不缓存；`--no-cache` 强制重查）。
-未安装时执行离线优先安装（缺二进制则在线回退）。
+未安装时执行离线优先安装：内置离线包 `tools/unity-cli-offline/install.ps1`，缺二进制则在线回退。
 
 ## 1. 打开 Unity 项目
 

@@ -1,6 +1,6 @@
 ---
 name: devflow-guard
-description: 约束新增能力的开发流程。生成能力文档骨架、初始化文档目录、把能力登记到总览表、体检文档契约并报缺口。用户说"新建能力文档"、"生成设计文档骨架"、"初始化开发流程文档"、"开发流程体检"、"文档缺口"、"这个能力登记了吗"、"devflow" 时使用。
+description: 约束新增能力的开发流程。生成能力文档骨架、初始化文档目录、把能力登记到总览表、体检文档契约并报缺口。用户说"新建能力文档"、"生成设计文档骨架"、"开发流程体检"、"文档缺口"、"devflow" 时使用。
 license: 内部项目使用
 mode: manual
 metadata:
@@ -20,35 +20,30 @@ metadata:
 
 ## 三个模式
 
-bash:
-DIR=.codebuddy/lib/devflow/skills/devflow-guard
-python $DIR/scripts/devflow_guard.py init
-python $DIR/scripts/devflow_guard.py new <能力名> [--from-explore 探索记录名] [--rework-from 已归档能力名]
-python $DIR/scripts/devflow_guard.py explore <主题名> [--title 标题]
-python $DIR/scripts/devflow_guard.py adr <slug> [--title 标题] [--capability 能力名]
-python $DIR/scripts/devflow_guard.py status <能力名> <状态>
-python $DIR/scripts/devflow_guard.py archive <能力名>
-python $DIR/scripts/devflow_guard.py audit
+```bash
+DIR=.codebuddy/lib/devflow/skills/devflow-guard/scripts/devflow_guard.py
+python $DIR init | audit
+python $DIR new <能力名> [--from-explore 记录名] [--rework-from 已归档能力名]
+python $DIR explore <主题名> | adr <slug> | status <能力名> <状态> | archive <能力名>
+```
 
 | 模式 | 作用 | 保护 |
 |---|---|---|
-| `init` | 按配置创建五个子目录说明与总览 README | 只创建不覆盖，已存在即整体中止 |
-| `new <名>` | 生成设计/计划/偏差/测试四份骨架并登记总览表（偏差列一并填好路径） | 名字合法、探索记录已确认（`--from-explore` 必填）、目标不存在、总览表可解析，任一不满足即中止且不写文件；`--rework-from` 须指向已归档能力 |
-| `explore <主题>` | 创建需求探索记录（动手前的需求确认，可反复改写） | 名称须为英文 kebab-case；目标不存在。**建立能力文档前必须先有已确认的探索记录** |
-| `adr <slug>` | 创建决策记录，编号按现有最大值推算 | slug 为英文 kebab-case、决策目录存在、目标不存在，任一不满足即中止 |
-| `status <名> <状态>` | 把状态同步到总览表与该能力四份文档的文件头（共五处） | 状态须在合法集合内；目标文件须存在，缺任一即整体中止 |
-| `archive <名>` | 四类文档移入 `archive/<名>/` 并统一改名为 design/plan/deviation/testing.md，回写总览表路径 | 能力须已登记且状态为完成或废弃；目标已存在即中止；移动失败或写表失败全部回滚 |
+| `init` | 按配置创建子目录说明与总览 README | 只创建不覆盖 |
+| `new <名>` | 生成设计/计划/偏差/测试四份骨架并登记总览表 | 探索记录已确认（`--from-explore` 必填）、目标不存在 |
+| `explore <主题>` | 创建需求探索记录 | 建能力文档前必须先有已确认的探索记录 |
+| `adr <slug>` | 创建决策记录，编号取现有最大值加一 | slug 为 kebab-case、目标不存在 |
+| `status <名> <状态>` | 状态同步到总览表与四份文档头（共五处） | 状态合法、目标存在 |
+| `archive <名>` | 四类文档移入 `archive/<名>/` 并回写总览表 | 状态须为完成或废弃；失败全部回滚 |
 | `audit` | 只读体检文档契约，按三档输出缺口 | 不修改任何文件 |
+
+任一保护条件不满足即整体中止且不写文件。逐条判定细节见 [references/guide.md](references/guide.md) 的「六个模式的调用时机」。
 
 **不提供 `--force`**：覆盖会毁掉已写内容，而设计文档往往是唯一副本。
 
 ### audit 检查什么
 
-十一项，全部机械可判定：文件头字段与状态取值、生成器字段、总览表表头与列数、空白单元格、表引用文件存在性、磁盘文档已登记、决策编号连续合规、决策取代链完整、计划与偏差成对、归档目录与总览表一致、需求探索记录状态合法、探索采纳指针双向一致。
-
-**不查代码落位**——落位原则需要读懂代码才能判断，留给评审。
-**不查文档内容是否被回改**——本地无法证明（哈希值存在同一仓库里，同仓不可信），
-也不假装能查：每条告警都必须能被真实修复，否则会训练人忽略告警。
+十一项机械可判定项与两项不查项的边界，见 [references/guide.md](references/guide.md) 的「audit 的判定细节」。
 
 ### 三档分级与退出码
 
@@ -69,49 +64,28 @@ python $DIR/scripts/devflow_guard.py audit
 
 **为什么缺失必须报错**：内置默认值会让「配置写错」表现为「配置没生效」，这类问题极难排查，不如直接失败。
 
-## 生成器字段的局限
+## 体检全绿不等于流程合规
 
-**能证明**：文件头里有该字段，取值是技能写入的合法值。
-
-**不能证明**：内容经过推演。标记只存在于写文件那一刻，之后文档被整体重写不会被察觉。
-
-因此 **体检全绿不等于流程合规**。
+生成器字段只能证明「写文件那一刻填了合法值」，不能证明内容经过推演——文档事后被整体重写不会被察觉。
 
 ## 不适用范围
 
-| 请求 | 该去哪 |
-|---|---|
-| 判断某次改动算不算新增能力 | 规则 `devflow/design-spec.mdc` 的判定表——本技能不做语义判断 |
-| 需求该怎么问、问几轮 | 规则 `devflow/design-spec.mdc`「建骨架之前」一节；专用诘问技能若已安装可用其驱动，本技能只校验记录是否成形，不校验提问过程 |
-| 决定用哪种实现手段 | 规则 `devflow/implementation-spec.mdc`——需要读代码与框架能力，脚本判断不了 |
-| 修改文档内容、补写设计论证 | 人写。本技能只生成空骨架，不生成内容 |
-| 执行测试 | 项目自有的测试运行方式——本技能不跑测试 |
-| 改框架/上游文件并登记差异 | 项目侧的上游兼容规则（若该项目存在上游） |
-| 提交代码 | 版本控制路由技能 |
+本技能只生成空骨架与机械体检，**不做语义判断、不写文档内容、不跑测试、不提交代码**。
+判据归属见 [references/guide.md](references/guide.md) 的「不适用范围」。
 
 ## 已知局限
 
-1. **脚本无单元测试**，判定逻辑靠实际运行验证；逻辑错误可能静默通过，应留意输出合理性而非只看退出码。
-2. **只查契约不查内容**：能发现缺文件、缺字段、值非法、没登记，发现不了论证是否站得住。
-3. **`init` 只创建不覆盖**：包内模板更新后不回流，需人工比对升级。
+脚本无单元测试，判定逻辑靠实际运行验证——**留意输出合理性，不要只看退出码**。`init` 只创建不覆盖，
+包内模板更新后需人工比对升级。其余局限见 [references/guide.md](references/guide.md) 的「已知限制」。
 
 ## 触发评测
 
-改动 `description` 或 `evals/trigger_cases.json` 后必须重跑语义评测。评测工具由**技能工程类工具包**提供
-（若本项目已安装），用其语义评测脚本读取本技能的 `evals/trigger_cases.json` 与 `evals/semantic_config.json`。
-
-用例分三档：正向（should_trigger）、反向（should_not_trigger）、近邻（near_neighbor）。
-
-**不得为过测而删用例**——近邻用例最难，也最能暴露触发边界问题。
-
-无工具时手工核对三条：正向每条能只凭 `description` 判定触发；反向每条不含 `description` 的动作词；
-近邻每条「像但不同」且被 `description` 排除。近邻从正常用例派生相邻那条——「生成设计文档骨架」的近邻是
-「帮我写一份设计文档」（要骨架 vs 要内容）。
+改动 `description` 或 `evals/trigger_cases.json` 后必须重跑语义评测。三档用例口径与无工具时的手工核对方式见
+[references/guide.md](references/guide.md) 的「触发评测」。
 
 ## 输出质量护栏
 
-- 错误优先于警告分组输出；每条缺口指名文件与字段，不写「某些文档有问题」。
-- 缺失的证据就声明缺失，不得编造已通过项。
+错误优先于警告分组输出；每条缺口指名文件与字段，不写「某些文档有问题」。缺失的证据就声明缺失，不得编造已通过项。
 
 ## 相关规则
 

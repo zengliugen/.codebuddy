@@ -34,8 +34,31 @@ metadata:
 
 **不要在本技能里重复规范内容**。用户需要判据时，读 `devflow` 规则族。
 
+## 不适用范围
+
+本技能只回答档位问题并转发请求。下列请求**都不该由本技能应答**，应直接交 `devflow-guard`：
+
+| 请求 | 去向 |
+|---|---|
+| 生成能力文档骨架、初始化文档目录 | `devflow-guard` 的 `new` / `init` |
+| 体检文档契约、报缺口 | `devflow-guard` 的 `audit` |
+| 判断某次改动算不算新增能力 | `devflow` 规则族 `design-spec.mdc` |
+| 决定实现手段 | `devflow` 规则族 `implementation-spec.mdc` |
+| 提交代码 | 版本控制路由技能 |
+
+**不负责**：校验能力、复制规范内容、维护流程脚本。
+
 ## 已知局限
 
 1. 本技能是薄转发层，自身不含任何校验能力；实际检查全部由 `devflow` 包的脚本完成。
 2. `requires` 保证安装本包时会一并装 `devflow`；若因手工操作导致 `devflow` 缺失，
    本技能无可用动作，应报错而不是静默降级。
+
+## 技能包结构
+
+| 目录 | 用途 | 文件数 |
+|------|------|--------|
+| `references/` | 档位说明与判据（[guide.md](references/guide.md)） | 1 |
+| `evals/` | 触发评估用例与语义配置（[trigger_cases.json](evals/trigger_cases.json)、[semantic_config.json](evals/semantic_config.json)） | 2 |
+| `reports/` | 质量与风险评估报告 | 1 |
+| `agents/` | 接口契约 | 1 |
