@@ -59,7 +59,7 @@ provider:
 |---|---|---|
 | 判断这条规则属于哪一类、该叫什么名字、该配什么触发字段 | `classification-spec.mdc` | 三类形态的判据与理由、`alwaysApply` 与 `paths` 的唯一取值表、技能侧 `activation` 的要求、`RULE.mdc` 的索引型/底线型两种角色、入口与规范命名约定、不建入口的技能类型 |
 | 决定文件放在哪、改名时要同步哪些地方 | `layout-spec.mdc` | 入口独占目录的要求、引擎侧与项目侧同构结构（`project-` 前缀）、新增或改名规则的六步流程 |
-| 提交前验证没写错 | `validation-spec.mdc` | 强制条款全文、`check_manifest.py` 项 8/9/10/11/12 的判据、脚本未覆盖需人工判定的部分 |
+| 提交前验证没写错 | `validation-spec.mdc` | 强制条款全文、`check_manifest.py` 项 8/9/10/11/12/14 的判据、脚本未覆盖需人工判定的部分 |
 
 ## 加载机制说明
 

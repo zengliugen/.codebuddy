@@ -659,6 +659,74 @@ def iter_project_components(root):
     return sorted(found, key=lambda item: item[1])
 
 
+def check_project_shared_prefix(project_root):
+    """校验项目侧「族目录名 = 规范名」且为族内全部组件名的共同前缀（校验项 14）。
+
+    约定（见 rules/core/core-rule-governance/classification-spec.mdc §2.2、§2.4）：
+    规范名必须是使用它的所有技能名的**共同前缀**。项目侧允许按族分组一层，族目录名
+    即规范目录名，因此族内每个技能、每个入口规则的名字都必须以族目录名开头。
+
+    为什么必须查：这条约定决定了「改技能名时族目录要不要跟着改」。不符合时，族目录名
+    会指向一个不再覆盖全部成员的规范——新成员看起来属于这个族，实际却不被该规范前缀
+    覆盖；而 `check_manifest.py` 其余各项都只看单组件内部是否自洽，看不出来。
+    本项原先仅靠人工判定（validation-spec.mdc §二末段），实际出现过「新增技能名与族目录
+    不同前缀」的漏检，故补为脚本项。
+
+    判定方式：**族目录 = 其下至少含一个组件子目录的目录**。组件子目录按类型认定：
+      - 技能族：子目录含 `SKILL.md`；
+      - 规则族：子目录名以 `.entry` 结尾。
+    族内**全部**组件按类型判前缀：
+      - 技能目录名须以 `族目录名-` 开头（严格前缀，族名本身不算覆盖）；
+      - 入口规则目录 `<名>.entry`：`<名>` 须以 `族目录名-` 开头。
+
+    **不能**用「含 `RULE.mdc`」判断是否为族：族目录自身通常就有 `RULE.mdc`（那是规范索引），
+    据此判断会把整族跳过去——实测入口规则一侧的违规因此漏检。
+
+    只查项目侧：引擎侧的包层已承担分组职责，规范与技能的对应关系并非纯前缀关系
+    （如 `vcs-commit` 管 `vcs-git-commit` 与 `vcs-svn-commit`），静态判定会误报。
+
+    参数：
+        project_root：项目根目录。
+
+    返回：
+        缺口列表。
+    """
+    problems = []
+    base = os.path.join(project_root, ".codebuddy.project")
+
+    for kind, comp_kind in (("skills", "skill"), ("rules", "entry")):
+        root = os.path.join(base, kind, "project")
+        if not os.path.isdir(root):
+            continue
+        for family in sorted(os.listdir(root)):
+            family_dir = os.path.join(root, family)
+            if not os.path.isdir(family_dir):
+                continue
+
+            members = []
+            for child in sorted(os.listdir(family_dir)):
+                full = os.path.join(family_dir, child)
+                if not os.path.isdir(full):
+                    continue
+                if comp_kind == "skill" and os.path.isfile(os.path.join(full, "SKILL.md")):
+                    members.append((child, full))
+                elif comp_kind == "entry" and child.endswith(".entry"):
+                    members.append((child[: -len(".entry")], full))
+
+            # 没有任何组件子目录：这是叶子组件本身，不是族分组层
+            if not members:
+                continue
+
+            for name, full in members:
+                rel = os.path.relpath(full, project_root).replace("\\", "/")
+                if not name.startswith(family + "-"):
+                    problems.append(
+                        "项目侧组件名不是族目录名的前缀：%s（技能/入口名 %s 须以 %s- 开头；"
+                        "规范名必须是使用它的所有技能名的共同前缀）"
+                        % (rel, name, family))
+    return problems
+
+
 def check_project_components(project_root):
     """校验项目专有包的组件命名与落位（校验项 10）。
 
@@ -972,6 +1040,8 @@ def main():
         problems.extend(check_trigger_fields(codebuddy_dir, os.path.dirname(codebuddy_dir)))
         # 12. 技能激活方式（不得 path_scoped，activation.paths 必须为空）
         problems.extend(check_skill_activation(codebuddy_dir, os.path.dirname(codebuddy_dir)))
+        # 14. 项目侧族目录名 = 规范名，须为族内全部组件名的共同前缀
+        problems.extend(check_project_shared_prefix(os.path.dirname(codebuddy_dir)))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")
