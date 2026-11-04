@@ -361,19 +361,23 @@
     },
     "devflow.docs.config": {
       "path": ".codebuddy.project/configs/skills/devflow/devflow-guard/config.json",
-      "description": "devflow-guard 技能参数：文档根、五个子目录名、总览表列序与状态取值、文件头字段与生成器标识、能力名模式",
+      "description": "devflow-guard 技能参数：布局模式、文档根、三个保留目录名、能力目录内的文件名、总览表列序与状态取值、文件头字段与生成器标识、能力名模式",
       "format": "json",
       "template": {
         "version": 1,
-        "_comment": "本文件为 devflow-guard 的项目配置：docs_root/dirs 决定文档放在哪、overview 决定总览表的列序与合法取值、file_header 决定文件头字段与生成器标识、capability_name_pattern 决定能力名合法模式。本文件是这些形状的唯一来源——脚本不内置任何默认值，缺失、损坏或缺少必需键时直接报错退出（退出码 3）。首次使用先执行技能的 init 模式初始化文档结构。",
+        "_comment": "本文件为 devflow-guard 的项目配置：layout 声明布局模式，docs_root 决定文档根，dirs 决定留在文档根的一级目录，capability_files 决定每个能力目录内部的文件名，overview 决定总览表的列序与合法取值，file_header 决定文件头字段与生成器标识，capability_name_pattern 决定能力名合法模式。本文件是这些形状的唯一来源——脚本不内置任何默认值，缺失、损坏或缺少必需键时直接报错退出（退出码 3）。首次使用先执行技能的 init 模式初始化文档结构。",
+        "layout": "by-capability",
         "docs_root": ".codebuddy.project/docs/devflow",
         "dirs": {
           "explore": "explore",
-          "design": "design",
-          "plans": "plans",
-          "testing": "testing",
           "decisions": "decisions",
           "archive": "archive"
+        },
+        "capability_files": {
+          "design": "design.md",
+          "plan": "plan.md",
+          "deviation": "deviation.md",
+          "testing": "testing.md"
         },
         "overview": {
           "file": "README.md",

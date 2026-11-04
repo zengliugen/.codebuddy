@@ -12,9 +12,10 @@
 
 1. **不按固定层级数定位项目根**。自脚本所在目录向上查找含 .git 或 .codebuddy 的目录，
    因此同一份脚本在引擎侧与项目侧两种挂载深度下都能工作。
-2. **一切形状来自项目配置**。文档根、五个子目录名、总览表列序、状态取值、文件头字段、
-   生成器标识全部读配置，脚本不内置任何默认值。配置缺失或缺少必需键时直接报错退出（退出码 3），
-   不回退默认值——否则「配置写了但没生效」会表现成「检查莫名通过」。
+2. **一切形状来自项目配置**。文档根、布局模式、三个保留目录名、能力目录内的文件名、
+   总览表列序、状态取值、文件头字段、生成器标识全部读配置，脚本不内置任何默认值。
+   配置缺失或缺少必需键时直接报错退出（退出码 3），不回退默认值——否则「配置写了但没生效」
+   会表现成「检查莫名通过」。
 3. **只查机械可判定的契约**，不查代码落位。落位原则属规则判据，抽象后无法机械校验。
 
 用法：
@@ -51,20 +52,33 @@ TEMPLATES_DIR = os.path.normpath(
 # 这里装的是「骨架源文件」，与文档根（docs_root）无关。
 SKELETON_DIR = "skeletons"
 
-# 需要创建说明文件的子目录（键名对应配置 dirs 下的键，缺失即报错）。
+# 保留在文档根的一级目录（键名对应配置 dirs 下的键，缺失即报错）。
+# 这三个目录不属于任何单个能力：探索记录按主题命名、一份可产出多个能力；
+# ADR 编号必须全局连续；归档本身就是能力的容器。
 # explore 是必需键：需求确认是这个流程的一部分，不是可选附加项——
 # 做成可选会产生两种「new 的行为不一样」的项目，而规则文本无法同时说清两者。
-DOC_SUBDIR_KEYS = ("explore", "design", "plans", "testing", "decisions", "archive")
+RESERVED_DIR_KEYS = ("explore", "decisions", "archive")
+
+# 能力文档的四个类别。它们不是目录名，而是每个能力目录内部的文件名，
+# 由配置 capability_files 声明——布局是「一能力一目录、内部平铺」。
+DOC_KINDS = ("design", "plan", "deviation", "testing")
+
+# 支持的布局模式。单值也是显式声明：取值不在集合内即配置错误，
+# 不做「不认识的布局按默认处理」这类回退。
+LAYOUT_MODES = ("by-capability",)
 
 # 配置必需键（缺失即报错，不回退默认值）
 REQUIRED_CONFIG_KEYS = (
+    "layout",
     "docs_root",
     "dirs",
+    "capability_files",
     "overview",
     "file_header",
     "capability_name_pattern",
 )
-REQUIRED_DIR_KEYS = DOC_SUBDIR_KEYS
+REQUIRED_DIR_KEYS = RESERVED_DIR_KEYS
+
 REQUIRED_OVERVIEW_KEYS = (
     "file",
     "header",
@@ -271,12 +285,36 @@ def load_config(root):
     if os.path.isabs(config["docs_root"]):
         raise ConfigError("配置 docs_root 必须为项目根相对路径：%s" % config["docs_root"])
 
+    layout = config.get("layout")
+    if not isinstance(layout, str) or layout not in LAYOUT_MODES:
+        raise ConfigError(
+            "配置 layout 必须是以下取值之一：%s（实际：%s）：%s\n"
+            "本键是必填的：缺键说明这是升级前的旧配置，其 dirs 里仍按阶段分目录"
+            "（design/plans/testing），按新语义解释会静默错解——new 写到新位置、audit 扫不到旧文档。"
+            "请先把布局迁移到「一能力一目录」，再补上 layout 与 capability_files。"
+            % ("、".join(LAYOUT_MODES), repr(layout), config_path)
+        )
+
     dirs = config.get("dirs")
     if not isinstance(dirs, dict):
         raise ConfigError("配置 dirs 必须是对象：%s" % config_path)
     missing_dirs = [key for key in REQUIRED_DIR_KEYS if not str(dirs.get(key) or "").strip()]
     if missing_dirs:
-        raise ConfigError("配置 dirs 缺少子目录名：%s" % "、".join(missing_dirs))
+        raise ConfigError(
+            "配置 dirs 缺少保留目录名：%s\n"
+            "dirs 只声明留在文档根的目录（%s）；能力文档的文件名在 capability_files 中声明。"
+            % ("、".join(missing_dirs), "、".join(RESERVED_DIR_KEYS))
+        )
+
+    files = config.get("capability_files")
+    if not isinstance(files, dict):
+        raise ConfigError("配置 capability_files 必须是对象：%s" % config_path)
+    missing_files = [kind for kind in DOC_KINDS if not str(files.get(kind) or "").strip()]
+    if missing_files:
+        raise ConfigError(
+            "配置 capability_files 缺少能力文档文件名：%s（%s）"
+            % ("、".join(missing_files), config_path)
+        )
 
     overview = config.get("overview")
     if not isinstance(overview, dict):
@@ -375,21 +413,78 @@ def _validate_shapes(config, config_path):
     for key, value in (("docs_root", config["docs_root"]), ("overview.file", overview["file"])):
         if not isinstance(value, str):
             raise ConfigError("%s 必须是字符串：%s" % (key, config_path))
-    for key in DOC_SUBDIR_KEYS:
+    for key in RESERVED_DIR_KEYS:
         if not isinstance(config["dirs"][key], str):
             raise ConfigError("dirs.%s 必须是字符串：%s" % (key, config_path))
+    for kind in DOC_KINDS:
+        if not isinstance(config["capability_files"][kind], str):
+            raise ConfigError("capability_files.%s 必须是字符串：%s" % (kind, config_path))
     if not isinstance(config["capability_name_pattern"], str):
         raise ConfigError("capability_name_pattern 必须是字符串：%s" % config_path)
 
     _validate_rel_component("docs_root", config["docs_root"], config_path)
     seen = set()
-    for key in DOC_SUBDIR_KEYS:
+    for key in RESERVED_DIR_KEYS:
         name = config["dirs"][key]
         _validate_rel_component("dirs." + key, name, config_path)
         if name in seen:
             raise ConfigError("配置 dirs 中目录名重复：%s：%s" % (name, config_path))
         seen.add(name)
     _validate_rel_component("overview.file", overview["file"], config_path)
+
+    # 能力文档文件名必须落在单个路径段内：布局不变量是「一能力一目录、内部平铺」，
+    # 一旦允许 a/b.md，iter_capability_docs 只列一层就会漏检，而配置看起来完全合法。
+    seen_files = set()
+    for kind in DOC_KINDS:
+        file_name = config["capability_files"][kind]
+        _validate_filename("capability_files." + kind, file_name, overview["file"], config_path)
+        if file_name in seen_files:
+            raise ConfigError(
+                "配置 capability_files 中文件名重复：%s：%s" % (file_name, config_path)
+            )
+        seen_files.add(file_name)
+
+
+def _validate_filename(name, value, overview_file, config_path):
+    """校验能力文档的文件名是单段 .md，且不与总览表冲突。
+
+    不复用 `_validate_rel_component`：后者允许带层级（为 docs_root 的 docs/dev 服务），
+    用在文件名上会放过 `a/b.md`，把平铺不变量写出两层，而遍历只列一层会静默漏检。
+
+    参数：
+        name: 配置项名，用于报错
+        value: 待校验值
+        overview_file: 总览表文件名，用于拦截同名覆盖
+        config_path: 配置文件路径
+
+    异常：
+        ConfigError: 不是单段 .md、是 README、或与总览表同名
+    """
+    text = str(value or "").strip()
+    if not text:
+        raise ConfigError("%s 不能为空：%s" % (name, config_path))
+    if os.path.isabs(text) or (len(text) > 1 and text[1] == ":"):
+        raise ConfigError("%s 必须是相对文件名：%s" % (name, text))
+    if os.sep in text or (os.altsep and os.altsep in text) or "/" in text:
+        raise ConfigError(
+            "%s 必须是单段文件名（不得含路径分隔符）：%s\n"
+            "能力文档固定在能力目录内平铺，嵌套目录会让遍历漏检。"
+            % (name, text)
+        )
+    if text in (".", "..") or text.startswith(".."):
+        raise ConfigError("%s 不得包含上跳路径 ../：%s" % (name, text))
+    if not text.endswith(".md"):
+        raise ConfigError("%s 必须以 .md 结尾：%s" % (name, text))
+    if text == "README.md":
+        raise ConfigError(
+            "%s 不能是 README.md：该名字保留给目录说明，能力文档取它会被遍历跳过：%s"
+            % (name, config_path)
+        )
+    if text == overview_file:
+        raise ConfigError(
+            "%s 不能与总览表文件同名（%s）：会覆盖总览表" % (name, overview_file)
+        )
+
 
 
 def _validate_rel_component(name, value, config_path):
@@ -422,6 +517,28 @@ def _validate_rel_component(name, value, config_path):
 def docs_dir(root, config):
     """返回文档根绝对路径。"""
     return os.path.normpath(os.path.join(root, config["docs_root"]))
+
+
+def capability_rel(config, name, kind, archived=False):
+    """返回某能力某类文档相对文档根的 POSIX 路径。
+
+    这是全脚本唯一的路径拼装入口：总览表单元格、new 的落盘目标、archive 的目标位置
+    全部经它生成，因此活跃区与归档区的路径形状不可能分叉。
+
+    参数：
+        config: 配置字典
+        name: 能力名（同时是能力目录名）
+        kind: 文档类别，取值属 DOC_KINDS
+        archived: 为 True 时返回归档区路径
+
+    返回：
+        形如 `<能力>/design.md` 或 `<archive>/<能力>/design.md` 的相对路径
+    """
+    file_name = config["capability_files"][kind]
+    if archived:
+        return config["dirs"]["archive"] + "/" + name + "/" + file_name
+    return name + "/" + file_name
+
 
 
 def rel(root, path):
@@ -476,12 +593,13 @@ def fill_placeholders(text, config, keep_generator=False):
         替换后的正文
     """
     mapping = {
-        "{{dir_" + key + "}}": config["dirs"][key] for key in DOC_SUBDIR_KEYS
+        "{{dir_" + key + "}}": config["dirs"][key] for key in RESERVED_DIR_KEYS
     }
+    # 能力文档不再有独立目录，路径形状由 capability_files 决定，
+    # 因此模板只能拿到「能力名 + 类别」拼出的相对路径，不能拿到目录名。
+    for kind in DOC_KINDS:
+        mapping["{{cap_" + kind + "}}"] = "<能力名>/" + config["capability_files"][kind]
 
-    mapping["<设计目录>"] = config["dirs"]["design"]
-    mapping["<计划目录>"] = config["dirs"]["plans"]
-    mapping["<测试目录>"] = config["dirs"]["testing"]
     mapping["<决策目录>"] = config["dirs"]["decisions"]
     # 总览表头由配置决定，模板里不该出现具体列名——否则改配置后 init 产出的表头
     # 与配置不符，new 会因 find_table 匹配不上而直接失败。
@@ -533,8 +651,9 @@ def run_init(root, config):
             os.path.join(target_root, config["overview"]["file"]),
         )
     )
-    # 必需子目录的目录说明
-    for key in DOC_SUBDIR_KEYS:
+    # 保留目录的目录说明。能力目录由 new 按能力名创建，init 不预建——
+    # 预建会与能力目录共处一级命名空间，变成「未登记的疑似能力目录」。
+    for key in RESERVED_DIR_KEYS:
         plan.append(
             (
                 os.path.join(TEMPLATES_DIR, key, "README.md"),
@@ -568,6 +687,16 @@ def run_init(root, config):
             _rollback(created, root)
             die("包内模板读取失败：%s（%s）" % (rel(root, src), error))
         text = fill_placeholders(raw, config, keep_generator=True)
+        # 残留占位符自检：模板引用了配置已不再生成的占位符（如去掉的设计目录）时，
+        # 替换会静默不发生，写出带 {{...}} 的 README 且退出码 0——读起来像内容、用起来是错的。
+        leftover = re.search(r"\{\{[A-Za-z0-9_]+\}\}", text)
+        if leftover:
+            _rollback(created, root)
+            die(
+                "包内模板含无法替换的占位符 %s，已中止（不写任何文件）：%s\n"
+                "该占位符已不在配置契约内，请检查模板与配置版本是否匹配。"
+                % (leftover.group(0), src)
+            )
         try:
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             with open(dst, "w", encoding="utf-8") as handle:
@@ -601,14 +730,6 @@ OVERVIEW_COLUMN_KINDS = (
     ("计划", "plan"),
 )
 
-# 类别到归档后文件名的映射。归档统一重命名，避免「按原名」与「改名」两种风格并存。
-ARCHIVE_FILENAMES = {
-    "design": "design.md",
-    "plan": "plan.md",
-    "deviation": "deviation.md",
-    "testing": "testing.md",
-}
-
 
 def resolve_doc_columns(header, config):
     """把总览表表头解析为 {文档类别: 列序号}。
@@ -631,7 +752,7 @@ def resolve_doc_columns(header, config):
         kind = column_kind(column, cap_index, status_index, index)
         if kind and kind not in columns:
             columns[kind] = index
-    missing = [kind for kind in SCAFFOLD_DIRS if kind not in columns]
+    missing = [kind for kind in DOC_KINDS if kind not in columns]
     return columns, missing
 
 
@@ -929,7 +1050,7 @@ def run_archive(root, config, capability):
                 "归档前须先修正总览表，否则会把错误路径带进归档目录。"
                 % (row["行号"] + 1, column, cell)
             )
-        destination = os.path.join(dest_dir, ARCHIVE_FILENAMES[kind])
+        destination = os.path.join(dest_dir, config["capability_files"][kind])
         if os.path.exists(destination):
             die("归档目标已存在，已中止（不覆盖）：" + rel(root, destination))
         moves.append((source, destination, index))
@@ -988,15 +1109,30 @@ def run_archive(root, config, capability):
         if kind != "design":
             continue
         old_rel = row["单元格"][index].replace(os.sep, "/")
-        new_rel = os.path.relpath(
-            os.path.join(archive_root, name, ARCHIVE_FILENAMES["design"]), target_root
-        ).replace(os.sep, "/")
+        new_rel = capability_rel(config, name, "design", archived=True)
         if old_rel and not is_placeholder(old_rel, config):
             changed_records = rewrite_adoption_targets(path_root, old_rel, new_rel, config)
+
+    # 活跃区与归档区同构：四份文件搬走后，能力目录本身变空。
+    # 留着空目录会被 audit 当成「没有任何文档的能力目录」，且无法与「new 中途失败」区分。
+    # 目录非空（用户放了别的东西）时 rmdir 会失败，此时保持原样并提示，不当作错误。
+    emptied = []
+    source_dirs = {os.path.dirname(os.path.normpath(source)) for source, _, _ in moves}
+    for source_dir in sorted(source_dirs):
+        try:
+            os.rmdir(source_dir)
+            emptied.append(source_dir)
+        except OSError:
+            print(
+                "提示：能力目录未清空，保留原样：" + rel(root, source_dir)
+                + "（目录内还有归档范围外的文件）"
+            )
 
     print("已归档能力：" + name)
     for source, destination in done:
         print("  " + rel(root, source) + "  ->  " + rel(root, destination))
+    for source_dir in emptied:
+        print("已移除空目录：" + rel(root, source_dir))
     print("总览表路径已更新为归档位置。")
     for record in changed_records:
         print("探索记录采纳行已同步为归档路径：" + record)
@@ -1010,26 +1146,14 @@ def run_archive(root, config, capability):
 # ---------------------------------------------------------------------------
 
 
+# 骨架源文件 → 文档类别。落盘文件名由配置 capability_files 决定，
+# 常量里不再出现任何目录名或文件后缀——布局只有一处事实来源。
 SCAFFOLD_SPECS = (
-    ("design.md", "design", "{name}.md"),
-    ("plan.md", "plans", "{name}-plan.md"),
-    ("deviation.md", "plans", "{name}-deviation.md"),
-    ("testing.md", "testing", "{name}-testing.md"),
+    ("design.md", "design"),
+    ("plan.md", "plan"),
+    ("deviation.md", "deviation"),
+    ("testing.md", "testing"),
 )
-
-# 文档类别 → 配置 dirs 键 / 落盘文件名模板。new 填总览表与 archive 定位文件共用。
-SCAFFOLD_DIRS = {
-    "design": "design",
-    "plan": "plans",
-    "deviation": "plans",
-    "testing": "testing",
-}
-SCAFFOLD_FILENAMES = {
-    "design": "{dir_name}/{name}.md",
-    "plan": "{dir_name}/{name}-plan.md",
-    "deviation": "{dir_name}/{name}-deviation.md",
-    "testing": "{dir_name}/{name}-testing.md",
-}
 
 
 def inject_explore_note(text, explore_rel):
@@ -1520,8 +1644,19 @@ def run_new(root, config, name, rework_from='', from_explore=''):
             "能力名不合法：「" + str(name) + "」\n"
             "必须匹配配置声明的模式 " + config["capability_name_pattern"]
             + "（典型写法：config-overrides）。\n"
-            "理由：能力名同时用作文件名、总览表「能力」列与文件头「关联能力」字段的值，"
+            "理由：能力名同时用作能力目录名、总览表「能力」列与文件头「关联能力」字段的值，"
             "必须是无需转义的标识。"
+        )
+
+    # 能力名现在是一级目录名，与三个保留目录共享同一命名空间。
+    # 不拦的话 `new archive` 会写出 <文档根>/archive/，与归档根合并；
+    # 名字本身合法，却让「归档区」同时是「某个能力」。
+    reserved_names = {config["dirs"][key]: key for key in RESERVED_DIR_KEYS}
+    if name in reserved_names:
+        die(
+            "能力名与保留目录同名：「" + name + "」\n"
+            "保留目录（" + "、".join(reserved_names) + "）位于文档根的第一级，"
+            "能力目录也在同一级，同名会让两者合并。请换一个能力名。"
         )
 
     # 需求确认是必经步骤：不带 --from-explore 直接拒绝。
@@ -1575,12 +1710,22 @@ def run_new(root, config, name, rework_from='', from_explore=''):
             )
 
     targets = []
-    for template_name, dir_key, pattern_name in SCAFFOLD_SPECS:
+    for template_name, kind in SCAFFOLD_SPECS:
         template = os.path.join(TEMPLATES_DIR, SKELETON_DIR, template_name)
         if not os.path.isfile(template):
             die("包内模板缺失：" + template)
-        target = os.path.join(target_root, config["dirs"][dir_key], pattern_name.format(name=name))
+        target = os.path.join(target_root, capability_rel(config, name, kind))
         targets.append((template_name, template, target))
+
+    # 能力目录已存在说明可能是旧布局残留、上次中断的空目录，或用户手工建过东西。
+    # 「四个文件都不存在」不足以判断可安全写入——空目录会被静默复用，
+    # 而 audit 会把该目录当成一个没有任何文档的能力目录，查不出「为什么它是空的」。
+    capability_dir = os.path.join(target_root, name)
+    if os.path.isdir(capability_dir):
+        die(
+            "能力目录已存在，已中止（不写入）：" + rel(root, capability_dir) + "\n"
+            "若该目录是旧布局残留或上次中断的空目录，确认无内容后手工移除，再重试。"
+        )
 
     conflicts = [dst for _, _, dst in targets if os.path.exists(dst)]
     if conflicts:
@@ -1588,6 +1733,7 @@ def run_new(root, config, name, rework_from='', from_explore=''):
             "以下文件已存在，已中止（不覆盖）：\n  "
             + "\n  ".join(rel(root, item) for item in conflicts)
         )
+
 
     today = date.today().isoformat()
     generator = config["file_header"]["generator_values"][0]
@@ -1638,11 +1784,7 @@ def run_new(root, config, name, rework_from='', from_explore=''):
             if kind is None:
                 cells.append(dash)
             else:
-                cells.append(
-                    SCAFFOLD_FILENAMES[kind].format(
-                        dir_name=config["dirs"][SCAFFOLD_DIRS[kind]], name=name
-                    )
-                )
+                cells.append(capability_rel(config, name, kind))
     new_row = "| " + " | ".join(cells) + " |"
 
     start, data_rows = find_table(overview_text, header_names)
@@ -1672,9 +1814,7 @@ def run_new(root, config, name, rework_from='', from_explore=''):
                 + explore_rel
             )
         else:
-            design_rel = SCAFFOLD_FILENAMES["design"].format(
-                dir_name=config["dirs"]["design"], name=name
-            )
+            design_rel = capability_rel(config, name, "design")
             adopted = append_adoption_note(explore_text, design_rel, today)
             try:
                 with open(explore_path, "w", encoding="utf-8") as handle:
@@ -2002,9 +2142,16 @@ def iter_capability_docs(target_root, config):
         文档路径列表（已排序）
     """
     dirs = config["dirs"]
+    reserved = {dirs[key] for key in RESERVED_DIR_KEYS}
     docs = []
-    for key in ("design", "plans", "testing"):
-        folder = os.path.join(target_root, dirs[key])
+
+    # 活跃区：文档根下的一级目录，跳过保留目录。列目录内全部 .md 而不是只取
+    # capability_files 的四个名字——文件名写错（如 testing.md 写成 test.md）时
+    # 仍要靠这条遍历把它纳入文件头检查，否则改名即成为「免检」后门。
+    for folder_name in sorted(os.listdir(target_root)):
+        if folder_name in reserved:
+            continue
+        folder = os.path.join(target_root, folder_name)
         if not os.path.isdir(folder):
             continue
         for name in sorted(os.listdir(folder)):
@@ -2232,6 +2379,10 @@ def check_table_vs_disk(root, target_root, config, rows):
     cap_index = config["overview"]["capability_column"]
     status_index = config["overview"]["status_column"]
     registered = set()
+    # 目录登记错误由 check_registered_dirs 以「目录」为粒度报出（带迁移提示）。
+    # 这里再按文件报一次「能力 X 未登记」，同一根因就变成六条互相矛盾的告警，
+    # 读的人会先怀疑总览表，而真正的原因是目录不属于任何能力。
+    stray_dirs = unregistered_capability_dirs(target_root, config, [row["能力"] for row in rows])
 
     for row in rows:
         registered.add(row["能力"])
@@ -2320,30 +2471,99 @@ def check_table_vs_disk(root, target_root, config, rows):
                 )
             )
 
+    # 能力名就在父目录名里，不再从文件名后缀反推——后缀反推依赖「文件名带类别」，
+    # 而这正是旧布局才有的特征。按目录名判定还有个附带好处：一个未登记的能力
+    # 只报一条，而不是四份文档各报一条。
+    reported = set()
     for path in iter_capability_docs(target_root, config):
         # 决策记录不按能力命名，也不要求逐条登记到总览表，跳过
         if os.path.normpath(os.path.dirname(path)) == decisions_dir:
             continue
-        # 归档文档放在 archive/<能力名>/ 下，其能力由总览表该行的路径列体现，
-        # 不按文件名反推（否则每个归档能力都会被误报“未登记”）
+        # 归档文档放在 archive/<能力名>/ 下，其能力由总览表该行的路径列体现
         parent = os.path.normpath(os.path.dirname(path))
         if parent == archive_dir or parent.startswith(archive_dir + os.sep):
             continue
-        name = os.path.basename(path)
-        stem = name[:-3]
-        for suffix in ("-plan", "-deviation", "-testing"):
-            if stem.endswith(suffix):
-                stem = stem[: -len(suffix)]
-                break
-        if stem and stem not in registered:
+        name = os.path.basename(parent)
+        if name in stray_dirs:
+            continue  # 由「目录登记」按目录报，不重复按文件报
+        if name and name not in registered and name not in reported:
+            reported.add(name)
             findings.append(
                 Finding(
                     LEVEL_WARN,
                     "总览表",
-                    rel(root, path) + " 对应的能力「" + stem + "」未在总览表登记",
+                    rel(root, parent) + " 对应的能力「" + name + "」未在总览表登记",
                 )
             )
     return findings
+
+
+def unregistered_capability_dirs(target_root, config, capability_names):
+    """返回文档根下「既不是保留目录、也不属于登记能力」的一级目录名集合。
+
+    抽成函数是因为有两处消费者：check_registered_dirs 按目录报错误，
+    check_table_vs_disk 需要用它抑制按文件重复报的「能力未登记」警告。
+    两处各算一遍会分叉——判据一改就出现「错误说目录非法、警告说文件未登记」。
+
+    参数：
+        target_root: 文档根绝对路径
+        config: 配置字典
+        capability_names: 总览表里出现的能力名列表
+
+    返回：
+        目录名集合
+    """
+    reserved = {config["dirs"][key] for key in RESERVED_DIR_KEYS}
+    registered = {name.strip() for name in capability_names if name.strip()}
+    stray = set()
+    for name in sorted(os.listdir(target_root)):
+        if not os.path.isdir(os.path.join(target_root, name)):
+            continue
+        if name in reserved or name in registered:
+            continue
+        stray.add(name)
+    return stray
+
+
+def check_registered_dirs(root, target_root, config, rows):
+    """检查 9：文档根的一级目录必须是保留目录或已登记的能力。
+
+    为什么需要这一项：能力目录名同时是能力名，而「某个一级目录属于谁」没有任何
+    声明可供核对。旧布局残留的 design/plans/testing 目录会被 iter_capability_docs
+    当成能力目录扫描，报出一堆「未登记」与「缺文件头」——看不出真正原因是布局没迁移完。
+    反向的疏漏更隐蔽：手工建的能力目录（从未走过 new）会被静默纳入检查范围，
+    看起来一切正常，实际既没有登记也没有生成器标记。
+
+    参数：
+        root: 项目根
+        target_root: 文档根
+        config: 配置字典
+        rows: parse_overview 返回的行列表
+
+    返回：
+        缺口列表
+    """
+    findings = []
+    reserved = {config["dirs"][key] for key in RESERVED_DIR_KEYS}
+    for name in sorted(unregistered_capability_dirs(target_root, config, [row["能力"] for row in rows])):
+        folder = os.path.join(target_root, name)
+        hint = ""
+        if name in ("design", "plans", "testing"):
+            hint = (
+                "\n该名字是旧布局的阶段目录。若本项目的布局尚未迁移，"
+                "请把 <阶段目录>/<能力>*.md 移入 <能力>/design.md 等位置并更新总览表；"
+                "若确认已迁移完毕，删除这个残留目录。"
+            )
+        findings.append(
+            Finding(
+                LEVEL_ERROR,
+                "目录登记",
+                rel(root, folder) + " 既不是保留目录（" + "、".join(sorted(reserved))
+                + "）也不是总览表登记的能力目录。" + hint,
+            )
+        )
+    return findings
+
 
 
 def check_adr_numbering(root, target_root, config):
@@ -2665,28 +2885,39 @@ def explore_references(target_root, config):
     folder = explore_dir(config)
     marker = "探索记录见"
     found = []
-    design_dir = os.path.join(target_root, config["dirs"]["design"])
+    design_file = config["capability_files"]["design"]
     archive_dir = os.path.join(target_root, config["dirs"]["archive"])
-    for base_dir in (design_dir, archive_dir):
-        if not os.path.isdir(base_dir):
+
+    # 只读「能力目录下的设计文档」，不做全树 walk：
+    # 计划/偏差/测试文档里出现同一句话时不是来源声明，全树扫描会把它们当成设计文档的来源，
+    # 报出「采纳行缺失」这类查不到根因的告警。归档目录同理，取每个能力子目录下的设计文档。
+    candidates = []
+    reserved = {config["dirs"][key] for key in RESERVED_DIR_KEYS}
+    for name in sorted(os.listdir(target_root)):
+        if name in reserved:
             continue
-        for dirpath, _, filenames in os.walk(base_dir):
-            for name in sorted(filenames):
-                if not name.endswith(".md") or name == "README.md":
-                    continue
-                path = os.path.join(dirpath, name)
-                text, _ = read_text(path)
-                if text is None:
-                    continue
-                for line in extract_section(text, "背景").splitlines():
-                    if marker not in line:
-                        continue
-                    body = line.split(marker, 1)[1].strip()
-                    for sep in ("（", "(", chr(32)):
-                        body = body.split(sep)[0]
-                    body = body.strip().strip(chr(96)).strip().replace(chr(92), "/")
-                    if body.startswith(folder + "/") and body.endswith(".md"):
-                        found.append((path, body))
+        candidate = os.path.join(target_root, name, design_file)
+        if os.path.isfile(candidate):
+            candidates.append(candidate)
+    if os.path.isdir(archive_dir):
+        for name in sorted(os.listdir(archive_dir)):
+            candidate = os.path.join(archive_dir, name, design_file)
+            if os.path.isfile(candidate):
+                candidates.append(candidate)
+
+    for path in candidates:
+        text, _ = read_text(path)
+        if text is None:
+            continue
+        for line in extract_section(text, "背景").splitlines():
+            if marker not in line:
+                continue
+            body = line.split(marker, 1)[1].strip()
+            for sep in ("（", "(", chr(32)):
+                body = body.split(sep)[0]
+            body = body.strip().strip(chr(96)).strip().replace(chr(92), "/")
+            if body.startswith(folder + "/") and body.endswith(".md"):
+                found.append((path, body))
     return found
 
 
@@ -2746,9 +2977,9 @@ def check_archive_consistency(root, target_root, config, rows):
             for name in os.listdir(sub)
             if name.endswith(".md") and os.path.isfile(os.path.join(sub, name))
         }
-        expected = set(ARCHIVE_FILENAMES.values())
+        expected = {config["capability_files"][kind] for kind in DOC_KINDS}
         extra = sorted(present - expected - {"README.md"})
-        lacking = sorted(ARCHIVE_FILENAMES[kind] for kind in SCAFFOLD_DIRS if ARCHIVE_FILENAMES[kind] not in present)
+        lacking = sorted(expected - present)
         if lacking:
             findings.append(
                 Finding(
@@ -2861,6 +3092,7 @@ def run_audit(root, config):
     findings.extend(check_generator_mark(root, target_root, config))
     if not table_findings:
         findings.extend(check_table_vs_disk(root, target_root, config, rows))
+        findings.extend(check_registered_dirs(root, target_root, config, rows))
         findings.extend(check_plan_deviation_pair(root, target_root, config, rows))
         findings.extend(check_archive_consistency(root, target_root, config, rows))
     findings.extend(check_adr_numbering(root, target_root, config))

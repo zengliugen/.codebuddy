@@ -12,7 +12,7 @@
 
 | 时机 | 模式 | 结果 |
 |---|---|---|
-| 项目首次启用本技能 | `init` | 文档根下出现五个子目录的目录说明与总览 README |
+| 项目首次启用本技能 | `init` | 文档根下出现三个保留目录的目录说明与总览 README |
 | 决定要做某个新能力 | `new <能力名>` | 四份骨架落盘（设计/计划/偏差/测试），总览表追加一行并填好各列路径 |
 | 需要固化一个已拍板的决策 | `adr <slug>` | 决策目录下新增 `NNNN-<slug>.md`，编号自动推算 |
 | 阶段推进 | `status <能力名> <状态>` | 总览表与该能力四份文档头的状态一起改（共五处） |
@@ -31,13 +31,18 @@
 ```json
 {
   "version": 1,
+  "layout": "by-capability",
   "docs_root": ".codebuddy.project/docs/devflow",
   "dirs": {
-    "design": "design",
-    "plans": "plans",
-    "testing": "testing",
+    "explore": "explore",
     "decisions": "decisions",
     "archive": "archive"
+  },
+  "capability_files": {
+    "design": "design.md",
+    "plan": "plan.md",
+    "deviation": "deviation.md",
+    "testing": "testing.md"
   },
   "overview": {
     "file": "README.md",
@@ -62,8 +67,10 @@
 
 | 键 | 作用 | 缺失或非法时 |
 |---|---|---|
+| `layout` | 布局模式，目前只接受 `by-capability`（一能力一目录、内部平铺） | **缺键即报错**（退出码 3） |
 | `docs_root` | 文档根，相对项目根。推荐 `.codebuddy.project/docs/devflow`（见下方「文档根放在哪」） | 为空即报错（退出码 3） |
-| `dirs` | 五个子目录的实际名称 | 缺任一键即报错 |
+| `dirs` | **留在文档根**的三个目录名：探索、决策、归档 | 缺任一键即报错 |
+| `capability_files` | 能力目录内部的文件名：设计、计划、偏差、测试 | 缺任一键即报错；必须是单段 `.md` |
 | `overview.header` | 总览表列名与顺序；audit 用它定位表格 | 表头不匹配即报「未找到总览表」 |
 | `overview.capability_column` / `status_column` | 能力列与状态列序号（从 0 起） | 越界即报错 |
 | `overview.status_values` | 合法状态取值集合 | 超出集合即报错 |
@@ -71,7 +78,7 @@
 | `file_header.status_field` | 状态字段的名称，必须是 `fields` 中的一项 | 不在 `fields` 内即报错 |
 | `file_header.generator_field` | 生成器字段的名称 | — |
 | `file_header.generator_values` | 生成器字段合法取值集合，**首个值由 new 写入** | 为空即报错 |
-| `capability_name_pattern` | 能力名正则 | 非法正则即报错 |
+| `capability_name_pattern` | 能力名正则。能力名同时是能力目录名 | 非法正则即报错 |
 
 **脚本不内置任何默认值**。代价是首次使用必须先有配置，收益是「配置写错」永远表现为可操作的报错，
 而不是「检查莫名通过」。
@@ -103,9 +110,33 @@
 status_values 的顺序有意义：audit 用第 3、4 个取值（默认「已定」「已实施」）判断计划与偏差是否应当成对。
 调整顺序前先确认这一处依赖。
 
-### 改名子目录
+### 从旧布局迁移
 
-dirs 里的值可自由改（例如把 plans 改为 planning），但**已初始化的项目不会自动迁移**：
+旧版布局按**阶段**分目录（`design/<能力>.md`、`plans/<能力>-plan.md`、`plans/<能力>-deviation.md`、
+`testing/<能力>-testing.md`）。新版按**能力**分目录，`dirs` 只剩三个保留目录，
+文件归属改由 `capability_files` 声明。
+
+**升级后旧配置会直接报退出码 3**（缺 `layout` / `capability_files`，且 `dirs` 里多了三个键）。
+这是刻意的：旧配置在新语义下会被**静默错解**——`new` 写到新位置、`audit` 扫不到旧文档、
+部分检查照样通过，比明确失败难查得多。迁移步骤：
+
+1. 按能力建目录：`<文档根>/<能力名>/`
+2. 把四份文档移入并改名：`design/<能力>.md` → `<能力>/design.md`，`plans/<能力>-plan.md` →
+   `<能力>/plan.md`，`plans/<能力>-deviation.md` → `<能力>/deviation.md`，
+   `testing/<能力>-testing.md` → `<能力>/testing.md`
+3. 总览表每一行的四个路径单元格改成 `<能力名>/design.md` 等
+4. 探索记录的采纳行 `- 采纳于：design/<能力>.md` 改成 `- 采纳于：<能力>/design.md`
+   （漏改会报「采纳目标不存在」与「没有指向它的采纳行」两条错误）
+5. 文档正文里互相引用的路径（计划指设计、偏差指计划）同步改
+6. 删掉 `design/`、`plans/`、`testing/` 三个目录及其 README
+7. 配置补 `layout` 与 `capability_files`，`dirs` 删掉那三个键
+
+迁移是否完成由 `audit` 判：文档根下出现既非保留目录、又未登记的能力目录时报**错误**，
+并指名「该名字是旧布局的阶段目录」。
+
+### 改名保留目录
+
+`dirs` 里的值可自由改（例如把 `archive` 改为 `archived`），但**已初始化的项目不会自动迁移**：
 需手工移目录，且文档根下各 README 中的路径引用要同步改。
 
 ## 三、audit 的判定细节
@@ -143,14 +174,13 @@ dirs 里的值可自由改（例如把 plans 改为 planning），但**已初始
 ```text
 <文档根>/
 ├── README.md                     总览说明 + 能力总览表骨架
-├── design/README.md              设计文档的准入边界
-├── plans/README.md               计划与偏差两种文件的分工
-├── testing/README.md             测试策略与验收记录的写法
+├── explore/README.md             需求探索的准入与确认条件
 ├── decisions/README.md           决策记录的不可变性
 └── archive/README.md             归档规则
 ```
 
-只有六个文件，且全部是**说明**。文档骨架不复制。
+只有四个文件，且全部是**说明**。文档骨架不复制；能力目录也不预建——它们由 `new` 按能力名创建，
+预建会与保留目录共处一级命名空间，变成「未登记的疑似能力目录」。
 
 ### 占位符替换
 
@@ -164,8 +194,8 @@ dirs 里的值可自由改（例如把 plans 改为 planning），但**已初始
 
 ### 为什么偏差记录也由 new 产出
 
-偏差记录（`<能力名>-deviation.md`）与设计、计划、测试同属这个能力的文档：文件名由能力名派生、
-数量固定为一份、生命周期跟着能力走。把它单独留成手工动作，只会多一条「忘了建、到体检才发现
+偏差记录（`<能力名>/deviation.md`）与设计、计划、测试同属这个能力的文档：四份都放在能力目录内、
+数量固定、生命周期跟着能力走。把它单独留成手工动作，只会多一条「忘了建、到体检才发现
 计划与偏差不成对」的路径。因此 `new` 一次产齐四份，并在总览表「实施偏差」列直接填好路径。
 
 **空偏差记录不算违规**：模板自带「只有实际做法 ≠ 计划才记」的准入判据，实施顺利时这份文件
@@ -239,7 +269,7 @@ python $DIR/scripts/devflow_guard.py new cache-ttl --from-explore cache-ttl
 ### 探索记录采纳后为什么不能改
 
 `new --from-explore` 成功时，会在探索记录的「## 采纳」节自动追加一行
-`- 采纳于：design/<能力名>.md（日期）`。**这一行由工具写，不是人写**——「是否被采纳、
+`- 采纳于：<能力名>/design.md（日期）`。**这一行由工具写，不是人写**——「是否被采纳、
 被谁采纳」必须是当场留下的痕迹；手工填等于让人事后自证，而事后合理化正是它要防的。
 
 采纳后按改动性质分三类，只有第一类可以动：
