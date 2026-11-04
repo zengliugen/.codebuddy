@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-仓库更新脚本（引擎侧通用工具）。
+"""仓库更新脚本（引擎侧通用工具）。
 
 将目标仓库的当前分支更新到最新，并自动区分两种仓库形态、采用不同更新方式：
 
@@ -411,6 +410,7 @@ def rebuild_pack_links(engine_dir):
 
 
 def main():
+    """把目标仓库当前分支更新到最新，返回进程退出码。"""
     init_stdout()
     parser = argparse.ArgumentParser(
         description="将目标仓库的当前分支更新到最新（自动识别普通仓库 / 子模块）"

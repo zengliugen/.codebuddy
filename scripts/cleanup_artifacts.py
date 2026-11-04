@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-运行时产物清理脚本（引擎侧通用工具）。
+"""运行时产物清理脚本（引擎侧通用工具）。
 
 读取引擎索引 `.codebuddy/project.index.json` 的 `artifacts.dirs`，删除各产物目录中的
 运行结果文件并重建空目录（便于后续结果继续落盘）。目录清单完全由索引驱动，脚本不硬编码
@@ -141,6 +140,7 @@ def count_files(path):
 
 
 def main():
+    """按索引清单清理产物目录，返回进程退出码。"""
     init_stdout()
     parser = argparse.ArgumentParser(
         description="清理项目侧运行时产物目录（清单由索引 artifacts.dirs 驱动）"

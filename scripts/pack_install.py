@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-引擎包安装器：按 lib/packs.json 声明的可选包，在项目侧物化组件链接并登记安装状态。
+"""引擎包安装器：按 lib/packs.json 声明的可选包，在项目侧物化组件链接并登记安装状态。
 
 引擎扫描根的形态（按 location 判定，与 default 无关；本脚本不物化默认包，只桥接可选包与项目专有包）：
   .codebuddy/rules/<pack>           location=engine 真实目录 / lib 链接 / project 链接

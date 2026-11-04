@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-引擎清单一致性校验（core-init / 引擎维护辅助）。
+"""引擎清单一致性校验（core-init / 引擎维护辅助）。
 
 原「迁移文档同步门禁」（`rules/codebuddy-migration-sync/` 规则）随迁移机制废除而删除。
 本脚本承担其留下的**轻量登记守护**职责：核对引擎实际目录与登记清单是否一致，避免
@@ -49,6 +48,7 @@ import json
 import os
 import re
 import sys
+
 
 def _codebuddy_from_script():
     """自脚本位置向上查找名为 .codebuddy 的目录，返回其绝对路径；找不到返回 None。
@@ -1016,6 +1016,7 @@ def check_index_targets(index, packs, project_root):
 
 
 def main():
+    """执行全部校验项，打印差异清单并返回退出码。"""
     codebuddy_dir = find_codebuddy_dir(os.getcwd())
     if not codebuddy_dir:
         sys.stderr.write("[错误] 未找到 .codebuddy 目录。请在含 .codebuddy 的项目内运行。\n")
