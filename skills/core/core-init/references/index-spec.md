@@ -204,6 +204,23 @@
 跨机器有效），源文件记普通文件；两者均入库。`core-init` 生成源文件骨架并建链（失败告警给手工命令）。
 **不外置**绑定本机的文件（`models.json`、`settings.local.json`）——外置反而跨机器失效且不宜入库。
 
+**收录条件（三条同时满足才可登记）**：① 链接目标是单个文件；② `path` 是**项目侧**真实源文件；
+③ 需要 `core-init` 为其生成骨架。缺任一条都不属于本节点。
+
+**可选包 / 项目专有包的桥接链接不登记**：它们是**目录**链接，源在引擎 `lib/<包>/<类型>` 下、内容已存在、
+无需生成骨架，三条全不满足。其完整信息由 `lib/packs.json`（`location` 与 `comps`）与项目侧
+`configs/packs.json`（`installed`）两处共同确定，路径由 `scripts/pack_install.py` 确定性推导：
+
+```
+.codebuddy.project/<类型>/<包>  →  lib/<包>/<类型>          （项目侧落点）
+.codebuddy/<类型>/<包>          →  .codebuddy.project/<类型>/<包>   （引擎扫描根桥接）
+```
+
+创建、漂移检测与修复全部走该脚本（`verify` / `verify --repair`），`core-init --status` 亦已覆盖。
+**不要为图省事把它们塞进 `root_symlinks`**：`core-init` 会把 `path` 当源文件渲染骨架并写入，
+即向引擎包目录 `.codebuddy/lib/<包>/<类型>` 写一个 json/markdown 文件，直接破坏引擎内容；
+同时会在 `installed` 变更时形成第三份事实来源，与索引脱节。
+
 ### 3.9 缺失行为
 
 - 注册表缺失 / JSON 损坏 / 缺少 `project_config_root` 或 `files` → **读取方报错退出（退出码 3）**。
