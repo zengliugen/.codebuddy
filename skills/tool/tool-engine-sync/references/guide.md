@@ -39,6 +39,11 @@ python .codebuddy/skills/tool/tool-engine-sync/scripts/analyze_impact.py --from 
 
 检测范围见 `references/impact-model.md`。**必须实际运行脚本**，不得凭 `git log` 摘要臆测。
 
+**脚本结论不能单独作数**：`analyze_impact.py` 报「未改变项目侧契约」时，若
+`git diff <旧> <新> -- project.index.json` 显示索引有改动，须人工核对改动落在哪些字段。
+路径未变而模板结构变化（新增必需键、删除既有键）时，消费脚本会直接报错退出，
+而这在路径对比里完全不可见。曾出现脚本判「无需同步」、实际技能启动即退出码 3 的情形。
+
 ### 阶段四：汇报影响并请求授权
 
 用 `AskUserQuestion` 呈现影响清单，选项须具体：

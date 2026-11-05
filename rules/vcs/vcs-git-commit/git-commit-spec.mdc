@@ -26,6 +26,16 @@ provider:
 6. **禁止**在 hook 失败时使用 `--no-verify` 跳过 hook（除非用户明确指定）。
 7. **禁止**使用 `git push --force` 或 `git push --force-with-lease`（除非用户明确指定）。
 
+   用户明确指定强推时的必做核对（缺一不可）：
+
+   1. 改前 `git fetch` 并确认本地无落后（`git log <远程>..HEAD` 与 `HEAD..<远程>` 双向皆空）
+      ——落后说明他人已推送，改写会覆盖其工作；
+   2. 改后用 `git diff <旧提交> HEAD --stat` 确认树差异为空，即只改消息未改内容；
+   3. 推送用 `--force-with-lease` 而非 `--force`（远程已被更新时前者拒绝）。
+
+   改写在授权前须告知用户：哈希会变，已拉取该提交的协作者需要 `git reset` 或
+   `git pull --rebase` 才能同步。
+
 ## 提交与推送分离（不受发起权配置影响）
 
 - 提交（`git commit`）与推送（`git push`）必须严格分开执行，禁止链式组合命令（如 `git add -A && git commit -m "..." && git push`）。

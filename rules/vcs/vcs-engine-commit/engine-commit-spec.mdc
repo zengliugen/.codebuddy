@@ -59,6 +59,10 @@ git -C <路径>/.codebuddy rev-parse --show-superproject-working-tree
 ls -ld <路径>/.codebuddy/.git    # 目录=独立仓库；文件=submodule
 ```
 
+两条命令**互为备份**：部分 Git 版本不支持 `--show-superproject-working-tree`（报
+`unknown option`），此时以 `.git` 是文件（形态 A）还是目录（形态 B）判定即可。
+任一命令不可用都不阻塞形态判定，但**不得**退回用「目录名是否为 `.codebuddy`」来推断归属。
+
 ### 2.2 判定某个文件属于哪个仓库
 
 ```bash
