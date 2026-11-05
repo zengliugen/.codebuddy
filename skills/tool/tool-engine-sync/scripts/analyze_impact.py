@@ -7,6 +7,10 @@
 索引条目（files / rule_shells / artifacts.dirs / root_symlinks.entries）与包注册表
 （lib/packs.json 的包与组件）的增删改，并交叉项目侧磁盘现状给出动作建议。
 
+除增删改外，还比对索引条目的**模板结构**（`template` 的键路径与 `template_outline` 的章节）：
+路径没变但模板新增了配置键时，项目侧配置缺键会让消费脚本直接报错退出，而这类变化
+在「路径对比」里完全不可见。
+
 设计原则：
 - **只读**：不修改任何文件，仅输出分析结果。
 - **索引为唯一事实来源**：不硬编码包名、路径、组件名。
@@ -156,6 +160,166 @@ def add_item(items, kind, change, name, action, severity, pack="", old="", new="
     })
 
 
+def _template_paths(value, prefix="", out=None):
+    """把模板展开为「键路径」列表，用于结构比对。
+
+    嵌套对象递归展开（如 dirs.explore）；数组与标量视为叶子——数组按元素比对
+    只会产出「第 N 个元素变了」这类无法据以动手的噪音。空对象本身算叶子，
+    因为 key: {} 与 key: {...} 是两种结构。
+    """
+    if out is None:
+        out = []
+    if isinstance(value, dict):
+        if not value and prefix:
+            out.append(prefix)
+        for key in value:
+            path = "%s.%s" % (prefix, key) if prefix else str(key)
+            _template_paths(value[key], path, out)
+    elif prefix:
+        out.append(prefix)
+    return out
+
+
+def _template_value(value, path):
+    """按键路径取值，返回 (是否存在, 值)。
+
+    存在性单独返回而不是用 None 表示缺失：模板里的 null 是合法取值，
+    与「没有这个键」不是一回事。
+    """
+    current = value
+    for segment in str(path).split("."):
+        if not isinstance(current, dict) or segment not in current:
+            return False, None
+        current = current[segment]
+    return True, current
+
+
+def _is_doc_path(path):
+    """判断键路径是否只是说明性字段（`_comment` 之类）。
+
+    这类键记录「怎么填」而非「填什么」，变化不构成项目侧契约变更。
+    """
+    return any(segment.startswith("_") for segment in str(path).split("."))
+
+
+def load_project_config(project_root, rel, fmt):
+    """读取项目侧配置，返回 (是否存在, 解析结果, 失败原因)。
+
+    JSON 按对象解析以便按键路径取值；Markdown 等文本格式无法按键取值，
+    只判断文件是否存在——对它们做结构比对没有共同的可比单元。
+    """
+    path = project_path(project_root, rel)
+    if not os.path.isfile(path):
+        return False, None, ""
+    if fmt != "json":
+        return True, None, ""
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            return True, json.load(handle), ""
+    except (OSError, ValueError) as error:
+        return True, None, str(error)
+
+
+def _analyze_template(group, name, old_entry, new_entry, rel, project_root, active):
+    """比对索引条目的模板结构，交叉项目侧配置现状给出动作。
+
+    只处理**路径未变**且**项目侧文件存在**的条目：新增条目的模板内容随骨架生成
+    一并落实，路径变更时改动集中在迁移，都不需要单独报告模板差异。
+    """
+    items = []
+    if not rel:
+        return items
+    pack = pack_of_path(rel)
+    if pack and pack not in active:
+        return items
+    fmt = new_entry.get("format") or old_entry.get("format") or ""
+    exists, config, error = load_project_config(project_root, rel, fmt)
+    if not exists:
+        return items
+
+    kind = "index." + group + ".template"
+
+    # 非 JSON 条目无法按键路径比对，只保留章节大纲这条能机械判定的信号
+    if fmt != "json":
+        items.extend(_analyze_outline(kind, name, old_entry, new_entry, pack))
+        return items
+
+    if error:
+        add_item(items, kind, "template_unreadable", name,
+                 "项目侧配置无法解析，新增键是否已对齐无从判断：%s" % error,
+                 "action_required", pack=pack, new=rel,
+                 note="修复 JSON 语法后重新运行本分析")
+        return items
+
+    old_tpl = old_entry.get("template") if isinstance(old_entry.get("template"), (dict, list)) else {}
+    new_tpl = new_entry.get("template") if isinstance(new_entry.get("template"), (dict, list)) else {}
+
+    old_paths = set(p for p in _template_paths(old_tpl) if not _is_doc_path(p))
+    new_paths = set(p for p in _template_paths(new_tpl) if not _is_doc_path(p))
+
+    for path in sorted(new_paths - old_paths):
+        present, _value = _template_value(config, path)
+        if present:
+            add_item(items, kind, "template_key_added", name,
+                     "模板新增键 `%s`，项目侧已有同名键" % path,
+                     "info", pack=pack, new=path)
+        else:
+            add_item(items, kind, "template_key_added", name,
+                     "模板新增键 `%s`，项目侧配置缺少该键；消费方若视其为必需键将直接报错退出" % path,
+                     "action_required", pack=pack, new=path,
+                     note="按索引模板补齐该键；若确认为可选键，可判定后跳过并记录")
+
+    for path in sorted(old_paths - new_paths):
+        present, _value = _template_value(config, path)
+        if present:
+            add_item(items, kind, "template_key_removed", name,
+                     "模板已移除键 `%s`，项目侧配置仍保留" % path,
+                     "suggest", pack=pack, old=path)
+        else:
+            add_item(items, kind, "template_key_removed", name,
+                     "模板已移除键 `%s`，项目侧无残留" % path,
+                     "info", pack=pack, old=path)
+
+    # 同名键的结构可能从标量变对象（如 dirs 下某项变成子对象），键路径集合会漏掉
+    # 「老键还在、但已降级为叶子」的情形，故对共同键补一次类型比对。
+    for path in sorted(old_paths & new_paths):
+        old_present, old_value = _template_value(old_tpl, path)
+        new_present, new_value = _template_value(new_tpl, path)
+        if not (old_present and new_present):
+            continue
+        if isinstance(old_value, dict) or isinstance(new_value, dict):
+            continue
+        if old_value != new_value:
+            add_item(items, kind, "template_value_changed", name,
+                     "模板默认值变化：`%s`（%s → %s），项目侧取值可自行决定是否跟进"
+                     % (path, json.dumps(old_value, ensure_ascii=False),
+                        json.dumps(new_value, ensure_ascii=False)),
+                     "info", pack=pack, old=str(old_value), new=str(new_value))
+
+    items.extend(_analyze_outline(kind, name, old_entry, new_entry, pack))
+
+    return items
+
+
+def _analyze_outline(kind, name, old_entry, new_entry, pack):
+    """比对章节大纲（`template_outline`），返回影响项。
+
+    大纲只在 `core-init` 生成骨架时用一次，对已初始化项目不构成契约变更，
+    因此恒为 `info`——报告它是为了让「大纲变了」这件事有据可查，而非要求动作。
+    """
+    old_outline = old_entry.get("template_outline")
+    new_outline = new_entry.get("template_outline")
+    if not (isinstance(old_outline, list) and isinstance(new_outline, list)):
+        return []
+    if old_outline == new_outline:
+        return []
+    items = []
+    add_item(items, kind, "outline_changed", name,
+             "章节大纲变化，只影响新项目的骨架生成，已初始化项目无需动作",
+             "info", pack=pack)
+    return items
+
+
 def analyze_index(old_index, new_index, project_root, active):
     """分析索引四个分区的增删改，交叉项目侧现状给出动作。"""
     items = []
@@ -197,25 +361,29 @@ def analyze_index(old_index, new_index, project_root, active):
                          "索引已移除，项目侧无残留", "info", pack=pack, old=rel)
 
         for name in common:
-            old_rel = (old_group.get(name) or {}).get("path") or ""
-            new_rel = (new_group.get(name) or {}).get("path") or ""
-            if old_rel == new_rel:
-                continue
-            pack = pack_of_path(new_rel)
-            old_exists = os.path.exists(project_path(project_root, old_rel)) if old_rel else False
-            new_exists = os.path.exists(project_path(project_root, new_rel)) if new_rel else False
-            if old_exists and not new_exists:
-                add_item(items, "index." + group, "path_changed", name,
-                         "需迁移项目侧文件（旧路径存在、新路径缺失）", "action_required",
-                         pack=pack, old=old_rel, new=new_rel)
-            elif old_exists and new_exists:
-                add_item(items, "index." + group, "path_changed", name,
-                         "新旧路径都存在，确认后删除旧路径", "suggest",
-                         pack=pack, old=old_rel, new=new_rel)
-            else:
-                add_item(items, "index." + group, "path_changed", name,
-                         "项目侧无旧文件，按新路径生成即可", "info",
-                         pack=pack, old=old_rel, new=new_rel)
+            old_entry = old_group.get(name) or {}
+            new_entry = new_group.get(name) or {}
+            old_rel = old_entry.get("path") or ""
+            new_rel = new_entry.get("path") or ""
+            if old_rel != new_rel:
+                pack = pack_of_path(new_rel)
+                old_exists = os.path.exists(project_path(project_root, old_rel)) if old_rel else False
+                new_exists = os.path.exists(project_path(project_root, new_rel)) if new_rel else False
+                if old_exists and not new_exists:
+                    add_item(items, "index." + group, "path_changed", name,
+                             "需迁移项目侧文件（旧路径存在、新路径缺失）", "action_required",
+                             pack=pack, old=old_rel, new=new_rel)
+                elif old_exists and new_exists:
+                    add_item(items, "index." + group, "path_changed", name,
+                             "新旧路径都存在，确认后删除旧路径", "suggest",
+                             pack=pack, old=old_rel, new=new_rel)
+                else:
+                    add_item(items, "index." + group, "path_changed", name,
+                             "项目侧无旧文件，按新路径生成即可", "info",
+                             pack=pack, old=old_rel, new=new_rel)
+            # 模板结构比对与路径变更独立：两者可同时发生，只比路径会漏掉后者
+            items.extend(_analyze_template(group, name, old_entry, new_entry,
+                                           new_rel, project_root, active))
 
     # artifacts.dirs：name -> 相对路径（字符串）
     old_dirs = (old_index.get("artifacts") or {}).get("dirs") or {}
