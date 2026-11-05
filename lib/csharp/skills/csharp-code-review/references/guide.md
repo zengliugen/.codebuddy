@@ -56,12 +56,28 @@
   忽略，清理不影响版本控制与迁移包。批量清理可执行 `.codebuddy.project/cleanup-caches.cmd`。
 
 ## 辅助脚本
-| 脚本 | 用途 |
-|------|------|
-| `scripts/collect_review_targets.py` | 收集本次门禁审查目标：`git status` 中的 M/A/R/C/U 变更 + **未跟踪的 `.cs` 新文件**（`git diff` 看不到），过滤顺序为**扩展名（默认 `.cs`）→ 白名单（可选）→ 黑名单**：`include_patterns` 非空即启用白名单模式（默认拒绝），缺失或为空则退回黑名单模式（默认放行、仅按 `exclude_patterns` 排除）；供门禁派发提示词直接使用。排除清单与 `format_checker.config` 的 `exclude_dirs` 保持同一口径，新增排除项须同步更新 |
+两个脚本**按工作副本类型二选一**，读同一份项目配置、过滤语义完全一致；选错会在启动时明确报错
+（Git 版报「获取 git 状态失败」、SVN 版报「目录不是 SVN 工作副本」），不会静默给出空清单。
+
+| 脚本 | 适用工作副本 | 用途 |
+|------|------------|------|
+| `scripts/collect_review_targets.py` | Git | 收集本次门禁审查目标：`git status` 中的 M/A/R/C/U 变更 + **未跟踪的 `.cs` 新文件**（`git diff` 看不到） |
+| `scripts/collect_review_targets_svn.py` | SVN | 同上，状态源改为 `svn status --xml`：modified/added/replaced/conflicted + **未版本化 `.cs` 新文件**；未版本化目录自行展开（`svn status` 只报目录不递归），`svn:ignore` 覆盖项天然不入清单 |
+
+两者过滤顺序均为 **扩展名（`.cs`）→ 白名单（可选）→ 黑名单 → 文件头 auto-generated**：
+`include_patterns` 非空即启用白名单模式（默认拒绝），缺失或为空则退回黑名单模式
+（默认放行、仅按 `exclude_patterns` 排除）；供门禁派发提示词直接使用。
+排除清单与 `format_checker.config` 的 `exclude_dirs` 保持同一口径，新增排除项须同步更新。
+
+两者输出的清单路径**一律为项目根相对路径**（与配置的书写口径一致），不受「项目根是否为
+仓库根 / 工作副本根」影响——引擎以子目录接入宿主仓库是常见布局，用仓库相对路径
+审查方会读不到文件。
 
 ```bash
+# Git 工作副本
 python .codebuddy/lib/csharp/skills/csharp-code-review/scripts/collect_review_targets.py [--json]
+# SVN 工作副本
+python .codebuddy/lib/csharp/skills/csharp-code-review/scripts/collect_review_targets_svn.py [--json]
 ```
 
 ## 检查清单

@@ -60,8 +60,12 @@ csharp-code-review 门禁审查目标收集脚本：汇总本次待审查的变�
     --json              以 JSON 输出（tracked / untracked / targets / excluded）
 
 输出：
-    文本模式：逐行输出审查目标路径（可直接作为审查文件清单传递）。
+    文本模式：逐行输出审查目标路径（**项目根相对**，可直接作为审查文件清单传递）。
     JSON 模式：结构化清单，区分已跟踪变更与未跟踪新文件。
+
+    **为什么是项目根相对而非仓库相对**：清单要交给审查方去读文件，而项目根常不是仓库根
+    （如引擎以子目录接入宿主仓库）。仓库相对路径脱离仓库根就解析不到；项目根相对路径
+    与配置模式的书写口径也一致，是唯一可移植的口径。
 
 退出码：
     0 —— 收集完成（列表可能为空）
@@ -220,6 +224,10 @@ def to_project_rel(repo_rel, git_root, project_root):
     配置模式（include/exclude）一律按项目根相对路径书写，因此匹配前必须先换算——
     否则 `src/module/**` 这类不带上层前缀的模式会因仓库子目录前缀失配，
     迫使用户为所有目录模式补 `**/` 前缀（把路径语义问题转嫁给配置书写者）。
+
+    换算结果**同时用于输出**（脚本对外的清单口径），不只是匹配：输出的路径要被审查方
+    直接拿去读文件，口径必须与配置一致且不依赖仓库根，否则在「项目根 ≠ 仓库根」的
+    常见布局下清单无法解析。
     """
     if os.path.isabs(repo_rel):
         absolute = os.path.normpath(repo_rel)
@@ -487,17 +495,20 @@ def main():
 
         # 路径级排除（生成代码目录/命名）
         if matches_any(project_rel, exclude_regexes):
-            excluded.append({"path": path, "reason": "exclude_pattern"})
+            excluded.append({"path": project_rel, "reason": "exclude_pattern"})
             continue
 
         # 文件头级排除（未跟踪/新增文件无法用 git 判断内容）
         if not args.no_header_check:
             absolute = path if os.path.isabs(path) else os.path.join(git_root, path)
             if is_auto_generated_header(absolute):
-                excluded.append({"path": path, "reason": "auto_generated_header"})
+                excluded.append({"path": project_rel, "reason": "auto_generated_header"})
                 continue
 
-        item = {"status": xy, "path": path}
+        # 输出**项目根相对路径**而非仓库相对路径：清单要交给审查方去读文件，而项目根
+        # 常常不是仓库根（如引擎以子目录接入宿主仓库），仓库相对路径脱离仓库根就解析不到。
+        # 项目根相对路径是可移植的唯一口径，与配置模式的书写口径也一致。
+        item = {"status": xy, "path": project_rel}
         if is_untracked:
             untracked.append(item)
         else:

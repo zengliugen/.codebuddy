@@ -43,7 +43,8 @@
       "references\\guide.md"
     ],
     "scripts": [
-      "scripts\\collect_review_targets.py"
+      "scripts\\collect_review_targets.py",
+      "scripts\\collect_review_targets_svn.py"
     ],
     "assets": [],
     "reports": [
