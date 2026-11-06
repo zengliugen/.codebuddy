@@ -430,7 +430,8 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
    详见 `rules/core/core-engine/config-isolation-spec.mdc` §3.6。
 2. **不把项目专有值写入本库**（脚本、配置、索引、示例均不得硬编码）；项目值只出现在消费项目侧。
 3. **技能/规则清单维护**：本 README 的目录结构节即引擎构成清单；新增/删除技能或规则时同步更新本节。
-   运行 `python scripts/check_manifest.py` 核对一致性。
+   运行 `python scripts/check_manifest.py` 核对一致性——它会双向核对桥接链接的入库边界
+   （`<pack>` 链接不得入库、`project/` 内容必须入库，见校验项 15）。
 4. **迁移机制已废除**：不再使用导出 zip + 补丁分发（旧 `MIGRATION.md` / `INVENTORY.md` /
    `CHANGES.md` / `export_codebuddy.cmd` / `codebuddy-migration-sync` 规则均已删除），改由 git
    （submodule）版本化分发；历史版本查询用 `git log`。

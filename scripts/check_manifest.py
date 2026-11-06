@@ -35,6 +35,13 @@
   13. 索引落盘存在性：`files` 的 `path` 与 `artifacts.dirs` 的目录在**已生效包**范围内必须真实
       存在；路径归属未安装的可选包时豁免（该包的骨架本就不该生成）。仅校验相对性与格式时，
       索引写错路径、包卸载后的残留目录都查不出来——表现是技能运行时才报「配置缺失」。
+  14. 项目侧族目录名须为族内全部组件名的共同前缀。
+  15. **桥接链接的入库边界**（双向）：`<pack>` 链接（项目侧落点与引擎扫描根两层）是
+      `pack_install.py` 依 `packs.json` 推导的派生结果，**不得被 git 跟踪**且**须被忽略规则
+      命中**；项目专有包 `project/` 的内容则相反——**必须入库**，只有引擎侧那层链接被忽略。
+      两个方向都查：只查「不该入库的入库了」发现不了「该入库的被忽略」（后者更隐蔽，
+      本地看着正常，他人克隆后组件静默消失）。git 不可用（引擎单独检出、无项目侧）时整项
+      跳过，不误报。
 
 退出码：
   0 —— 一致
@@ -47,6 +54,7 @@
 import json
 import os
 import re
+import subprocess
 import sys
 
 
@@ -907,6 +915,204 @@ def pack_of_index_path(rel):
     return ""
 
 
+def git_output(repo_dir, args):
+    """在 repo_dir 内执行 git 命令，返回 (标准输出, 退出码)。
+
+    git 不在 PATH、repo_dir 不是仓库、命令本身不适用（如跨仓库路径）时统一
+    返回 (None, None)，由调用方决定「跳过」而不是误报。校验脚本必须能在
+    「引擎被单独检出、无项目侧 / 无 git」的场景下正常跑完。
+
+    **必须清除 GIT_DIR 等继承环境变量**：本脚本会在 git 钩子中被调用，钩子由
+    git 自己启动时会设置 `GIT_DIR` / `GIT_WORK_TREE`（submodule 中指向
+    `.git/modules/<路径>`）。这些变量会覆盖 `cwd` 的仓库判定——从项目根查
+    `.codebuddy.project/skills/<pack>` 本应走父仓库，却因 `GIT_DIR` 指向引擎
+    仓库而被判为「未忽略」，产生成片的假阳性。
+    """
+    env = dict(os.environ)
+    for name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE",
+                 "GIT_OBJECT_DIRECTORY", "GIT_COMMON_DIR"):
+        env.pop(name, None)
+    try:
+        completed = subprocess.run(
+            ["git"] + args, cwd=repo_dir, env=env,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            universal_newlines=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None, None
+    return completed.stdout, completed.returncode
+
+
+def is_tracked(repo_dir, rel_path):
+    """判断 rel_path 是否已被 repo_dir 所在仓库跟踪。
+
+    返回 True / False；无法判定（不是 git 仓库、git 不在 PATH）时返回 None。
+    先用 `rev-parse --show-toplevel` 确认仓库存在，再以 `ls-files` 的输出是否为空
+    判定跟踪状态——直接依赖 `--error-unmatch` 的退出码无法区分「未跟踪」与「无仓库」。
+    """
+    toplevel, code = git_output(repo_dir, ["rev-parse", "--show-toplevel"])
+    if code != 0 or not toplevel:
+        return None
+    output, code = git_output(repo_dir, ["ls-files", "--", rel_path])
+    if output is None or code != 0:
+        return None
+    return bool(output.strip())
+
+
+def is_ignored(repo_dir, rel_path):
+    """判断 rel_path 是否被 repo_dir 所在仓库的忽略规则命中。
+
+    返回 True / False；无法判定时返回 None。
+    注意 `git check-ignore` 对**已跟踪**文件返回 1（视作未忽略）——这是 git 语义
+    而非缺陷，故「已入库」不能靠它发现，须另用 is_tracked 判定。
+    """
+    _, code = git_output(repo_dir, ["check-ignore", "-q", rel_path])
+    if code is None:
+        return None
+    if code == 0:
+        return True
+    if code == 1:
+        return False
+    # 128 = 路径在该仓库之外（如引擎仓库与父仓库边界不同），无法判定
+    return None
+
+
+def pack_bridge_paths(codebuddy_dir, packs, installed=None):
+    """枚举全部应存在的桥接链接，返回 [(仓库根, 相对路径, 角色, 包名, 类型)]。
+
+    桥接分两层，各自在**不同的 git 仓库**里：
+      - 项目侧落点 `.codebuddy.project/<类型>/<pack>` → 属于项目仓库（引擎的父仓）；
+      - 引擎扫描根 `.codebuddy/<类型>/<pack>`         → 属于引擎仓库。
+    两者都要「不入库」，但判据分散在两个仓库的 `.gitignore` 里，故分开返回。
+
+    角色区分两类包，它们的入库策略相反：
+      - `<pack>`（location=lib 的可选包）：**不得入库**（派生链接）；
+      - `project`（项目专有包）：**内容必须入库**，只有引擎侧那一层链接被忽略。
+
+    installed 非 None 时只枚举已装的可选包——未装的包既无链接也无忽略规则，
+    要求它「被忽略」是误报；location=project 不受此过滤（它始终存在）。
+
+    同理，只枚举该包**声明了组件**的类型：`comps.agents` 为空的包没有 agents
+    桥接，检查它会得到「未忽略」的假阳性（该目录根本不存在，check-ignore 对
+    不存在的路径同样按规则判定，规则一旦不区分就误报）。
+    """
+    project_root = os.path.dirname(codebuddy_dir)
+    rows = []
+    for pack, meta in packs.items():
+        location = meta.get("location")
+        if location not in ("lib", "project"):
+            continue
+        if location == "lib" and installed is not None and pack not in installed:
+            continue
+        comps = meta.get("comps") or {}
+        for comp_type in ("rules", "skills", "agents"):
+            # 项目专有包固定三类桥接（内容可暂空）；其余包仅在声明了该类型时才建链
+            if location != "project" and not comps.get(comp_type):
+                continue
+            if location == "lib":
+                # 可选包：项目侧落点 + 引擎扫描根，两处都必须是「未跟踪且被忽略」
+                rows.append((project_root,
+                             os.path.join(".codebuddy.project", comp_type, pack),
+                             "lib-pack", pack, comp_type))
+                rows.append((codebuddy_dir,
+                             os.path.join(comp_type, pack),
+                             "lib-pack", pack, comp_type))
+            else:
+                # 项目专有包：仅引擎扫描根是链接；内容在项目侧且必须入库
+                rows.append((codebuddy_dir,
+                             os.path.join(comp_type, pack),
+                             "project-link", pack, comp_type))
+    return rows
+
+
+def check_bridge_ignore(codebuddy_dir, packs, installed=None):
+    """校验桥接链接的入库边界（校验项 15）。
+
+    背景：桥接链接是 `pack_install.py` 依 `lib/packs.json` 与项目侧
+    `configs/packs.json` 的 `installed` 确定性推导出来的**派生结果**，不是仓库
+    要维护的事实。入库会带来两个问题：装/卸包时链接增删持续污染 git 差异；与
+    `packs.json` 脱节时没有任何脚本会发现（本脚本读的是 packs.json 与磁盘，
+    不看 git 索引）。跨机器也没有收益——Windows 默认 `core.symlinks=false`，
+    克隆出来是普通文本文件，仍须跑 `core-init` 重建。
+
+    判据（逐条桥接）：
+      - `<pack>` 链接：**不得被跟踪**（已跟踪即违规，须 `git rm --cached`），
+        且**必须被忽略规则命中**（否则下次 `git add -A` 会重新入库）；
+      - `project` 的引擎侧链接：同样不得被跟踪且须被忽略（内容在项目侧且已入库）。
+
+    只校验「应存在」的路径，从中推导而非读 git 索引反推——读索引只能发现
+    「不该有的有了」，发现不了「该忽略的没忽略」。
+
+    参数：
+        installed：已装可选包集合；None 表示不按安装状态过滤（引擎单独检出时）。
+    """
+    problems = []
+    for repo_dir, rel_path, role, pack, comp_type in pack_bridge_paths(
+            codebuddy_dir, packs, installed):
+        tracked = is_tracked(repo_dir, rel_path)
+        ignored = is_ignored(repo_dir, rel_path)
+        if repo_dir == codebuddy_dir:
+            display = rel_path.replace(os.sep, "/")
+        else:
+            display = ".codebuddy.project/%s/%s" % (comp_type, pack)
+        if role == "lib-pack":
+            if tracked:
+                problems.append(
+                    "桥接链接已入库（应 git rm --cached）：%s。"
+                    "它是 pack_install.py 依 packs.json 推导的派生结果，"
+                    "入库会与 packs.json 脱节并产生装/卸包噪音" % display)
+            elif ignored is False:
+                problems.append(
+                    "桥接链接未被忽略规则覆盖：%s。下次 git add -A 会把它重新入库；"
+                    "检查对应的 .gitignore 是否含 %s/* 类规则" % (display, comp_type))
+        else:
+            if tracked:
+                problems.append(
+                    "项目专有包的引擎侧桥接已入库（应 git rm --cached）：%s。"
+                    "内容在 .codebuddy.project/%s/project/ 且已入库，这层链接是派生结果"
+                    % (display, comp_type))
+            elif ignored is False:
+                problems.append(
+                    "项目专有包的引擎侧桥接未被忽略：%s。它指向项目侧真实目录，"
+                    "入库会让引擎仓库携带项目绑定路径" % display)
+    return problems
+
+
+def check_project_pack_tracked(codebuddy_dir, packs):
+    """校验项目专有包的内容**必须入库**（校验项 15 的反向一半）。
+
+    上一项查「链接不得入库」，本项查相反方向：`project/` 下是项目真实内容，
+    若其 `.gitignore` 规则写宽了（如 `skills/*` 未配 `!skills/project/**`），
+    项目专有内容会**静默不入库**——本地看着一切正常，其他人克隆后这类技能/
+    规则/代理全部消失，且没有任何报错。
+
+    只查项目专有包存在组件的目录；目录为空属正常（项目可能尚未放内容）。
+    `.gitkeep` 不算内容——它只是占位，`project/` 尚未放组件时不该要求放行规则，
+    否则新建项目（只有骨架）会误报。
+    """
+    project_root = os.path.dirname(codebuddy_dir)
+    config_root = os.path.join(project_root, ".codebuddy.project")
+    problems = []
+    for comp_type in ("rules", "skills", "agents"):
+        content_dir = os.path.join(config_root, comp_type, "project")
+        if not os.path.isdir(content_dir):
+            continue
+        # 目录内无实际组件时不判定：新建项目尚未放内容属正常，.gitkeep 是占位不算
+        has_content = any(
+            name != ".gitkeep"
+            for _root, _dirs, files in os.walk(content_dir) for name in files)
+        if not has_content:
+            continue
+        display = ".codebuddy.project/%s/project" % comp_type
+        ignored = is_ignored(project_root, os.path.join(
+            ".codebuddy.project", comp_type, "project"))
+        if ignored:
+            problems.append(
+                "项目专有内容被忽略规则排除（应入库）：%s。"
+                "其他人克隆后这些组件会静默消失；检查 .codebuddy.project/.gitignore "
+                "是否缺 !%s/project/ 与 !%s/project/** 两行" % (display, comp_type, comp_type))
+    return problems
+
+
 def read_installed_packs(project_root):
     """读取项目侧已装可选包清单；文件缺失或损坏时返回空集合。
 
@@ -1043,6 +1249,14 @@ def main():
         problems.extend(check_skill_activation(codebuddy_dir, os.path.dirname(codebuddy_dir)))
         # 14. 项目侧族目录名 = 规范名，须为族内全部组件名的共同前缀
         problems.extend(check_project_shared_prefix(os.path.dirname(codebuddy_dir)))
+        # 15. 桥接链接的入库边界（派生链接不入库、project 内容入库）
+        #     只查已装包：未装的包本就没有链接与忽略规则，要求它「被忽略」是误报。
+        installed_packs, installed_problems = read_installed_packs(
+            os.path.dirname(codebuddy_dir))
+        problems.extend(installed_problems)
+        if installed_packs:
+            problems.extend(check_bridge_ignore(codebuddy_dir, packs, installed_packs))
+            problems.extend(check_project_pack_tracked(codebuddy_dir, packs))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")
