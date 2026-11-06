@@ -240,11 +240,18 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
   默认包（`location=engine` 的 `core` / `vcs` / `tool`）显式 `!` 放行，其余同名条目（可选包与 `project` 的桥接链接）
   一律忽略；`agents/` 无默认包故整目录忽略。`/settings.json` 单独另列。
 - **项目侧同样不入库**：`.codebuddy.project/<类型>/<pack>` 这层链接也不入库，由项目侧
-  `.codebuddy.project/.gitignore` 按 `skills/*`、`rules/*`、`agents/*` + `!*/project/` 忽略。
+  `.codebuddy.project/.gitignore` **逐条列举**全部可选包的链接路径（如 `skills/csharp`、`rules/unity-pipeline`），
+  而非用 `skills/*` + `!skills/project/` 的通配 + 反选。
   理由与上面同源——它由 `pack_install.py` 依 `lib/packs.json` 与 `configs/packs.json` 的 `installed`
   确定性推导创建，入库只会让装/卸包持续产生链接增删的差异噪音；且 Windows 默认
-  `core.symlinks=false` 时克隆出来是普通文本文件，仍须跑 `core-init` 重建，入库换不来「克隆即可用」。
-  两侧都忽略后，桥接的唯一事实来源就是两份 `packs.json`，不会出现第三处。
+  `core.symlinks=false` 时克隆出来是普通文本文件（`120000`），PyAppify 复制项目时
+  `entry.file_type()` 不跟随链接，Windows 上以文件方式打开即报 `os error 5`，仍须跑 `core-init` 重建，
+  入库换不来「克隆即可用」。两侧都忽略后，桥接的唯一事实来源就是两份 `packs.json`，不会出现第三处。
+  **为何不用通配 + 反选**：通配会把整个类型目录纳入规则，放行 `project/` 时无论带不带 `**`，
+  都无法让 `project/` 内部的临时产物（`__pycache__/`、`.cache/` 等）继续受根规则约束。逐条列举只命中
+  确定的包目录，`project/` 根本不在规则里，其内部忽略交给各技能根目录自己的 `.gitignore`
+  （与引擎侧 `lib/<包>/skills/<技能>/.gitignore` 同构）。清单按**全部可选包**一次列全、与安装状态无关：
+  忽略规则幂等，多列未装的包无副作用，少列已装的包才会让链接在下次 `git add -A` 时悄然入库。
 - **如何创建**：消费项目 clone 本引擎后，运行 `core-init` 自动创建（幂等；失败时告警并给出手工 `mklink` 命令）。
 - **机制依据**：实测 CodeBuddy **会解引用符号链接**——技能目录的链接下技能被正常扫描，`settings.json`
   链接的目标改变后回复语言随之变化。

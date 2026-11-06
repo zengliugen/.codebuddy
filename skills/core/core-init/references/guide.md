@@ -172,7 +172,7 @@ python .codebuddy/scripts/pack_install.py verify --repair
 - [ ] 生成是否经过脚本（而非手工臆造字段）？
 - [ ] 是否依据索引 `artifacts.dirs` 创建了 `caches/` 运行时产物空目录，并生成了 `.gitignore`、`cleanup-caches.cmd` 与 `store/` 骨架？
 - [ ] `.codebuddy.project/.gitignore` 是否含 `!configs/` + `!configs/**` 两行反选？生成后用 `git status --short` 确认 `configs/` 下文件**未被忽略**、`caches/` **仍被忽略**？（仓库根若有 `configs/` 规则，缺反选会导致项目侧配置不入库）
-- [ ] `.codebuddy.project/.gitignore` 是否含 `skills/*`、`rules/*`、`agents/*` 三条忽略，且以 `!*/project/` + `!*/project/**` 放行项目专有内容？生成后用 `git check-ignore -v` 确认 `<pack>/` 链接**被忽略**、`project/` 下文件**未被忽略**（桥接是派生结果，入库会与 `packs.json` 脱节并产生装包噪音）
+- [ ] `.codebuddy.project/.gitignore` 是否**逐条列举**了全部可选包的桥接链接路径（`skills/<pack>`、`rules/<pack>`、`agents/<pack>`），且按引擎 `lib/packs.json` 的全部 `location=lib` 包一次列全（与安装状态无关）？生成后用 `git check-ignore -v` 确认 `<pack>/` 链接**被忽略**、`project/` 下文件**未被忽略**（桥接是派生结果，入库会与 `packs.json` 脱节并产生装包噪音）
 - [ ] 是否生成了 `.codebuddy.project/{rules,skills,agents}/project/` 骨架并**建立了桥接** `.codebuddy/<类型>/project`（失败时是否已告警并给出命令）？
 - [ ] 是否依据索引 `root_symlinks.entries` 生成了根级源文件骨架（如 `.codebuddy.project/configs/settings.json`）并**建立了软链接**（失败时是否已告警并给出命令）？
 - [ ] 已存在文件是否跳过未覆盖（未获确认不使用 `--force`）？

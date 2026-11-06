@@ -254,17 +254,41 @@ def build_artifact_dirs(index, project_root, active_packs=None):
     return [(name, os.path.normpath(os.path.join(project_root, rel))) for name, rel in entries]
 
 
-def build_gitignore_content():
+def build_gitignore_content(packs):
     """生成 `.codebuddy.project/.gitignore` 内容。
 
     包含三部分：
-    - **忽略桥接链接**：`{skills,rules,agents}/<pack>` 是派生出来的目录软链接，
-      不入库（详见下方注释）；
-    - 忽略 `caches/` 运行时产物根目录（不入库）；
     - **反选 `configs/` 与 `docs/`**：项目根 .gitignore 可能含泛化同名规则
       （如 Python 项目忽略运行时用户配置、站点构建产物目录），会把项目侧的入库
-      内容一并忽略，故在此显式反选恢复（详见下方注释）。
+      内容一并忽略，故在此显式反选恢复；
+    - 忽略 `caches/` 运行时产物根目录（不入库）；
+    - **逐条列举桥接链接**（`{skills,rules,agents}/<pack>`）：按引擎声明的全部
+      `location=lib` 包一次性列全，与安装状态无关。
+
+    参数：
+        packs：`lib/packs.json` 的 packs 字典，用于枚举可选包及其声明的组件类型。
+            为空时仍生成其余部分，只是没有桥接清单。
+
+    为何逐条列举而非 `<类型>/*` + `!<类型>/project/` 的通配 + 反选：通配会把整个
+    类型目录纳入规则，放行 project/ 时无论带不带 `**`，都无法让 project/ 内部的
+    临时产物（`__pycache__/`、`.cache/` 等）继续受根规则约束。逐条列举只命中确定
+    的包目录，project/ 根本不在规则里，其内部的忽略交给各技能根目录自己的
+    `.gitignore` 处理（与引擎侧 `lib/<包>/skills/<技能>/.gitignore` 同构）。
     """
+    # 按包名排序，保证同一份 packs.json 每次生成的内容完全一致（否则初始化会
+    # 产生无意义的 diff）。
+    blocks = []
+    for pack in sorted(packs):
+        meta = packs.get(pack) or {}
+        if meta.get("location") != "lib":
+            continue
+        comps = meta.get("comps") or {}
+        entries = ["%s/%s" % (comp_type, pack)
+                   for comp_type in ("rules", "skills", "agents") if comps.get(comp_type)]
+        if entries:
+            blocks.append("# 包：%s\n%s" % (pack, "\n".join(entries)))
+    bridge_list = "\n\n".join(blocks) if blocks else "# （引擎未声明任何可选包）"
+
     return """# ============================================================
 #  项目侧配置目录（.codebuddy.project）忽略规则
 #
@@ -287,43 +311,33 @@ def build_gitignore_content():
 !docs/
 !docs/**
 
-# 组件目录下的桥接链接（主动忽略，不入库）
-#
-# {skills,rules,agents}/ 下每个 <pack> 都是整目录软链接，指向
-# ../../../.codebuddy/lib/<pack>/<类型>；由 pack_install.py 依引擎 lib/packs.json
-# 与项目侧 configs/packs.json 确定性创建与修复，不是仓库要维护的事实。
-#
-# 为何不入库（两条独立理由，任一成立即足够）：
-#   1. 它是派生结果：源由 packs.json 的 location + installed 决定，建链由
-#      pack_install.py 完成。入库等于把派生结果当作第三处事实来源——装/卸包时
-#      链接增删会持续污染 git 差异，且一旦与 packs.json 脱节无人察觉。
-#   2. 跨机器无效：Windows 默认 core.symlinks=false，克隆后落成内容为路径字符串
-#      的普通文件，仍须跑 core-init 重建。入库换不来「克隆即可用」，只有噪音。
-#
-# 放行本目录下的真实内容：project/（项目专有包）+ skills/ 的两个骨架文件。
-# 注意与上方 configs/ 的方向相反：configs/ 是「父级规则误伤后的反选」，此处是
-# 「主动忽略派生链接」，看到 configs 有 ! 不代表这里也要加 !。
-skills/*
-!skills/project/
-!skills/project/**
-!skills/README.md
-!skills/.gitkeep
-
-rules/*
-!rules/project/
-!rules/project/**
-
-agents/*
-!agents/project/
-!agents/project/**
-
 # 运行时产物根目录（整体忽略）
 caches/
 
-# 系统/编辑器临时文件
-.DS_Store
-Thumbs.db
-"""
+# 可选包桥接链接（逐条列举全集，不入库）
+#
+# 下列路径都是指向 .codebuddy/lib/<包>/<类型> 的整目录软链接，由 pack_install.py
+# 依引擎 lib/packs.json 与项目侧 configs/packs.json 的 installed 确定性创建与修复，
+# 不是仓库要维护的事实：
+#   1. 入库等于把派生结果当第三处事实来源——装/卸包时链接增删会持续污染 git 差异，
+#      且一旦与 packs.json 脱节无人察觉；
+#   2. 跨机器无效——Windows 默认 core.symlinks=false，克隆后落成内容为路径字符串的
+#      普通文件（git 以 120000 记录），PyAppify 复制项目时 entry.file_type() 不跟随链接，
+#      目录链接既不满足 is_dir() 也读不了内容，Windows 上以文件方式打开即报 os error 5；
+#      仍须跑 core-init 重建。入库换不来「克隆即可用」，只有噪音。
+#
+# 清单按引擎声明的**全部可选包**一次列全，与安装状态无关：忽略规则幂等，多列未装
+# 的包无副作用（目录本不存在），少列已装的包却会让链接在下次 git add -A 时悄然入库。
+# 故装包、卸包都无需改本文件，只有引擎新增可选包时才需重新运行 core-init 补上。
+#
+# 为何逐条列举而非 skills/* + !skills/project/ 这类通配 + 反选：
+#   通配会把整个 <类型>/ 目录纳入规则，放行 project/ 时无论带不带 `**`，都无法让
+#   project/ 内部的临时产物（__pycache__/、.cache/ 等）继续受根规则约束。
+#   逐条列举只命中确定的包目录，project/ 根本不在规则里，其内部的忽略交给各技能根
+#   目录自己的 .gitignore 处理（与引擎侧 lib/<包>/skills/<技能>/.gitignore 同构）。
+
+{bridge_list}
+""".replace("{bridge_list}", bridge_list)
 
 
 def build_cleanup_cmd_content():
@@ -1050,6 +1064,13 @@ def main():
         sys.stderr.write("[错误] %s\n" % error)
         return 3
 
+    # 桥接忽略清单按引擎声明的全部可选包生成（与安装状态无关）：忽略规则幂等，
+    # 多列未装的包无副作用，少列已装的包会让链接在下次 git add -A 时悄然入库。
+    engine_packs, packs_error = load_engine_packs(codebuddy_dir)
+    if packs_error:
+        sys.stderr.write("[错误] %s\n" % packs_error)
+        return 3
+
     created = []
     skipped = []
     created_dirs = []
@@ -1062,7 +1083,7 @@ def main():
     all_files = [
         (None, readme_path, "markdown_text", readme_text),
         (None, os.path.normpath(os.path.join(project_root, readme_rel, ".gitignore")),
-         "markdown_text", build_gitignore_content()),
+         "markdown_text", build_gitignore_content(engine_packs)),
         (None, os.path.normpath(os.path.join(project_root, readme_rel, "cleanup-caches.cmd")),
          "markdown_text", build_cleanup_cmd_content()),
     ]

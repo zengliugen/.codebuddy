@@ -1081,9 +1081,12 @@ def check_project_pack_tracked(codebuddy_dir, packs):
     """校验项目专有包的内容**必须入库**（校验项 15 的反向一半）。
 
     上一项查「链接不得入库」，本项查相反方向：`project/` 下是项目真实内容，
-    若其 `.gitignore` 规则写宽了（如 `skills/*` 未配 `!skills/project/**`），
-    项目专有内容会**静默不入库**——本地看着一切正常，其他人克隆后这类技能/
-    规则/代理全部消失，且没有任何报错。
+    若被忽略规则命中（如误加了 `skills/*` 这类通配却没放行），项目专有内容会
+    **静默不入库**——本地看着一切正常，其他人克隆后这类技能/规则/代理全部消失，
+    且没有任何报错。
+
+    现行忽略方案是**逐条列举可选包路径**，`project/` 天然不在规则里；本项的作用
+    是守住这个性质，防止后来者改回通配写法时悄悄压掉项目专有内容。
 
     只查项目专有包存在组件的目录；目录为空属正常（项目可能尚未放内容）。
     `.gitkeep` 不算内容——它只是占位，`project/` 尚未放组件时不该要求放行规则，
@@ -1109,7 +1112,7 @@ def check_project_pack_tracked(codebuddy_dir, packs):
             problems.append(
                 "项目专有内容被忽略规则排除（应入库）：%s。"
                 "其他人克隆后这些组件会静默消失；检查 .codebuddy.project/.gitignore "
-                "是否缺 !%s/project/ 与 !%s/project/** 两行" % (display, comp_type, comp_type))
+                "是否误加了 %s/* 这类通配（应为逐条列举可选包路径）" % (display, comp_type))
     return problems
 
 

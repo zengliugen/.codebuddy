@@ -80,7 +80,7 @@ provider:
 | 2 | 改 `packs.json` 与 `project.index.json` 的路径类键 |
 | 3 | 全库改写组件正文内的路径引用（命令见 `refactor-sync.mdc`） |
 | 4 | 改 `pack_install.py` / `check_manifest.py` 的路径推导函数 |
-| 5 | 改**两侧** `.gitignore`：引擎侧扫描根（`.codebuddy/<类型>/*` 的放行清单）与项目侧 `.codebuddy.project/.gitignore`（组件目录下的 `<pack>/` 桥接链接忽略 + `project/` 放行）。两处缺一，链接就会在某一侧入库。改完 `check_manifest.py` 的校验项 15 会双向核对（链接不得入库、`project/` 内容必须入库） |
+| 5 | 改**两侧** `.gitignore`：引擎侧扫描根（`.codebuddy/<类型>/*` 的放行清单）与项目侧 `.codebuddy.project/.gitignore`（**逐条列举**全部可选包的桥接链接路径，如 `skills/<pack>`；`project/` 天然在规则外、无需放行行）。两处缺一，链接就会在某一侧入库。改完 `check_manifest.py` 的校验项 15 会双向核对（链接不得入库、`project/` 内容必须入库） |
 | 6 | 改 README / pattern-spec 的目录树 |
 | 7 | 迁移已有项目的链接（`verify --repair`）并实测加载；已有项目须手工更新其 `.codebuddy.project/.gitignore`（初始化脚本对已存在文件幂等跳过，不会覆盖） |
 

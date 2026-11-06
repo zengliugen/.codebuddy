@@ -198,8 +198,17 @@
 
 **入库边界：`project/` 入库，`<pack>/` 链接不入库**。`.codebuddy.project/<类型>/` 下两类内容同级并列，
 但只有真实目录 `project/` 随项目版本控制；`<pack>` 是派生链接（源在引擎 `lib/<pack>/<类型>`），
-由 `.codebuddy.project/.gitignore` 的 `skills/*`、`rules/*`、`agents/*` 忽略，并用
-`!*/project/` + `!*/project/**` 放行项目专有内容（两行缺一不可，同 `configs/` 的层级原因）。
+由 `.codebuddy.project/.gitignore` **逐条列举**全部可选包的链接路径忽略（如 `skills/<pack>`、
+`rules/<pack>`、`agents/<pack>` 各一行），而非用 `skills/*` + `!skills/project/` 的通配 + 反选。
+
+**为何不用通配 + 反选**：通配会把整个类型目录纳入规则，放行 `project/` 时无论带不带 `**`，
+都无法让 `project/` 内部的临时产物（`__pycache__/`、`.cache/` 等）继续受根规则约束。逐条列举只命中
+确定的包目录，`project/` 根本不在规则里，其内部忽略交给各技能根目录自己的 `.gitignore`
+（与引擎侧 `lib/<包>/skills/<技能>/.gitignore` 同构）。
+
+**清单须按 `lib/packs.json` 的全部 `location=lib` 包一次列全，与安装状态无关**：忽略规则幂等，
+多列未装的包无副作用（目录本不存在），少列已装的包却会让链接在下次 `git add -A` 时悄然入库。
+故装包、卸包都无需改 `.gitignore`，只有引擎新增可选包时才须重跑 `core-init` 补上。
 
 不入库的两条独立理由（任一成立即足够）：
 
@@ -207,8 +216,10 @@
    `configs/packs.json`（`installed`）共同决定，建链由 `pack_install.py` 完成。入库等于把派生结果
    当第三处事实来源——装/卸包时链接增删会持续污染 git 差异，与 `packs.json` 脱节时也无人察觉。
    这与 `root_symlinks` 不登记桥接链接是同一判据（见 §3.8）。
-2. **跨机器无效**：Windows 默认 `core.symlinks=false`，克隆后链接落成内容为路径字符串的普通文件，
-   仍须跑 `core-init` 重建。入库换不来「克隆即可用」，只增加噪音。
+2. **跨机器无效**：Windows 默认 `core.symlinks=false`，克隆后链接落成内容为路径字符串的普通文件
+   （git 以 `120000` 记录），PyAppify 复制项目时 `entry.file_type()` 不跟随链接，目录链接既不满足
+   `is_dir()` 也读不了内容，Windows 上以文件方式打开即报 `os error 5`；仍须跑 `core-init` 重建。
+   入库换不来「克隆即可用」，只增加噪音。
 
 ### 3.8 根级软链接外置（root_symlinks.entries）
 
