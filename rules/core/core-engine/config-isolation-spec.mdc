@@ -66,7 +66,7 @@ provider:
 ├── lib/<pack>/                             # 引擎可选组件池（按包分层）
 └── skills/
     ├── <pack>/                             # location=engine 真实目录 / lib 与 project 为链接
-    └── project -> ../../.codebuddy.project/skills/project  # 项目专有包软链接（入库）
+    └── project -> ../../.codebuddy.project/skills/project  # 项目专有包软链接（不入库，gitignore）
 <项目根>/.codebuddy.project/                  # 项目侧（具体项目）
 ├── configs/                                  # 配置（入库）
 │   ├── settings.json                         # 项目级设置源文件（被引擎内软链接引用）
@@ -76,11 +76,11 @@ provider:
 │   ├── skills/<技能名>/check_logs/、.cache/  # 各技能产物（脚本落盘，镜像引擎结构）
 │   └── .vcs-lock/                            # VCS 写操作互斥锁（运行时生成）
 ├── store/                                    # 持久化项目结果（入库）
-├── skills/                                   # 技能目录（入库）
-│   ├── <pack>/ -> ../../.codebuddy/lib/<pack>/skills      # 可选包整目录链接
-│   └── project/                              # 项目专有技能（真实目录）
+├── skills/                                   # 技能目录
+│   ├── <pack>/ -> ../../.codebuddy/lib/<pack>/skills      # 可选包整目录链接（不入库，gitignore）
+│   └── project/                              # 项目专有技能（真实目录，入库）
 │       └── <技能名>/SKILL.md                 # 经 .codebuddy/skills/project 软链接被自动加载
-├── .gitignore                                # 忽略 caches/ 与系统临时文件
+├── .gitignore                                # 忽略 caches/、各组件目录下的 <pack>/ 桥接链接、系统临时文件
 └── cleanup-caches.cmd                        # 缓存清理入口（薄入口，调用引擎侧工具）
 ```
 
@@ -92,6 +92,7 @@ provider:
 - **运行时产物**（`check_logs`/`.cache`/`.vcs-lock`）经索引 `artifacts.dirs` 定位，由项目侧 `.gitignore` 忽略、不入库。
 - **项目专有包**（`project`）的内容放 `.codebuddy.project/<类型>/project/`（与各 pack 同级并列，真实目录、随项目入库），经 `.codebuddy/<类型>/project` **软链接**被 CodeBuddy 扫描加载（实测技能/规则/代理目录均支持符号链接；插件机制不适用）。
 - **引擎可选包**由 `lib/<pack>/` 承接，项目侧 `<类型>/<pack>` 为整目录链接 → `lib/<pack>/<类型>`，由 `scripts/pack_install.py` 维护。
+- **桥接链接两侧都不入库**：`.codebuddy/<类型>/<pack>`（引擎扫描根）与 `.codebuddy.project/<类型>/<pack>`（项目侧落点）都是派生出来的目录链接，两侧 `.gitignore` 各自忽略。判据与 `root_symlinks` 不登记桥接链接同源：链接集合与目标由 `lib/packs.json` 的 `location` 与项目侧 `configs/packs.json` 的 `installed` 共同决定，入库等于把派生结果当第三处事实来源，装/卸包时持续产生差异噪音且与 `packs.json` 脱节无人察觉；跨机器也无效（Windows 默认 `core.symlinks=false`，克隆后是普通文本文件，仍须跑 `core-init` 重建）。
 - **根级项目级单文件**（如 `settings.json`）经索引 `root_symlinks.entries` 外置：引擎内留**软链接**、源文件在项目侧，CodeBuddy 本体解引用软链接读取（实测支持），源文件与链接均入库。
 - **机器级文件不外置**：`models.json`（含 API Key）、`settings.local.json`（本机）绑定本机，留在引擎根并 git 忽略——外置会跨机器失效且不宜入库。
 - **禁止**：把项目相关配置放在 `.codebuddy/` 内部（含历史遗留的 `.codebuddy/config/` 与各技能目录）。
