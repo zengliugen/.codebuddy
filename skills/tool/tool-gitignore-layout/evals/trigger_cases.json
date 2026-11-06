@@ -1,0 +1,24 @@
+{
+  "skill": "tool-gitignore-layout",
+  "recommended_threshold": 0.48,
+  "should_trigger": [
+    "审查一下忽略规则",
+    "整理下 .gitignore",
+    "这条忽略规则应该放哪儿",
+    "技能目录里要不要建 .gitignore",
+    "清理冗余的忽略文件",
+    "忽略配置有个注释说交给技能自带，但好像不对",
+    "新增技能后要不要补 .gitignore"
+  ],
+  "should_not_trigger": [
+    "这个文件为什么被忽略了",
+    "svn:ignore 怎么配",
+    "把 Library 目录加到忽略里",
+    "提交代码"
+  ],
+  "near_neighbor": [
+    "整理下项目结构",
+    "检查包注册表一致性",
+    "规范化文件编码"
+  ]
+}

@@ -69,17 +69,17 @@
 │   │                           #            vcs-commit/（提交公共规范：摘要、授权安全）
 │   │                           #            vcs-git-commit/ vcs-svn-commit/（Git / SVN 提交专属约束）
 │   │                           #            vcs-git-merge/ vcs-svn-merge/（合并执行，均为占位）
-│   ├── tool/                   #   默认包（5 条，均为 .entry/ 入口形态）：
+│   ├── tool/                   #   默认包（6 条，均为 .entry/ 入口形态）：
 │   │                           #            tool-cmd-script-writing/ tool-engine-sync/
-│   │                           #            tool-export-zipped-dir/ tool-rule-consolidation/
-│   │                           #            tool-session-lesson-distill/
+│   │                           #            tool-export-zipped-dir/ tool-gitignore-layout/
+│   │                           #            tool-rule-consolidation/ tool-session-lesson-distill/
 │   ├── project ──链接──▶ 项目侧 #   项目专有规则（.codebuddy.project/rules/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
 ├── skills/                     # 技能扫描根：engine 包真实目录 + 其余包链接
 │   ├── core/ core-init/
 │   ├── vcs/                    #   vcs-router/ git-commit/ git-merge/ svn-commit/ svn-merge/
-│   ├── tool/                   #   cmd-script-writing/ engine-sync/ export-zipped-dir/ rule-consolidation/ session-lesson-distill/
+│   ├── tool/                   #   cmd-script-writing/ engine-sync/ export-zipped-dir/ gitignore-layout/ rule-consolidation/ session-lesson-distill/
 │   ├── project ──链接──▶ 项目侧 #   项目专有技能（.codebuddy.project/skills/project/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
@@ -249,8 +249,10 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
   入库换不来「克隆即可用」。两侧都忽略后，桥接的唯一事实来源就是两份 `packs.json`，不会出现第三处。
   **为何不用通配 + 反选**：通配会把整个类型目录纳入规则，放行 `project/` 时无论带不带 `**`，
   都无法让 `project/` 内部的临时产物（`__pycache__/`、`.cache/` 等）继续受根规则约束。逐条列举只命中
-  确定的包目录，`project/` 根本不在规则里，其内部忽略交给各技能根目录自己的 `.gitignore`
-  （与引擎侧 `lib/<包>/skills/<技能>/.gitignore` 同构）。清单按**全部可选包**一次列全、与安装状态无关：
+  确定的包目录，`project/` 根本不在规则里；其下组件的**专属**产物（`dist/`、`tools/<二进制>` 等）
+  由该组件根目录的 `.gitignore` 处理，**通用**产物（`__pycache__/`、`*.pyc`、`.DS_Store`）则由
+  `.codebuddy.project/.gitignore` 统一兜底——不要求每个项目专有组件重复声明。
+  清单按**全部可选包**一次列全、与安装状态无关：
   忽略规则幂等，多列未装的包无副作用，少列已装的包才会让链接在下次 `git add -A` 时悄然入库。
 - **如何创建**：消费项目 clone 本引擎后，运行 `core-init` 自动创建（幂等；失败时告警并给出手工 `mklink` 命令）。
 - **机制依据**：实测 CodeBuddy **会解引用符号链接**——技能目录的链接下技能被正常扫描，`settings.json`
@@ -292,7 +294,7 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 | `core` | 基础 | ✅ | rules: core-language、core-project-guide、core-tooling、core-engine、core-init、core-rule-governance；skills: core-init |
 | `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
 | `vcs` | 基础 | ✅ | rules: vcs-router、vcs-engine-commit、vcs-commit、vcs-git-commit、vcs-git-merge、vcs-svn-commit、vcs-svn-merge；skills: vcs-router、vcs-git-commit、vcs-git-merge、vcs-svn-commit、vcs-svn-merge |
-| `tool` | 基础 | ✅ | rules: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-rule-consolidation、tool-session-lesson-distill；skills: 同名 5 个 |
+| `tool` | 基础 | ✅ | rules: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-gitignore-layout、tool-rule-consolidation、tool-session-lesson-distill；skills: 同名 6 个 |
 | `csharp` | C# | ❌ | rules: csharp-code-review、csharp-comment、csharp-lsp、csharp-test、csharp-test-coverage、csharp-format-checker；skills: csharp-code-review、csharp-comment-checker、csharp-comment-generator、csharp-format-checker、csharp-lsp、csharp-test-coverage；agents: 2 个 |
 | `unity-pipeline` | 领域（本地维护） | ❌ | rules: unity-pipeline；skills: unity-pipeline |
 | `python` | Python | ❌ | rules: python-code-review、python-comment、python-test、python-env、python-lint、python-test-coverage；skills: python-env、python-lint、python-code-review、python-comment、python-test-coverage；agents: 1 个 |

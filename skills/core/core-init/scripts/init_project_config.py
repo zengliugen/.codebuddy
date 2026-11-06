@@ -257,11 +257,13 @@ def build_artifact_dirs(index, project_root, active_packs=None):
 def build_gitignore_content(packs):
     """生成 `.codebuddy.project/.gitignore` 内容。
 
-    包含三部分：
+    包含四部分：
     - **反选 `configs/` 与 `docs/`**：项目根 .gitignore 可能含泛化同名规则
       （如 Python 项目忽略运行时用户配置、站点构建产物目录），会把项目侧的入库
       内容一并忽略，故在此显式反选恢复；
     - 忽略 `caches/` 运行时产物根目录（不入库）；
+    - **通用忽略项兜底**（`__pycache__/`、`*.pyc`、`.DS_Store` 等）：与具体组件无关，
+      任何组件都可能产出，故由本树根统一兜底，`project/` 下的组件不必重复声明；
     - **逐条列举桥接链接**（`{skills,rules,agents}/<pack>`）：按引擎声明的全部
       `location=lib` 包一次性列全，与安装状态无关。
 
@@ -314,6 +316,26 @@ def build_gitignore_content(packs):
 # 运行时产物根目录（整体忽略）
 caches/
 
+# --- 通用忽略项兜底 --------------------------------------------------------
+#   project/ 天然在通配规则之外，其下组件**必须自带 .gitignore** 处理自己的专属产物
+#   （dist/、tools/<二进制>、reports/*<专项>.md 等）；本文件不覆盖 project/ 内部，
+#   否则会把整个类型目录重新纳入规则，与下面的逐条列举设计冲突。
+#
+#   但通用产物（Python 字节码、系统临时文件）不该要求每个组件重复声明——它们与
+#   具体组件无关，任何组件都可能产出。故在此兜底，project/ 下的组件不必自带。
+#
+#   为何必须写在这里：本目录的 .gitignore 是项目仓库内唯一对 .codebuddy.project/
+#   生效的规则文件。项目根 .gitignore 也有各自的通用项，但那是项目根自己的事
+#   （check_manifest.py 校验项 16 分别核对两个仓库根，互不替代）。
+__pycache__/
+*.pyc
+*.pyo
+
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
 # 可选包桥接链接（逐条列举全集，不入库）
 #
 # 下列路径都是指向 .codebuddy/lib/<包>/<类型> 的整目录软链接，由 pack_install.py
@@ -333,8 +355,7 @@ caches/
 # 为何逐条列举而非 skills/* + !skills/project/ 这类通配 + 反选：
 #   通配会把整个 <类型>/ 目录纳入规则，放行 project/ 时无论带不带 `**`，都无法让
 #   project/ 内部的临时产物（__pycache__/、.cache/ 等）继续受根规则约束。
-#   逐条列举只命中确定的包目录，project/ 根本不在规则里，其内部的忽略交给各技能根
-#   目录自己的 .gitignore 处理（与引擎侧 lib/<包>/skills/<技能>/.gitignore 同构）。
+#   逐条列举只命中确定的包目录，project/ 根本不在规则里。
 
 {bridge_list}
 """.replace("{bridge_list}", bridge_list)

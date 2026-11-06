@@ -43,13 +43,8 @@
 /dev-design-docs/*
 !/dev-design-docs/README.md
 
-# --- 运行时产物（脚本写入项目侧 .codebuddy.project/；此处兜底防误入库）---
+# --- 运行时产物 ---
 .vcs-lock/
-**/check_logs/
-**/.cache/
-**/coverage_config.merged.json
-**/comment_config.merged.json
-
 
 # --- .NET 工具构建产物 ---
 **/bin/

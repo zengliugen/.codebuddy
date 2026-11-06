@@ -1,0 +1,40 @@
+interface:
+  display_name: "Gitignore Layout"
+  short_description: "审查并治理 .gitignore 的分层归属：仓库根放通用项、组件根放专属项，识别冗余与失真断言"
+  default_prompt: "使用 $tool-gitignore-layout 审查 .gitignore 配置。先运行 scripts/tool_gitignore.py scan 取得问题清单，再按 references/spec.md 的三层归属模型逐项修复。"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "vscode"
+    - "codebuddy-code"
+  activation:
+    mode: "manual"
+    triggers:
+      - keyword: "忽略规则"
+      - keyword: "gitignore"
+      - keyword: "忽略配置"
+      - keyword: "整理.*忽略"
+      - keyword: "清理.*忽略"
+  execution:
+    context: "inline"
+    shell: "bash"
+    environment:
+      python: ">=3.8"
+    artifacts:
+      - "SKILL.md"
+      - "scripts/tool_gitignore.py"
+      - "references/spec.md"
+      - "agents/interface.yaml"
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    remote_metadata_policy: "allow-metadata-only"
+  degradation:
+    openai: "metadata-adapter"
+    claude: "neutral-source-plus-adapter"
+    generic: "neutral-source"
+    vscode: "agent-skills-source-with-vscode-notes"
+    codebuddy-code: "native"

@@ -1,0 +1,18 @@
+{
+  "name": "tool-gitignore-layout",
+  "version": "1.0.0",
+  "owner": "zengliugen",
+  "updated_at": "2026-11-06",
+  "review_due": "2027-02-06",
+  "status": "active",
+  "maturity_tier": "production",
+  "lifecycle_stage": "production",
+  "context_budget_tier": "production",
+  "review_cadence": "quarterly",
+  "factory_components": [
+    "agents",
+    "references",
+    "scripts",
+    "evals"
+  ]
+}

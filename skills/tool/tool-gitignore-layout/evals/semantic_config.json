@@ -1,0 +1,41 @@
+{
+  "positive_concepts": {
+    "core": {
+      "weight": 1.0,
+      "phrases": [
+        "忽略规则",
+        "忽略配置",
+        "gitignore",
+        ".gitignore",
+        "忽略文件",
+        "忽略项"
+      ]
+    },
+    "governance": {
+      "weight": 0.75,
+      "phrases": [
+        "整理",
+        "审查",
+        "清理",
+        "冗余",
+        "放哪儿",
+        "归属",
+        "分层"
+      ]
+    }
+  },
+  "negative_concepts": {
+    "out_of_scope": {
+      "weight": 0.55,
+      "exclusive": true,
+      "phrases": [
+        "svn:ignore",
+        "为什么被忽略",
+        "check-ignore"
+      ]
+    }
+  },
+  "fallback_positive_concepts": [
+    "core"
+  ]
+}

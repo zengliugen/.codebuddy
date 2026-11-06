@@ -42,6 +42,10 @@
       两个方向都查：只查「不该入库的入库了」发现不了「该入库的被忽略」（后者更隐蔽，
       本地看着正常，他人克隆后组件静默消失）。git 不可用（引擎单独检出、无项目侧）时整项
       跳过，不误报。
+  16. **通用忽略项的兜底存在性**：引擎仓库与项目仓库的根 `.gitignore` 各自必须含一组通用项
+      （`__pycache__/`、`*.pyc`、`.DS_Store` 等）。组件根 `.gitignore` 只覆盖该组件专属产物，
+      通用产物靠根兜底——两边根都缺时，任何**不自带** `.gitignore` 的组件都会把缓存与系统
+      临时文件直接入库。两个仓库分别判定：引擎侧有规则不代表项目侧也有。
 
 退出码：
   0 —— 一致
@@ -1116,6 +1120,89 @@ def check_project_pack_tracked(codebuddy_dir, packs):
     return problems
 
 
+GENERIC_IGNORE_ITEMS = (
+    # (规则片段, 说明)：命中任一等价写法即视为「已有通用兜底」
+    ("__pycache__", "Python 字节码目录"),
+    ("*.pyc", "Python 字节码文件"),
+    (".DS_Store", "macOS 目录元数据"),
+)
+
+
+def _read_gitignore_rules(gitignore_path):
+    """读取 .gitignore 的有效规则行（去注释、去空行、去行尾空白）。
+
+    返回字符串列表；文件不存在时返回空列表（调用方据此报「缺失兜底」）。
+    """
+    if not os.path.isfile(gitignore_path):
+        return []
+    try:
+        with open(gitignore_path, "r", encoding="utf-8", errors="replace") as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return []
+    rules = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        rules.append(stripped)
+    return rules
+
+
+def check_generic_ignore(codebuddy_dir):
+    """校验两个仓库根 `.gitignore` 各自含通用忽略项（校验项 16）。
+
+    背景：组件根 `.gitignore` 按设计只放**该组件专属**的产物（`dist/`、`tools/<二进制>`、
+    `reports/*<专项>.md`），通用项（`__pycache__/`、`*.pyc`、`.DS_Store`）由仓库根兜底。
+    这条分工一旦只落实一半——产物下移到组件根、根上却没有通用项——任何**不自带**
+    `.gitignore` 的组件（vendor 包、尚未建技能的新包）都会把缓存与系统临时文件直接入库，
+    且比「全写在根上」更难发现：根上有规则时至少一目了然，缺了之后无声无息。
+
+    两个组件树**独立判定**，不能互相替代：
+
+      - 引擎仓库根 `.codebuddy/.gitignore`（覆盖引擎侧技能、`lib/` 的包）；
+      - 项目侧组件根 `.codebuddy.project/.gitignore`（覆盖 `project/` 下的组件，
+        以及 `configs/`、`docs/` 等）。
+
+    **为什么不查 `<项目根>/.gitignore`**：项目仓库根通常是 Unity / 业务工程的标准模板
+    （几十条构建产物规则），它对 Python 缓存一无所知属正常——组件树并不在那里。要求它
+    补 Python 规则是把引擎关注点越界推到宿主工程，且会在每个消费项目上产生噪音报警。
+    真实的覆盖责任落在 `.codebuddy.project/.gitignore`：它是项目仓库内唯一对
+    `.codebuddy.project/` 生效的规则文件。
+
+    判据是**规则文本存在**而非 `check-ignore` 实测：后者需要具体路径，而通用项要覆盖的
+    是「任何位置」，用一条代表性路径反而会漏判（如只在某子目录生效的根锚定规则）。
+    """
+    problems = []
+    project_root = os.path.dirname(codebuddy_dir)
+    targets = (
+        (os.path.join(codebuddy_dir, ".gitignore"), ".codebuddy/.gitignore",
+         "引擎侧组件树"),
+        (os.path.join(project_root, ".codebuddy.project", ".gitignore"),
+         ".codebuddy.project/.gitignore", "项目侧组件树"),
+    )
+    for gitignore_path, rel_display, scope in targets:
+        rules = _read_gitignore_rules(gitignore_path)
+        if not os.path.isfile(gitignore_path):
+            problems.append(
+                "通用忽略项兜底缺失：%s 不存在（%s）。组件根 .gitignore 只放专属产物，"
+                "通用项（%s）必须由该树根兜底，否则不自带 .gitignore 的组件会把缓存与"
+                "系统临时文件直接入库"
+                % (rel_display, scope,
+                   "、".join(item for item, _ in GENERIC_IGNORE_ITEMS)))
+            continue
+        missing = [desc for token, desc in GENERIC_IGNORE_ITEMS
+                   if not any(token in rule for rule in rules)]
+        if missing:
+            problems.append(
+                "通用忽略项兜底不足：%s 缺少 %s（%s）。根上缺这些规则时，组件根若只写了"
+                "专属产物（或压根不自带 .gitignore），对应文件会直接入库且无任何提示；"
+                "补上 %s 即可（组件专属项仍留在组件根，不要上移）"
+                % (rel_display, "、".join(missing), scope,
+                   "、".join(token for token, _ in GENERIC_IGNORE_ITEMS)))
+    return problems
+
+
 def read_installed_packs(project_root):
     """读取项目侧已装可选包清单；文件缺失或损坏时返回空集合。
 
@@ -1260,6 +1347,8 @@ def main():
         if installed_packs:
             problems.extend(check_bridge_ignore(codebuddy_dir, packs, installed_packs))
             problems.extend(check_project_pack_tracked(codebuddy_dir, packs))
+        # 16. 通用忽略项的兜底存在性（引擎根与项目根各自判定，互不替代）
+        problems.extend(check_generic_ignore(codebuddy_dir))
 
     # 3. 索引路径相对性
     index_path = os.path.join(codebuddy_dir, "project.index.json")

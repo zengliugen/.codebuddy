@@ -64,6 +64,7 @@
           "tool-cmd-script-writing",
           "tool-engine-sync",
           "tool-export-zipped-dir",
+          "tool-gitignore-layout",
           "tool-rule-consolidation",
           "tool-session-lesson-distill"
         ],
@@ -71,6 +72,7 @@
           "tool-cmd-script-writing",
           "tool-engine-sync",
           "tool-export-zipped-dir",
+          "tool-gitignore-layout",
           "tool-rule-consolidation",
           "tool-session-lesson-distill"
         ],
@@ -158,6 +160,7 @@
       "description": "技能创建、改进与评估的元技能",
       "default": false,
       "location": "lib",
+      "vendor": true,
       "requires": [],
       "comps": {
         "rules": [

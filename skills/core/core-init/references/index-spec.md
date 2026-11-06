@@ -145,7 +145,8 @@
 - **路径含包层**：`caches/skills/<pack>/<技能>/`。`core-init` 只创建**已装包**的产物目录；
   未安装包的缓存目录不会出现。
 - `core-init` 依据本节点创建产物空目录；项目侧 `.gitignore` 统一忽略、不入库。
-- **入库边界由 `.codebuddy.project/.gitignore` 精确划定**：忽略 `caches/`、各组件目录下的 `<pack>` 桥接链接，
+- **入库边界由 `.codebuddy.project/.gitignore` 精确划定**：忽略 `caches/`、各组件目录下的 `<pack>` 桥接链接
+  与通用临时产物，
   并显式反选 `configs/`（`!configs/` + `!configs/**`）与 `docs/`（`!docs/` + `!docs/**`）。
   两类方向不同，不要混为一谈：
   - **反选（`!`）**：仓库根常有泛化的 `configs/`、`docs/` 规则（Python 运行时配置、站点构建产物等），
@@ -203,8 +204,14 @@
 
 **为何不用通配 + 反选**：通配会把整个类型目录纳入规则，放行 `project/` 时无论带不带 `**`，
 都无法让 `project/` 内部的临时产物（`__pycache__/`、`.cache/` 等）继续受根规则约束。逐条列举只命中
-确定的包目录，`project/` 根本不在规则里，其内部忽略交给各技能根目录自己的 `.gitignore`
-（与引擎侧 `lib/<包>/skills/<技能>/.gitignore` 同构）。
+确定的包目录，`project/` 根本不在规则里；其下组件的**专属**产物（`dist/`、`tools/<二进制>`、
+`reports/*<专项>.md` 等）由该组件根目录的 `.gitignore` 处理。
+
+`project/` 下组件的**通用**产物（`__pycache__/`、`*.pyc`、`.DS_Store` 等）不要求组件重复声明——
+它们与具体组件无关，由 `.codebuddy.project/.gitignore` 统一兜底。该文件是项目仓库内唯一对
+`.codebuddy.project/` 生效的规则文件；项目根 `.gitignore` 是宿主工程的标准模板，不承载引擎关注点。
+`check_manifest.py` 校验项 16 分别核对引擎根与项目侧组件根两处兜底，**互不替代**——引擎侧有规则
+不代表项目侧也有。
 
 **清单须按 `lib/packs.json` 的全部 `location=lib` 包一次列全，与安装状态无关**：忽略规则幂等，
 多列未装的包无副作用（目录本不存在），少列已装的包却会让链接在下次 `git add -A` 时悄然入库。
