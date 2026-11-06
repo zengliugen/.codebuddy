@@ -34,11 +34,8 @@
 /settings.json
 
 # --- 机器级配置（含 API Key / 本机路径，绑定单机，不入库）---
-models.json
-settings.local.json
-
-# --- 计划文件（本机运行期）---
-/plans/
+/models.json
+/settings.local.json
 
 # --- 开发设计文档：目录内全忽略，仅放行索引 README --------------------------
 #   引擎包在开发期产生的计划、约束快照等文档，属开发过程产物，不随引擎分发、
@@ -53,43 +50,6 @@ settings.local.json
 **/coverage_config.merged.json
 **/comment_config.merged.json
 
-# --- yao-meta-skill：内容强制保留，不得忽略 -------------------------------
-#   该包是只读 vendor，包内组件内容（SKILL.md、references/、scripts/、agents/、
-#   evals/、reports/、.previews/、skill-ir/、examples/、tests/、security/ 等）
-#   都是技能**自带内容**，不是引擎运行产物：
-#     - manifest.json 的 factory_components 明确列出 reports 等为自带组件；
-#     - scripts/evidence_consistency_*.py 把 reports/ 下大量文件作为
-#       REQUIRED_REPORTS 逐项校验，缺任一项即判定证据链不完整；
-#     - reports/ 与 .previews/ 是其打包、审计、渲染链的输入，删或忽略都会
-#       让该包自身的审查链失败。
-#
-#   本规则的作用：
-#     1. 抵消上方 `**/check_logs/`、`**/.cache/` 等可能命中的同类规则；
-#     2. 防止后来者把目录级忽略规则（如 `**/reports/`、`.*`）扩大到此处时
-#       静默排除包内文件——`.previews` 以点开头，最易被 `.*` 误伤。
-#
-#   **不做整包 `!/lib/yao-meta-skill/` 放行**：那会把包自带 `.gitignore` 有意
-#   排除的临时产物一并放行（该文件明确排除 dist/、tests/tmp*/、.yao/、
-#   reports/release_snapshots/、reports/telemetry_events.jsonl、
-#   evidence/world_class/submissions/ 等）。包内 `.gitignore` 是上游作者的有意
-#   设计，本仓库不覆盖它。
-!/lib/yao-meta-skill/lib/
-!/lib/yao-meta-skill/rules/
-!/lib/yao-meta-skill/skills/
-!/lib/yao-meta-skill/skills/yao-meta-skill/
-!/lib/yao-meta-skill/skills/yao-meta-skill/**
-# `.previews` 以点开头，`**` 通配放行不到点目录层级，需单独显式放行
-!/lib/yao-meta-skill/skills/yao-meta-skill/.previews/
-!/lib/yao-meta-skill/skills/yao-meta-skill/.previews/**
-# 上面 `**` 会连带放行包内 `.gitignore` 的排除项，故对真正的临时产物重新排除
-/lib/yao-meta-skill/skills/yao-meta-skill/dist/
-/lib/devflow/skills/devflow-guard/dist/
-/lib/devflow/skills/devflow-guard/.yao/
-/lib/yao-meta-skill/skills/yao-meta-skill/.yao/
-/lib/yao-meta-skill/skills/yao-meta-skill/**/__pycache__/
-/lib/yao-meta-skill/skills/yao-meta-skill/tests/tmp*/
-/lib/yao-meta-skill/skills/yao-meta-skill/evidence/world_class/submissions/
-/lib/yao-meta-skill/skills/yao-meta-skill/evidence/world_class/submission-kit/
 
 # --- .NET 工具构建产物 ---
 **/bin/
@@ -101,12 +61,9 @@ __pycache__/
 *.pyc
 *.pyo
 
-# --- 仓库根的一次性调试脚本（不属引擎内容，避免误入库）---
-#   排查/批处理用的临时脚本（.fix_*.py / .probe_*.py / .rename*.py 等）在仓库根
-#   以点开头命名，本应随手删除；此处兜底忽略，防止 commit -A 时误纳。
-/.*.py
-
 # --- 编辑器 / 系统临时文件 ---
+#   本仓库跨 Windows / macOS / Linux 检出（见 .gitattributes），
+#   .DS_Store 在 macOS 上必然产生，须兜底忽略，否则一次 git add -A 即入库。
 .DS_Store
 Thumbs.db
 *.swp
