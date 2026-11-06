@@ -257,11 +257,13 @@ def build_artifact_dirs(index, project_root, active_packs=None):
 def build_gitignore_content():
     """生成 `.codebuddy.project/.gitignore` 内容。
 
-    包含两部分：
+    包含三部分：
+    - **忽略桥接链接**：`{skills,rules,agents}/<pack>` 是派生出来的目录软链接，
+      不入库（详见下方注释）；
     - 忽略 `caches/` 运行时产物根目录（不入库）；
-    - **反选 `configs/`**：项目根 .gitignore 可能含泛化的 `configs/` 规则
-      （如 Python 项目忽略运行时用户配置），会把项目侧的入库配置一并忽略，
-      故在此显式反选恢复（详见下方注释）。
+    - **反选 `configs/` 与 `docs/`**：项目根 .gitignore 可能含泛化同名规则
+      （如 Python 项目忽略运行时用户配置、站点构建产物目录），会把项目侧的入库
+      内容一并忽略，故在此显式反选恢复（详见下方注释）。
     """
     return """# ============================================================
 #  项目侧配置目录（.codebuddy.project）忽略规则
@@ -284,6 +286,36 @@ def build_gitignore_content():
 # 会连带忽略此处，导致文档静默不入库。同样两行缺一不可。
 !docs/
 !docs/**
+
+# 组件目录下的桥接链接（主动忽略，不入库）
+#
+# {skills,rules,agents}/ 下每个 <pack> 都是整目录软链接，指向
+# ../../../.codebuddy/lib/<pack>/<类型>；由 pack_install.py 依引擎 lib/packs.json
+# 与项目侧 configs/packs.json 确定性创建与修复，不是仓库要维护的事实。
+#
+# 为何不入库（两条独立理由，任一成立即足够）：
+#   1. 它是派生结果：源由 packs.json 的 location + installed 决定，建链由
+#      pack_install.py 完成。入库等于把派生结果当作第三处事实来源——装/卸包时
+#      链接增删会持续污染 git 差异，且一旦与 packs.json 脱节无人察觉。
+#   2. 跨机器无效：Windows 默认 core.symlinks=false，克隆后落成内容为路径字符串
+#      的普通文件，仍须跑 core-init 重建。入库换不来「克隆即可用」，只有噪音。
+#
+# 放行本目录下的真实内容：project/（项目专有包）+ skills/ 的两个骨架文件。
+# 注意与上方 configs/ 的方向相反：configs/ 是「父级规则误伤后的反选」，此处是
+# 「主动忽略派生链接」，看到 configs 有 ! 不代表这里也要加 !。
+skills/*
+!skills/project/
+!skills/project/**
+!skills/README.md
+!skills/.gitkeep
+
+rules/*
+!rules/project/
+!rules/project/**
+
+agents/*
+!agents/project/
+!agents/project/**
 
 # 运行时产物根目录（整体忽略）
 caches/
@@ -364,19 +396,25 @@ def build_project_skills_readme_content():
     """生成 `.codebuddy.project/skills/README.md` 内容（组件落点与加载机制说明）。"""
     return """# 项目侧技能目录（.codebuddy.project/skills）
 
-本目录存放**本项目独有的技能与 pack 链接**，随本项目仓库版本控制；`.codebuddy` 引擎（可 submodule 化、
-多项目共享）不含本项目内容。
+本目录存放**本项目独有的技能**（`project/`，随本仓库版本控制）与**引擎可选包的桥接链接**
+（`<pack>/`，派生结果、**不入库**）；`.codebuddy` 引擎（可 submodule 化、多项目共享）不含本项目内容。
 
 ## 两类内容共存
 
 ```
 .codebuddy.project/skills/
-├── <pack>             # 引擎可选包的组件链接（由 pack_install.py 创建，勿手工增删）
+├── <pack>             # 引擎可选包的组件链接（由 pack_install.py 创建，勿手工增删，不入库）
 └── project/           # ★项目专有技能（真实目录，随项目入库）
 ```
 
-**`project` 与其他包同级并列**，区别仅在于它是真实目录（其他包是指向 `lib/` 的链接）。
+**`project` 与其他包同级并列**，区别在于它是真实目录且**入库**（其他包是指向 `lib/` 的链接且被忽略）。
 规则与代理目录（`.codebuddy.project/rules/`、`.codebuddy.project/agents/`）结构完全一致。
+
+> **为何 `<pack>/` 链接不入库**：它由 `pack_install.py` 依引擎 `lib/packs.json` 与项目侧
+> `configs/packs.json` 的 `installed` **确定性推导并创建**，不是仓库要维护的事实；入库会让装/卸包
+> 持续产生链接增删的差异噪音，且与 `packs.json` 脱节时无人察觉。跨机器也不靠它——Windows 默认
+> `core.symlinks=false` 时克隆出来是普通文本文件，仍须跑 `core-init` 重建。故本目录 `.gitignore`
+> 忽略 `<pack>/` 并放行 `project/`。
 
 ## 如何被 CodeBuddy 加载
 
@@ -409,7 +447,7 @@ def build_project_skills_readme_content():
 ## 与引擎的关系
 
 本目录**不进入** `.codebuddy` 引擎库。可选包组件真实内容在引擎 `lib/<pack>/` 下，本目录只存
-**指向它的链接**；`project/` 下是项目真实文件，与引擎完全解耦。
+**指向它的链接**（不入库）；`project/` 下是项目真实文件（入库），与引擎完全解耦。
 """
 
 def build_project_skills_targets(project_root):
@@ -509,9 +547,11 @@ def readme_content(project_config_root):
 ├── caches/             # 运行时产物（不入库）：各技能 check_logs/、.cache/、.vcs-lock/ 等
 ├── store/              # 持久化项目结果（入库）：需长期保留的运行结果
 ├── docs/               # 技能产出的项目文档（入库）：<pack>/ 如 devflow 的能力文档
-├── skills/             # 技能目录（入库）：<pack>/ 可选包链接，project/ 项目专有技能
+├── skills/             # 技能目录：<pack>/ 可选包链接（不入库），project/ 项目专有技能（入库）
+├── rules/              # 同上：<pack>/ 链接（不入库），project/ 项目专有规则（入库）
+├── agents/             # 同上：<pack>/ 链接（不入库），project/ 项目专有代理（入库）
 ├── README.md
-├── .gitignore          # 忽略 caches/ 与系统临时文件
+├── .gitignore          # 忽略 caches/、各组件目录下的 <pack>/ 链接与系统临时文件
 └── cleanup-caches.cmd  # 缓存清理入口（薄入口，调用引擎侧清理工具）
 ```
 
@@ -523,6 +563,8 @@ def readme_content(project_config_root):
 | `caches/` | 运行时生成、**不持久化**的临时结果 | 否（整体忽略） | 随时可删，可重新生成 |
 | `store/` | 运行时生成、需**持久化保留**的项目结果 | 是 | 删除即丢失，需谨慎 |
 | `docs/` | 技能产出的**项目文档**（如 devflow 的能力设计/计划/测试文档） | 是 | 删除即丢失；卸载对应包后需手工清理 |
+| `skills/`、`rules/`、`agents/` 下的 `<pack>` | 指向引擎 `lib/<pack>/` 的**桥接链接** | 否（派生结果，忽略） | 随时可删，`pack_install.py` 可重建 |
+| `skills/`、`rules/`、`agents/` 下的 `project` | **项目专有**内容（真实目录） | 是 | 删除即丢失 |
 
 **约定**：后续所有运行时生成的、不持久化的临时结果一律放 `caches/`，不得散落到其他目录。
 
@@ -557,7 +599,8 @@ def readme_content(project_config_root):
 
 ## 维护约定
 
-- `configs/` 与 `store/` **入库**（随项目版本控制），`caches/` **不入库**；不含敏感信息
+- `configs/`、`store/`、`docs/` 与各组件目录下的 `project/` **入库**（随项目版本控制）；
+  `caches/` 与各组件目录下的 `<pack>/` 桥接链接**不入库**；不含敏感信息
   （凭据等机器级配置保留在 `.codebuddy` 根的 `models.json` / `settings.local.json`，已被忽略）。
 - 修改引擎侧索引（新增配置项或产物目录）后，可重新运行 `core-init` 补齐缺失内容。
 """.format(root=project_config_root)

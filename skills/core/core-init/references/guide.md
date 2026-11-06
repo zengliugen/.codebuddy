@@ -78,8 +78,8 @@ python .codebuddy/skills/core/core-init/scripts/init_project_config.py
 - **`artifacts.dirs` 项 → 创建运行时产物空目录**（`caches/skills/<pack>/<技能>/` 下的 `check_logs/`、`.cache/` 等），供脚本落盘。
 - 额外生成固定文件/骨架：
   - `.codebuddy.project/README.md`（目录用途与维护约定）；
-  - `.codebuddy.project/.gitignore`（**整体忽略 `caches/` 运行时产物根目录**，不入库；
-    并**反选 `configs/`** 恢复入库，见下方「configs 反选」提示）；
+  - `.codebuddy.project/.gitignore`（**整体忽略 `caches/` 运行时产物根目录**与**各组件目录下的 `<pack>` 桥接链接**，
+    均不入库；并**反选 `configs/`、`docs/`** 恢复入库，见下方「configs 反选」提示）；
   - `.codebuddy.project/store/`（持久化项目结果目录骨架：`README.md` + `.gitkeep`，**入库**）；
   - `.codebuddy.project/cleanup-caches.cmd`（清理入口，薄入口调用引擎侧
     `.codebuddy/scripts/cleanup_artifacts.py`）；
@@ -172,6 +172,7 @@ python .codebuddy/scripts/pack_install.py verify --repair
 - [ ] 生成是否经过脚本（而非手工臆造字段）？
 - [ ] 是否依据索引 `artifacts.dirs` 创建了 `caches/` 运行时产物空目录，并生成了 `.gitignore`、`cleanup-caches.cmd` 与 `store/` 骨架？
 - [ ] `.codebuddy.project/.gitignore` 是否含 `!configs/` + `!configs/**` 两行反选？生成后用 `git status --short` 确认 `configs/` 下文件**未被忽略**、`caches/` **仍被忽略**？（仓库根若有 `configs/` 规则，缺反选会导致项目侧配置不入库）
+- [ ] `.codebuddy.project/.gitignore` 是否含 `skills/*`、`rules/*`、`agents/*` 三条忽略，且以 `!*/project/` + `!*/project/**` 放行项目专有内容？生成后用 `git check-ignore -v` 确认 `<pack>/` 链接**被忽略**、`project/` 下文件**未被忽略**（桥接是派生结果，入库会与 `packs.json` 脱节并产生装包噪音）
 - [ ] 是否生成了 `.codebuddy.project/{rules,skills,agents}/project/` 骨架并**建立了桥接** `.codebuddy/<类型>/project`（失败时是否已告警并给出命令）？
 - [ ] 是否依据索引 `root_symlinks.entries` 生成了根级源文件骨架（如 `.codebuddy.project/configs/settings.json`）并**建立了软链接**（失败时是否已告警并给出命令）？
 - [ ] 已存在文件是否跳过未覆盖（未获确认不使用 `--force`）？

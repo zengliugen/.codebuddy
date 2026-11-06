@@ -145,9 +145,13 @@
 - **路径含包层**：`caches/skills/<pack>/<技能>/`。`core-init` 只创建**已装包**的产物目录；
   未安装包的缓存目录不会出现。
 - `core-init` 依据本节点创建产物空目录；项目侧 `.gitignore` 统一忽略、不入库。
-- **入库边界由 `.codebuddy.project/.gitignore` 精确划定**：只忽略 `caches/`，并显式反选 `configs/`
-  （`!configs/` + `!configs/**`）。反选不可省——仓库根常有泛化的 `configs/` 规则（Python 运行时配置等），
-  会连带忽略项目侧的 `configs/`，导致配置静默不入库。
+- **入库边界由 `.codebuddy.project/.gitignore` 精确划定**：忽略 `caches/`、各组件目录下的 `<pack>` 桥接链接，
+  并显式反选 `configs/`（`!configs/` + `!configs/**`）与 `docs/`（`!docs/` + `!docs/**`）。
+  两类方向不同，不要混为一谈：
+  - **反选（`!`）**：仓库根常有泛化的 `configs/`、`docs/` 规则（Python 运行时配置、站点构建产物等），
+    会连带忽略项目侧的入库内容，故必须反选恢复，否则配置与文档**静默不入库**。
+  - **主动忽略**：`<pack>` 是派生出来的目录链接（源在 `lib/<pack>/<类型>`），本就不该入库。
+    详见 §3.7。
 - 清理：引擎侧 `scripts/cleanup_artifacts.py` 遍历本节点枚举目录，删除文件并重建空目录。
 
 ### 3.6.1 卸载包后的残留（孤儿）处理
@@ -191,6 +195,20 @@
 `core-init --setup` 生成其骨架（三个 `.gitkeep`），并调用 `scripts/pack_install.py verify --repair`
 建立桥接（Windows `mklink /D`，类 Unix `os.symlink`；失败则告警并给出手工命令，不阻断）。
 `project` 包在 `lib/packs.json` 中声明为 `location=project`、`default=true`、`comps` 为空数组。
+
+**入库边界：`project/` 入库，`<pack>/` 链接不入库**。`.codebuddy.project/<类型>/` 下两类内容同级并列，
+但只有真实目录 `project/` 随项目版本控制；`<pack>` 是派生链接（源在引擎 `lib/<pack>/<类型>`），
+由 `.codebuddy.project/.gitignore` 的 `skills/*`、`rules/*`、`agents/*` 忽略，并用
+`!*/project/` + `!*/project/**` 放行项目专有内容（两行缺一不可，同 `configs/` 的层级原因）。
+
+不入库的两条独立理由（任一成立即足够）：
+
+1. **派生结果不作事实来源**：`<pack>` 的集合与目标由 `lib/packs.json`（`location`）与
+   `configs/packs.json`（`installed`）共同决定，建链由 `pack_install.py` 完成。入库等于把派生结果
+   当第三处事实来源——装/卸包时链接增删会持续污染 git 差异，与 `packs.json` 脱节时也无人察觉。
+   这与 `root_symlinks` 不登记桥接链接是同一判据（见 §3.8）。
+2. **跨机器无效**：Windows 默认 `core.symlinks=false`，克隆后链接落成内容为路径字符串的普通文件，
+   仍须跑 `core-init` 重建。入库换不来「克隆即可用」，只增加噪音。
 
 ### 3.8 根级软链接外置（root_symlinks.entries）
 
