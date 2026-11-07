@@ -46,9 +46,6 @@ GENERIC_ITEMS = (
     (".DS_Store", "macOS 目录元数据"),
 )
 
-# 组件根规范样式里「通用项分组」的标准写法（仅用于生成，不用于判定）
-GENERIC_BLOCK = "__pycache__/\n*.pyc\n*.pyo"
-
 # 头注释行：`#  目录: <路径>`
 HEADER_PATTERN = re.compile(r"^#\s+目录:\s*(.+?)\s*$")
 
