@@ -258,8 +258,8 @@ def build_gitignore_content(packs):
     """生成 `.codebuddy.project/.gitignore` 内容。
 
     包含四部分：
-    - **反选 `configs/` 与 `docs/`**：项目根 .gitignore 可能含泛化同名规则
-      （如 Python 项目忽略运行时用户配置、站点构建产物目录），会把项目侧的入库
+    - **反选 `configs/`、`docs/` 与 `store/`**：项目根 .gitignore 可能含泛化同名规则
+      （如 Python 项目忽略运行时用户配置、站点构建产物目录、前端状态目录），会把项目侧的入库
       内容一并忽略，故在此显式反选恢复；
     - 忽略 `caches/` 运行时产物根目录（不入库）；
     - **通用忽略项兜底**（`__pycache__/`、`*.pyc`、`.DS_Store` 等）：与具体组件无关，
@@ -313,8 +313,30 @@ def build_gitignore_content(packs):
 !docs/
 !docs/**
 
+# store/ 存放运行时生成但需长期保留的项目结果，必须随项目入库。
+# 与 configs/、docs/ 同理反选：仓库根常有泛化的 store/ 规则（前端状态目录、缓存目录等），
+# 会连带忽略此处；且本侧 store/ 与 caches/ 名字相近，最容易被后来的规则顺带扫掉。
+# 丢失是静默的——结果文件不再入库，直到有人重新克隆才发现数据不在。
+# 同样两行缺一不可。
+!store/
+!store/**
+
 # 运行时产物根目录（整体忽略）
 caches/
+
+# 工具环境实例根目录（整体忽略，仅放行说明文件）
+#   envs/<包名>/.venv 由对应技能的 ensure 子命令生成，属可重建产物，不入库。
+#   依赖的定义与锁定在 .codebuddy/lib/<包名>/envs/（随引擎入库），本目录只持有实例。
+#
+#   为什么写在树根而不在 envs/ 下单独建 .gitignore：
+#     - 树根是项目仓库内唯一对 .codebuddy.project/ 生效的规则文件，放这里一处即覆盖全树；
+#     - 环境内部由 uv / venv 自动生成的 .gitignore（内容 `*`）属工具产物，
+#       删了会在 ensure --force 重建时重现，不能作为契约依赖；
+#     - 目录名由使用者决定（本项目是 envs/python，不是常见的 .venv），
+#       通配 `envs/*` 不依赖具体名字，新增语言包无需改规则。
+#   反选只放行 README 说明文件，其余（含任何游离产物）一律不入库。
+envs/*
+!envs/README.md
 
 # --- 通用忽略项兜底 --------------------------------------------------------
 #   project/ 天然在通配规则之外，其下组件**必须自带 .gitignore** 处理自己的专属产物
@@ -670,6 +692,81 @@ def build_store_targets(project_root, project_config_root):
         (os.path.join(base, "README.md"), readme),
         (os.path.join(base, ".gitkeep"), gitkeep),
     ]
+
+
+def build_envs_targets(project_root, project_config_root):
+    """构造工具环境实例根目录（envs/）的说明文件清单：[(绝对路径, 内容)]。
+
+    envs/ 本身不入库（树根 `.gitignore` 的 `envs/*` 整体忽略），但**说明文件入库**——
+    它是「这一层为什么存在、产物从哪来、怎么重建」的唯一入口，缺失后使用者只能
+    从 `.codebuddy/lib/<包>/envs/` 的依赖声明里倒推。
+
+    只生成 README.md，**不建 `.gitignore`**：忽略规则统一在树根 `.gitignore`，
+    组件层再建一份会形成演化分叉（见 `core-engine` 底线第 12 条与
+    `tool-gitignore-layout` 的判据）。虚拟环境内部由 uv / venv 自动生成的
+    `.gitignore` 属工具产物，不受本函数管辖。
+    """
+    base = os.path.normpath(os.path.join(project_root, project_config_root, "envs"))
+    readme = """# 工具环境目录（envs）
+
+本目录存放**各语言包的工具环境实例**：只装该语言包的检查工具，不含项目运行依赖。
+
+## 一、为什么单独一层
+
+项目里有两类环境，职责不同，混用会导致「测试静默跳过」：
+
+| 层 | 位置 | 放什么 | 谁创建 |
+|----|------|--------|--------|
+| **应用环境** | 项目自身（如 `.venv`） | 项目运行依赖（框架、GUI、OCR 等） | 项目负责人按上游流程创建 |
+| **工具环境** | 本目录下的 `<包名>/`（Python 为 `.venv` 布局） | 只放该包的检查工具（如 ruff、coverage） | 对应技能的 `ensure` 子命令 |
+
+被测代码必须在**应用环境**里执行。用工具环境跑测试会因缺运行依赖让用例全部跳过，
+而测试框架对「全部跳过」通常仍返回成功——看起来像通过，实际什么都没验证。
+
+## 二、目录与归属
+
+```
+envs/
+├── README.md          ← 入库（本文件）
+└── <包名>/            ← 不入库，可随时删除重建
+```
+
+- **本文件入库**，用于说明目录职责与重建方式。
+- **其余内容全部忽略**（由树根 `../.gitignore` 的 `envs/*` 加 `!envs/README.md` 保证）。
+  虚拟环境体积在数十 MB 量级，属可重建产物，不入库。
+- 本目录**不建** `.gitignore`：忽略规则统一在树根，避免两处规则各自演化。
+  虚拟环境内部由 uv / venv 自动生成的 `.gitignore`（内容只有 `*`）属工具产物，
+  **不要手工改动或补注释**——它在重建环境时会被重新生成。
+
+## 三、依赖定义在哪里
+
+工具环境**装什么、装哪个版本**不写在本目录，也不写在各技能配置里，而是由语言包内的
+定义文件决定：
+
+```
+.codebuddy/lib/<包名>/envs/
+├── pyproject.toml     依赖声明
+└── uv.lock            锁定（含各平台产物哈希）
+```
+
+本目录只持有**产物**。这样同一套引擎包在多个项目间共享定义，各项目各自持有实例。
+
+## 四、重建方式
+
+删除 `<包名>/` 整个目录后，运行对应技能的 `ensure` 子命令即可重建（数秒内完成，
+可离线执行——锁定文件里已有全部哈希）。若环境与锁定不一致，`check` 子命令会
+以非 0 退出并提示重建，不会静默沿用旧版本。
+
+## 五、为什么不在其他位置
+
+| 候选位置 | 为何不用 |
+|---------|---------|
+| 项目根（如 `.python-tools/`） | 与项目自身文件混放，包名分层无从体现，多语言包时命名会打架 |
+| `.codebuddy/` 引擎目录 | 引擎是跨项目共享的 submodule，运行产物与项目级绑定都不该进入；且部分场景下引擎目录只读 |
+| `.codebuddy.project/caches/` | 该目录会被 `cleanup-caches` 整体清空，工具环境会被误删 |
+| `.codebuddy.project/store/` | 该目录随仓库入库，数十 MB 的虚拟环境不适合入库 |
+"""
+    return [(os.path.join(base, "README.md"), readme)]
 
 
 def setup_pack_state(project_root, pack_arg, minimal):
@@ -1126,6 +1223,10 @@ def main():
 
     # 持久化项目结果目录骨架（store/，入库）
     for abs_path, payload in build_store_targets(project_root, readme_rel):
+        all_files.append((None, abs_path, "markdown_text", payload))
+
+    # 工具环境实例根目录说明（envs/README.md，入库；目录本身及其余内容不入库）
+    for abs_path, payload in build_envs_targets(project_root, readme_rel):
         all_files.append((None, abs_path, "markdown_text", payload))
 
     # 根级软链接的项目侧源文件骨架（如 .codebuddy.project/configs/settings.json）
