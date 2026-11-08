@@ -133,14 +133,28 @@ git ls-files -i -c --exclude-standard
 
 脚本已按此豁免：扫描时跳过 `vendor: true` 包的全部组件目录。
 
+## 虚拟环境例外
+
+虚拟环境目录（内含 `pyvenv.cfg`）里的 `.gitignore` 由 uv / venv 工具自动生成，
+**不检查、不补头注释、不手工删除**。
+
+脚本已按此豁免：扫描走到含 `pyvenv.cfg` 的目录时整枝跳过（不收集其下 `.gitignore`，
+也不再深入）。判据用 `pyvenv.cfg` 而非目录名——目录名由使用者决定（本项目是
+`envs/python`，不是常见的 `.venv`）。
+
+**为什么不手工删**：删了只是临时的，`ensure --force` 重建环境时工具会重新生成，
+下次扫描又冒同一个假阳性——形成永远修不掉的告警。环境「不入库」由外层
+`.codebuddy.project/envs/.gitignore` 保证，不依赖环境内部这个工具管理的文件。
+
 ## 边界情况
 
 | 情形 | 处置 |
 |---|---|
-| 组件刚搬迁，头注释路径过期 | 报 `header_mismatch`；按 `expected_scan_root()` 的映射改正（`lib/<包>/<类型>/<名>` → `.codebuddy/<类型>/<包>/<名>`） |
+| 组件刚搬迁，头注释路径过期 | 报 `header_mismatch`；按 `expected_scan_root(rel_dir, tree)` 的映射改正——引擎树 `lib/<包>/<类型>/<名>` → `.codebuddy/<类型>/<包>/<名>`，项目侧树 `<相对路径>` → `.codebuddy.project/<相对路径>` |
 | 规则看起来通用但本项目不产出 | 属地判据优先于「常见性」，见上文 `check_logs/` 例 |
 | 项目侧组件目录为空 | 扫描仍会检查树根兜底；无组件文件不报 `missing_header` |
 | 引擎单独检出（无项目侧目录） | 项目树不存在时自动跳过，不误报 |
+| 虚拟环境目录（含 `pyvenv.cfg`） | 整枝跳过；其 `.gitignore` 由工具生成，不检查不改 |
 
 ## 与其他规则的关系
 

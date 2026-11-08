@@ -220,16 +220,35 @@ def parse_structure(text):
     return header, dangling, duplicates
 
 
-def expected_scan_root(rel_dir):
-    """按物理相对路径推导「引擎扫描根视角」的路径。
+def expected_scan_root(rel_dir, tree="engine"):
+    """按物理相对路径推导「扫描根视角」的路径。
 
-    lib/<pack>/<类型>/<名>  → .codebuddy/<类型>/<pack>/<名>
-    <类型>/<pack>/<名>      → .codebuddy/<类型>/<pack>/<名>
+    两棵树的扫描根不同，**必须分别推导**——把项目侧的组件也套成 `.codebuddy/...`
+    会让头注释永远对不上，报出的「应为」值本身就是错的（实测把
+    `.codebuddy.project/envs` 误报成应为 `.codebuddy/envs`）。
+
+    引擎树（tree="engine"，扫描根是 `.codebuddy/`）：
+        lib/<pack>/<类型>/<名>  → .codebuddy/<类型>/<pack>/<名>
+        <类型>/<pack>/<名>      → .codebuddy/<类型>/<pack>/<名>
+
+    项目侧树（tree="project"，扫描根是 `.codebuddy.project/`）：
+        组件不经包层桥接，物理相对路径即扫描根视角路径
+        <任意相对路径>          → .codebuddy.project/<任意相对路径>
+
+    参数：
+        rel_dir：组件目录相对**树根**的路径。
+        tree：所属树标识，取值为 "engine" 或 "project"。
+
+    返回：
+        头注释应写的路径字符串（正斜杠分隔，相对项目根）。
     """
-    parts = rel_dir.replace(os.sep, "/").split("/")
+    rel_posix = rel_dir.replace(os.sep, "/")
+    if tree == "project":
+        return ".codebuddy.project/" + rel_posix
+    parts = rel_posix.split("/")
     if parts and parts[0] == "lib" and len(parts) >= 4:
         return ".codebuddy/%s/%s/%s" % (parts[2], parts[1], parts[3])
-    return ".codebuddy/" + rel_dir.replace(os.sep, "/")
+    return ".codebuddy/" + rel_posix
 
 
 def collect_vendor_prefixes(codebuddy_dir):
@@ -260,13 +279,26 @@ def collect_vendor_prefixes(codebuddy_dir):
 
 
 def collect_component_files(tree_root, vendor_prefixes=()):
-    """枚举某棵树下全部组件级 .gitignore（排除树根自身与 vendor 包）。
+    """枚举某棵树下全部组件级 .gitignore（排除树根自身、vendor 包与虚拟环境）。
+
+    **虚拟环境整枝跳过**：判据是目录内含 `pyvenv.cfg`（而非按 `.venv` / `venv` /
+    `env` 等名字猜——环境目录名由使用者决定，本项目用的是 `envs/python`）。
+    这类目录里的 `.gitignore` 由 uv / venv 工具自动生成（内容通常只有 `*`），
+    属工具产物而非本仓库维护的配置：
+
+      - 检查它只会报「缺头注释」，而补上后下次 `ensure --force` 重建环境时
+        会被工具覆盖，形成永远修不掉的假阳性；
+      - 不剪枝则 `os.walk` 会走进 `site-packages` 逐层遍历，大环境上极慢。
 
     返回 [(物理相对目录, 绝对路径)]。
     """
     results = []
     for current, dirs, files in os.walk(tree_root):
         dirs[:] = [d for d in dirs if d != ".git"]
+        # 虚拟环境目录：不收集其下任何 .gitignore，也不再往下走。
+        if "pyvenv.cfg" in files:
+            dirs[:] = []
+            continue
         rel = os.path.relpath(current, tree_root)
         if rel == ".":
             continue
@@ -282,8 +314,15 @@ def collect_component_files(tree_root, vendor_prefixes=()):
     return sorted(results)
 
 
-def classify(rel_dir, path, root_rules):
-    """分析单个组件级 .gitignore，返回问题字典列表。"""
+def classify(rel_dir, path, root_rules, tree="engine"):
+    """分析单个组件级 .gitignore，返回问题字典列表。
+
+    参数：
+        rel_dir：组件目录相对树根的路径。
+        path：该组件 .gitignore 的绝对路径。
+        root_rules：所属树根 .gitignore 的有效规则集合，用于判定冗余与抄写。
+        tree：所属树标识（"engine" / "project"），决定头注释的期望路径。
+    """
     problems = []
     rules = read_rules(path)
     text = read_text(path)
@@ -318,7 +357,7 @@ def classify(rel_dir, path, root_rules):
             "detail": "缺少 `#  目录: <扫描根路径>` 头注释",
         })
     else:
-        expected = expected_scan_root(rel_dir)
+        expected = expected_scan_root(rel_dir, tree)
         if header != expected:
             problems.append({
                 "type": "header_mismatch",
@@ -411,7 +450,7 @@ def run_scan(codebuddy_dir, tree_filter=None):
         files = collect_component_files(tree_root, vendor_prefixes)
         stats["component_files"] += len(files)
         for rel_dir, path in files:
-            found = classify(rel_dir, path, root_rules)
+            found = classify(rel_dir, path, root_rules, tree_key)
             if any(p["type"] == "redundant" for p in found):
                 stats["redundant"] += 1
             problems.extend(found)
