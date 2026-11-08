@@ -42,6 +42,15 @@ python scripts/env.py python
 | 依赖 | ruff、coverage（见锁文件） | 均无传递依赖 |
 | 体积 | 约 28MB | 冷缓存创建约 3.6 秒 |
 
+**「不入库」由哪条规则保证**：`.codebuddy.project/envs/.gitignore`（由 `core-init` 生成，
+内容 `*` 加 `!/.gitignore`、`!/README.md` 两条反选）。它写在 `envs/` 这一层，
+**不依赖**本目录内部那个 `.gitignore`——后者由 uv 自动生成（内容只有 `*`），
+属工具产物，删了会在 `ensure --force` 重建时重新出现。
+
+因此修改忽略配置时**只需动 `envs/.gitignore`**，不要去改 `envs/python/.gitignore`，
+也不要给它补 `#  目录:` 头注释（`tool-gitignore-layout` 的扫描已按 `pyvenv.cfg`
+整枝跳过虚拟环境，不会再报这个问题）。
+
 依赖的**定义与锁定**在引擎包内 `lib/python/envs/`：
 `pyproject.toml` 声明、`uv.lock` 锁定（含各平台产物哈希）。本技能只负责物化。
 
