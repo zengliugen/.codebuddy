@@ -46,6 +46,14 @@
     {
       "text": "按开发流程走，先问我要做什么再决定",
       "family": "intake"
+    },
+    {
+      "text": "引擎包的能力文档要在引擎域下建，先走流程",
+      "family": "scope_selection"
+    },
+    {
+      "text": "这次改动在引擎域还是项目域，帮我确认一下再建文档",
+      "family": "scope_selection"
     }
   ],
   "should_not_trigger": [
@@ -103,6 +111,11 @@
       "text": "我要改一下现有一个能力的方案",
       "family": "design_reasoning",
       "note": "要的是方案推演，不是流程骨架；技能只做分流与留痕工具"
+    },
+    {
+      "text": "这个包该不该升级到最新版本",
+      "family": "judgement",
+      "note": "属依赖升级判断，不是流程骨架生成"
     }
   ]
 }

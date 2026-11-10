@@ -1,0 +1,12 @@
+{
+  "_comment": "devflow-guard 引擎侧配置（分层配置的通用部分，随引擎入库共享）。本文件只声明**属于引擎本身的域**：引擎包自身的过程文档落在引擎仓库内，位置是引擎事实，不应写进每个消费项目的配置。项目侧配置（经索引 files.devflow.docs.config 定位）声明项目域与全部共享形状；读取时深度合并，项目侧可覆盖本文件的同名键。base 决定路径锚点：project→项目根，engine→引擎根（.codebuddy 所在目录）。不含任何默认值——base 与 docs_root 都必须显式声明。引擎域只覆盖必要项：文档根与总览模板名，其余形状（dirs / capability_files / overview 列序 / 文件头字段 / 状态取值 / 能力名模式）全部继承项目侧，避免两处各写一份必然分叉。注意数组类键（如 overview.header）在此不要重复声明——深度合并对数组取并集，重复声明会产生重复列。",
+  "scopes": {
+    "engine": {
+      "base": "engine",
+      "docs_root": "dev-docs",
+      "overview": {
+        "template": "README.engine.md"
+      }
+    }
+  }
+}

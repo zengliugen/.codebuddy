@@ -17,19 +17,26 @@ provider:
 ## 强制条款
 
 1. **新增或改动能力前必须先确认需求，再经 `devflow` 包的 `devflow-guard` 技能生成骨架**。
-   技能唤起后先分流意图；「改动现有能力」同样受本档约束——先用判定表确认是否暴露新行为面，
+   技能唤起后先分流意图并确认文档域；「改动现有能力」同样受本档约束——先用判定表确认是否暴露新行为面，
    暴露则立新能力，不暴露才按普通改动处理。
    用 `explore <主题名>` 建立需求探索记录并确认，再用 `new <能力名> --from-explore <主题名>`
    生成设计、计划、偏差、测试四份骨架并登记能力总览表。
    **禁止**手工新建这些文档，也**禁止**跳过探索记录直接 `new`——`new` 本身会拒绝。
 
-2. **首次启用时先经 `devflow-guard` 的 `init`**。文档目录结构、目录说明与模板由它按项目配置复制，
-   **禁止**手工逐个建目录与 README。
+2. **所有命令必须带 `--scope <域>`**，域在动手前确定：
+   - 改动落点在 `.codebuddy/` 内（引擎包自身）→ `--scope engine`，能力名带包前缀（`<包名>-<能力>`）；
+   - 改动落点在本项目代码/资源 → `--scope project`。
 
-3. **交付前必须经 `devflow-guard` 的 `audit`**。出现错误档缺口时须补齐后再交付，
+   两域是两棵**独立**的文档树（引擎域在 `.codebuddy/dev-docs`、项目域在
+   `.codebuddy.project/docs/devflow`），选错会写进另一棵树且**不会报错**。交付前两域各跑一次 `audit`。
+
+3. **首次启用时先经 `devflow-guard` 的 `init`**（同样带 `--scope`）。文档目录结构、目录说明与模板
+   由它按项目配置复制，**禁止**手工逐个建目录与 README。
+
+4. **交付前必须经 `devflow-guard` 的 `audit`**。出现错误档缺口时须补齐后再交付，
    不得以「代码能跑」替代文档与登记。
 
-4. **实施与验收的判据读 `devflow` 规则族**，不得凭经验行事：
+5. **实施与验收的判据读 `devflow` 规则族**，不得凭经验行事：
    - 手段怎么选、侵入怎么保证可失效 → `lib/devflow/rules/devflow/implementation-spec.mdc`
    - 测试结论怎么读、偏差怎么记 → `lib/devflow/rules/devflow/verification-spec.mdc`
    - 什么算新增能力、设计怎么写 → `lib/devflow/rules/devflow/design-spec.mdc`

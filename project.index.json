@@ -361,13 +361,19 @@
     },
     "devflow.docs.config": {
       "path": ".codebuddy.project/configs/skills/devflow/devflow-guard/config.json",
-      "description": "devflow-guard 技能参数：布局模式、文档根、三个保留目录名、能力目录内的文件名、总览表列序与状态取值、文件头字段与生成器标识、能力名模式",
+      "description": "devflow-guard 技能参数：文档域（scopes 与 default_scope，每域声明 base 锚点与 docs_root）、布局模式、三个保留目录名、能力目录内的文件名、总览表文件名与模板名、列序与状态取值、文件头字段与生成器标识、能力名模式",
       "format": "json",
       "template": {
-        "version": 1,
-        "_comment": "本文件为 devflow-guard 的项目配置：layout 声明布局模式，docs_root 决定文档根，dirs 决定留在文档根的一级目录，capability_files 决定每个能力目录内部的文件名，overview 决定总览表的列序与合法取值，file_header 决定文件头字段与生成器标识，capability_name_pattern 决定能力名合法模式。本文件是这些形状的唯一来源——脚本不内置任何默认值，缺失、损坏或缺少必需键时直接报错退出（退出码 3）。首次使用先执行技能的 init 模式初始化文档结构。",
+        "version": 2,
+        "_comment": "本文件为 devflow-guard 的项目侧配置（分层配置的项目侧部分）。scopes 声明**项目侧可用域**，每域必须写 base 与 docs_root：base 决定路径锚点（project→项目根，engine→引擎根即 .codebuddy 所在目录），docs_root 决定文档根（锚点相对路径）。default_scope 是不带 --scope 时使用的域，必须存在于合并后的 scopes 中。引擎侧配置 references/config.engine.json 已声明 engine 域（.codebuddy/dev-docs），故此处通常只需声明项目域；如需改引擎域位置，在此写同名域覆盖即可。顶层 docs_root 已取消——两处都叫文档根会让「改哪个生效」无从判断。layout 声明布局模式，dirs 决定留在文档根的一级目录，capability_files 决定每个能力目录内部的文件名，overview.file 是总览表文件名、overview.template 是生成它用的模板名（项目域用 README.md，引擎域用 README.engine.md），overview 其余键决定列序与合法取值，file_header 决定文件头字段与生成器标识，capability_name_pattern 决定能力名合法模式。本文件是这些形状的唯一来源——脚本不内置任何默认值，缺失、损坏或缺少必需键时直接报错退出（退出码 3）。首次使用先执行技能的 init 模式初始化文档结构。",
+        "default_scope": "project",
+        "scopes": {
+          "project": {
+            "base": "project",
+            "docs_root": ".codebuddy.project/docs/devflow"
+          }
+        },
         "layout": "by-capability",
-        "docs_root": ".codebuddy.project/docs/devflow",
         "dirs": {
           "explore": "explore",
           "decisions": "decisions",
@@ -381,6 +387,7 @@
         },
         "overview": {
           "file": "README.md",
+          "template": "README.md",
           "header": [
             "能力",
             "状态",

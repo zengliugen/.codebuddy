@@ -90,9 +90,12 @@
 ├── hooks/                      # git 钩子（入库，经 core.hooksPath 生效，setup 自动配置）
 │   └── pre-commit             #   提交前跑 check_manifest.py，登记表不一致即阻断
 │
-├── dev-design-docs/            # 引擎包开发设计文档（仅 README.md 入库，其余本地保留）
-│   ├── README.md               #   目录索引：用途、入库规则、按包登记文档
-│   └── <pack>/                 #   各包的开发期文档（gitignore，不入库）
+├── dev-docs/                   # 引擎包自身的过程文档（入库；由 devflow-guard 按引擎域管理）
+│   ├── README.md               #   能力总览表 + 目录职责 + 命名与入库规则
+│   ├── explore/                #   需求探索记录
+│   ├── decisions/              #   决策记录（ADR）
+│   ├── archive/                #   已完成能力的整包归档
+│   └── <包名>-<能力名>/        #   一能力一目录：design/plan/deviation/testing.md
 │
 └── scripts/                    # 引擎级通用脚本（包安装、清单校验、产物清理、仓库更新）
     ├── pack_install.py         #   可选包安装/卸载/校验（list/install/remove/status/verify）
@@ -111,32 +114,32 @@
 > **检出位置约定**：本仓库应检出为消费项目的 **`.codebuddy/`**（如 `Program/Client/.codebuddy/`）。
 > 引擎内所有相对路径推导均以「`.codebuddy` 的父目录 = 项目根」为基准，故检出路径名必须是 `.codebuddy`。
 
-## 开发设计文档（dev-design-docs/）
+## 引擎开发文档（dev-docs/）
 
-引擎包在**开发期**产生的文档（实施计划、契约快照、调研结论等）放 `dev-design-docs/<包名>/`。
+引擎包在**开发期**产生的能力过程文档（设计推演、实施计划、偏差记录、测试验收、需求探索、
+决策记录、归档）放 `dev-docs/`，由 `devflow` 包的 `devflow-guard` 技能以**引擎域**管理：
 
-**入库规则：只有 `dev-design-docs/README.md` 入库**，其余全部由 `.gitignore` 忽略：
-
-```gitignore
-/dev-design-docs/*
-!/dev-design-docs/README.md
+```bash
+DIR=.codebuddy/lib/devflow/skills/devflow-guard/scripts/devflow_guard.py
+python $DIR --scope engine audit
+python $DIR --scope engine explore <主题名>
+python $DIR --scope engine new <能力名> --from-explore <主题名>
 ```
+
+**全部内容随引擎仓库入库**——不再有「只放行 README」的例外。**不要手工建目录或拼骨架**：
+骨架缺生成器字段、总览表没对应行都不会在写文件时暴露，只会在日后检索能力时表现为「查不到」。
 
 | 要点 | 说明 |
 |------|------|
-| 为什么入库 README | 说明目录用途与规则，告诉后来者「文档为什么提交不上去」；**不登记具体文档清单**（那些文件不入库，列出来对其他人全是死链） |
-| 为什么文档不入库 | 属开发过程产物；计划在实施后失去价值，契约快照随引擎频繁改写，入库会产生无意义 diff |
-| 为什么不用 `lib/<pack>/docs/` | 该位置在包内，不提交会让**子模块指针长期显示 dirty**，干扰两仓状态判断 |
-| 是否需要分发给项目 | 不需要——`scripts/pack_install.py` 只物化 `rules`/`skills`/`agents`，文档本就不会到消费项目 |
-| 换机器后是否还在 | **不在**。需要长期保留的结论必须落到包内组件文档（`rules/`、`skills/references/`） |
+| 与项目域的区别 | 项目域在 `.codebuddy.project/docs/devflow`、读者是装了包的项目的开发者、随项目入库；本目录读者是引擎维护者、随引擎入库。两域是**独立**的树，`--scope` 选域 |
+| 为什么入库 | 设计文档的价值在「被否掉的方案与否决理由」，只有入库才能被他人读到并质疑；且换机器/重新 clone 后判断依据仍在 |
+| 为什么不用 `lib/<pack>/docs/` | 该位置在包内，不提交会让**子模块指针长期显示 dirty**；提交则会随包分发到消费项目，与「引擎开发文档」的定位冲突 |
+| 是否可以随包分发 | 不需要——`scripts/pack_install.py` 只物化 `rules`/`skills`/`agents`，文档本就不会到消费项目 |
+| 能力名怎么起 | **必须带包前缀**：`<包名>-<能力>`，如 `devflow-scope-support`。前缀是归属信息，不做机械校验，靠评审保证 |
 
-**生命周期一律为「临时」**：本目录文档服务于包开发，**包开发完成后即失去价值**，随整个目录
-一并归档或删除；文档头须标注并写明终止条件。**不设「长期维护」档**——内容都不入库，宣称长期保留
-与实际不符；开发完成后仍需保留的结论，应移入包的组件文档（`rules/`、`skills/references/`）。
+**不随包升级、不随卸载清理**：本目录属引擎仓库自身内容，与包安装状态无关。
 
-本目录文档**不随仓库分发、不随 clone 恢复**，`git clean -fdx` 会静默丢失；
-重要的本地文档请自行备份。需跨机器共享的结论必须落到包内组件文档。详见
-[`dev-design-docs/README.md`](dev-design-docs/README.md)。
+详见 [`dev-docs/README.md`](dev-docs/README.md)。
 
 ## 引擎与项目侧的边界
 
@@ -145,6 +148,8 @@
 | 本仓库（检出为 `.codebuddy/`） | 引擎 | 纯通用内容；跨项目共享 |
 | `.codebuddy/project.index.json` | 引擎 | 配置注册表；路径 + 骨架，**无项目专有值** |
 | `.codebuddy/skills/**/tools/**/<工具>.json` | 引擎 | **分层配置的通用部分**（规则、算法参数等） |
+| `.codebuddy/lib/devflow/skills/devflow-guard/references/config.engine.json` | 引擎 | **分层配置的通用部分**：仅声明 `engine` 文档域（引擎自身的过程文档在 `dev-docs/`）。项目域与共享形状在项目侧配置，读取时深度合并 |
+| `.codebuddy/dev-docs/` | 引擎 | 引擎包自身的过程文档（能力设计/计划/偏差/测试、探索、决策、归档），随引擎入库 |
 | `.codebuddy.project/` | 项目 | 项目侧内容根：`configs/` 配置、`caches/` 运行时产物（不入库）、`store/` 持久化结果、`docs/` 技能产出的项目文档（如 devflow 能力文档）、`skills/` 项目专有技能（含 `settings.json` 源文件）；随项目独立维护 |
 | `.codebuddy/settings.json` | 项目（链接） | **软链接** → `.codebuddy.project/configs/settings.json`（由项目侧创建，**不入本库**） |
 | `.codebuddy.project/<类型>/project/` | 项目 | **项目专有包**内容（与其他包同构）：`rules/project/`、`skills/project/`、`agents/project/`，经 `.codebuddy/<类型>/project` 链接被加载，**不入本库**。内部允许再按「族」分组，组件可下沉一层（规则加载递归、技能扫描逐层递归、代理扫描递归） |

@@ -2,33 +2,39 @@
 # -*- coding: utf-8 -*-
 """devflow-guard：开发流程的过程文档骨架生成与契约体检。
 
-三个模式：
+七个模式：
 
   init          按项目配置把文档目录结构、目录说明与文档模板复制到项目侧
-  new <能力名>  生成设计、计划、测试三份骨架并登记能力总览表
-  audit         只读体检文档契约，按三档输出缺口
+  new <能力名>  生成设计、计划、偏差、测试四份骨架并登记能力总览表
+  explore <主题> 创建需求探索记录
+  adr <slug>    创建决策记录
+  status / archive / audit  状态同步、归档、只读体检
 
 设计前提（与项目侧的同类工具刻意不同）：
 
 1. **不按固定层级数定位项目根**。自脚本所在目录向上查找含 .git 或 .codebuddy 的目录，
    因此同一份脚本在引擎侧与项目侧两种挂载深度下都能工作。
-2. **一切形状来自项目配置**。文档根、布局模式、三个保留目录名、能力目录内的文件名、
+2. **一切形状来自配置**。文档根、布局模式、三个保留目录名、能力目录内的文件名、
    总览表列序、状态取值、文件头字段、生成器标识全部读配置，脚本不内置任何默认值。
    配置缺失或缺少必需键时直接报错退出（退出码 3），不回退默认值——否则「配置写了但没生效」
    会表现成「检查莫名通过」。
 3. **只查机械可判定的契约**，不查代码落位。落位原则属规则判据，抽象后无法机械校验。
+4. **一台脚本管多棵文档树（域）**。`scopes.<域名>` 声明各自的文档根与锚点 `base`，
+   `--scope` 选域；引擎自身的过程文档与消费项目的过程文档因此可以在同一工作区内并存，
+   互不干扰。域是「叠加在基础配置之上的一份覆盖层」，不是第二套配置结构——每处判定逻辑
+   都只有一份，路径来源只有 `docs_dir()` 一处。
 
 用法：
-    python devflow_guard.py init
-    python devflow_guard.py new <能力名>
-    python devflow_guard.py audit
-    python devflow_guard.py audit --root <项目根>
+    python devflow_guard.py [--scope <域名>] init
+    python devflow_guard.py [--scope <域名>] new <能力名> --from-explore <主题名>
+    python devflow_guard.py [--scope <域名>] audit
+    python devflow_guard.py [--scope <域名>] audit --root <项目根>
 
 退出码：
     0 —— 通过（audit 可能附提示级输出）
     1 —— 存在警告（需人工判断）
     2 —— 存在错误，或参数错误、文件冲突
-    3 —— 配置不可用（缺失、损坏、缺少必需键）
+    3 —— 配置不可用（缺失、损坏、缺少必需键、未知域名）
 """
 
 import argparse
@@ -46,6 +52,13 @@ CONFIG_CODENAME = "devflow.docs.config"
 # 模板根目录（相对本脚本）：scripts/ -> devflow-guard/ -> references/templates
 TEMPLATES_DIR = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "templates")
+)
+
+# 引擎侧配置（分层配置的通用部分）：只声明属于引擎本身的域。
+# 经脚本自身位置定位而非索引——索引在引擎仓库内且随引擎共享，但它的路径解析要有项目根，
+# 而这里正是「还没有项目侧配置」时才需要读的东西，不能反向依赖。
+ENGINE_CONFIG_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "config.engine.json")
 )
 
 # 五份文档骨架所在子目录。命名避开 docs/templates 这类与实际用途不符的词：
@@ -67,20 +80,31 @@ DOC_KINDS = ("design", "plan", "deviation", "testing")
 # 不做「不认识的布局按默认处理」这类回退。
 LAYOUT_MODES = ("by-capability",)
 
-# 配置必需键（缺失即报错，不回退默认值）
+# 域的锚点取值。`project` 基准是项目根，`engine` 基准是引擎根（`.codebuddy` 所在处）。
+# 只有这两个取值、且必须显式声明：锚点一旦靠猜，引擎以非标准名字检出时文档会静默写错地方。
+SCOPE_BASES = ("project", "engine")
+
+# 域名模式：会成为 CLI 参数值与输出里的标识，限制为小写 kebab-case。
+SCOPE_NAME_PATTERN = r"^[a-z][a-z0-9-]*$"
+
+# 配置必需键（缺失即报错，不回退默认值）。
+# 顶层不再有 docs_root：文档根按域声明，两处都叫「文档根」会让「改哪个生效」无从判断。
 REQUIRED_CONFIG_KEYS = (
+    "default_scope",
+    "scopes",
     "layout",
-    "docs_root",
     "dirs",
     "capability_files",
     "overview",
     "file_header",
     "capability_name_pattern",
 )
+REQUIRED_SCOPE_KEYS = ("base", "docs_root")
 REQUIRED_DIR_KEYS = RESERVED_DIR_KEYS
 
 REQUIRED_OVERVIEW_KEYS = (
     "file",
+    "template",
     "header",
     "status_values",
     "placeholder_dash",
@@ -89,6 +113,9 @@ REQUIRED_OVERVIEW_KEYS = (
     "status_column",
 )
 REQUIRED_HEADER_KEYS = ("fields", "status_field", "generator_field", "generator_values")
+
+# 由脚本注入、不得出现在配置里的键：注入的是解析后的绝对路径，写进配置等于硬编码本机路径。
+RESERVED_CONFIG_KEYS = ("base_root",)
 
 # 分级
 LEVEL_ERROR = "错误"
@@ -246,55 +273,282 @@ def resolve_config_path(root):
 
 
 def load_config(root):
-    """经索引加载并校验配置；任何缺失都抛 ConfigError，不回退默认值。
+    """分层加载并校验配置；任何缺失都抛 ConfigError，不回退默认值。
+
+    两层来源，深度合并（项目侧覆盖引擎侧）：
+
+    - **引擎侧** `references/config.engine.json`：只声明属于引擎本身的域（`scopes.engine`）。
+      随包分发，缺它说明包不完整。
+    - **项目侧** 经索引 `files.devflow.docs.config` 定位：声明 `scopes.project`、
+      `default_scope` 与全部共享形状（dirs / capability_files / overview / file_header /
+      capability_name_pattern）。
+
+    为什么引擎域的文档根不能放项目侧：它是引擎事实，写进项目配置会让每个消费项目重复同一常量，
+    且引擎改路径时所有项目都得跟着改。为什么项目域的文档根不能放引擎侧：它是项目事实。
+
+    返回的是**合并后的整体配置**，其中 `scopes` 含全部域但尚未解析锚点——
+    选域与解析由 `resolve_scope` 完成。
 
     参数：
         root: 项目根
 
     返回：
-        配置字典
+        合并后的配置字典
 
     异常：
-        ConfigError: 文件不存在、JSON 损坏、顶层非对象、缺必需键、docs_root 为空
+        ConfigError: 任一层缺失/损坏/缺必需键，或形状非法
     """
+    engine_config = _read_json_config(ENGINE_CONFIG_PATH, "引擎侧")
     config_path = resolve_config_path(root)
-    if not os.path.isfile(config_path):
-        raise ConfigError(
-            "配置未找到：%s\n请先由 core-init 生成该配置，或按索引中的 template 手工创建。"
-            % config_path
-        )
-    try:
-        with open(config_path, "r", encoding="utf-8") as handle:
-            config = json.load(handle)
-    except (OSError, ValueError) as error:
-        raise ConfigError("配置读取失败（%s）：%s" % (error, config_path))
-    if not isinstance(config, dict):
-        raise ConfigError("配置顶层必须是 JSON 对象：%s" % config_path)
+    project_config = _read_json_config(config_path, "项目侧")
+
+    config = _deep_merge(engine_config, project_config)
 
     missing = [key for key in REQUIRED_CONFIG_KEYS if key not in config]
     if missing:
-        raise ConfigError("配置缺少必需键：%s（%s）" % ("、".join(missing), config_path))
-
-    if not str(config.get("docs_root") or "").strip():
         raise ConfigError(
-            "配置 docs_root 为空：%s\n必须声明文档根目录（相对项目根的路径），"
-            "脚本不提供默认值。" % config_path
-        )
-    if not isinstance(config["docs_root"], str):
-        raise ConfigError("配置 docs_root 必须是字符串：%s" % config_path)
-    if os.path.isabs(config["docs_root"]):
-        raise ConfigError("配置 docs_root 必须为项目根相对路径：%s" % config["docs_root"])
-
-    layout = config.get("layout")
-    if not isinstance(layout, str) or layout not in LAYOUT_MODES:
-        raise ConfigError(
-            "配置 layout 必须是以下取值之一：%s（实际：%s）：%s\n"
-            "本键是必填的：缺键说明这是升级前的旧配置，其 dirs 里仍按阶段分目录"
-            "（design/plans/testing），按新语义解释会静默错解——new 写到新位置、audit 扫不到旧文档。"
-            "请先把布局迁移到「一能力一目录」，再补上 layout 与 capability_files。"
-            % ("、".join(LAYOUT_MODES), repr(layout), config_path)
+            "配置缺少必需键：%s（项目侧：%s）\n"
+            "顶层 docs_root 已改为按域声明——请在 scopes 中为每个域写 base 与 docs_root，"
+            "并用 default_scope 指明默认域。旧版单根配置会在此处直接失败，这是刻意的："
+            "按新语义解释旧配置会静默写错位置。"
+            % ("、".join(missing), config_path)
         )
 
+    for key in RESERVED_CONFIG_KEYS:
+        if key in config:
+            raise ConfigError(
+                "配置不得包含键 %s：该键由脚本按域注入解析后的绝对路径（%s）\n"
+                "写进配置等于硬编码本机路径，迁移到别的机器或目录会静默写错位置。"
+                % (key, config_path)
+            )
+
+    _validate_scopes(config, config_path)
+    _validate_common_keys(config, config_path)
+    _validate_shapes(config, config_path)
+    return config
+
+
+def _read_json_config(path, label):
+    """读取一份 JSON 配置；缺失、损坏或顶层非对象时抛 ConfigError。
+
+    参数：
+        path: 配置文件绝对路径
+        label: 面向人的来源标签（引擎侧 / 项目侧）
+
+    返回：
+        配置字典
+
+    异常：
+        ConfigError: 文件不存在、JSON 损坏、顶层非对象
+    """
+    if not os.path.isfile(path):
+        raise ConfigError(
+            "%s配置未找到：%s\n"
+            "该项目侧配置应由 core-init 生成，或按索引中的 template 手工创建；"
+            "引擎侧配置随包分发，缺失说明包不完整。" % (label, path)
+        )
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            config = json.load(handle)
+    except (OSError, ValueError) as error:
+        raise ConfigError("%s配置读取失败（%s）：%s" % (label, error, path))
+    if not isinstance(config, dict):
+        raise ConfigError("%s配置顶层必须是 JSON 对象：%s" % (label, path))
+    return config
+
+
+def _deep_merge(base, override):
+    """深度合并两份配置，override 覆盖 base。
+
+    语义与引擎内既有的分层配置读取保持一致（见 `csharp-test-coverage/scripts/skill_config.py`
+    的同名函数），避免两处对「数组合并」的理解分叉：
+
+    - 字典：递归合并，逐键覆盖；
+    - 列表：取并集（保持 base 顺序在前、去重）；
+    - 标量：override 胜出。
+
+    参数：
+        base: 底层配置（引擎侧，或整体配置）
+        override: 覆盖层（项目侧，或某域的覆盖层）
+
+    返回：
+        合并后的新对象（不修改入参）
+    """
+    if isinstance(base, dict) and isinstance(override, dict):
+        merged = dict(base)
+        for key, value in override.items():
+            if key in merged:
+                merged[key] = _deep_merge(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
+    if isinstance(base, list) and isinstance(override, list):
+        result = list(base)
+        for item in override:
+            if item not in result:
+                result.append(item)
+        return result
+    return override
+
+
+def _validate_scopes(config, config_path):
+    """校验 scopes 与 default_scope 的形状。
+
+    只校验「键存在」不足以保证可用：空的 scopes 会让任何域选择都失败，
+    域缺 base 会让锚点无从确定，而 default_scope 指向不存在的域时
+    表现是「不带 --scope 就报错」——用户会以为是脚本坏了。
+
+    参数：
+        config: 合并后的配置字典
+        config_path: 项目侧配置路径，用于错误定位
+
+    异常：
+        ConfigError: scopes 非对象、为空、域非法、缺键、default_scope 不存在
+    """
+    scopes = config.get("scopes")
+    if not isinstance(scopes, dict) or not scopes:
+        raise ConfigError(
+            "配置 scopes 必须是非空对象，每个域声明 base 与 docs_root：%s\n"
+            "至少需要项目域（base=project）。" % config_path
+        )
+
+    name_pattern = re.compile(SCOPE_NAME_PATTERN)
+    for name, overlay in scopes.items():
+        if not isinstance(name, str) or not name_pattern.fullmatch(name):
+            raise ConfigError(
+                "配置 scopes 的域名不合法：%s\n"
+                "域名会成为 CLI 参数值（--scope %s），必须是英文小写 kebab-case。"
+                % (repr(name), name if isinstance(name, str) else "<名>")
+            )
+        if not isinstance(overlay, dict):
+            raise ConfigError("配置 scopes.%s 必须是对象：%s" % (name, config_path))
+        missing = [key for key in REQUIRED_SCOPE_KEYS if key not in overlay]
+        if missing:
+            raise ConfigError(
+                "配置 scopes.%s 缺少必需键：%s（%s）\n"
+                "base 决定路径锚点（project→项目根，engine→引擎根），docs_root 决定文档根；"
+                "两者都必须显式声明，脚本不按域名猜。"
+                % (name, "、".join(missing), config_path)
+            )
+        base = overlay.get("base")
+        if base not in SCOPE_BASES:
+            raise ConfigError(
+                "配置 scopes.%s.base 必须是以下取值之一：%s（实际：%s）：%s"
+                % (name, "、".join(SCOPE_BASES), repr(base), config_path)
+            )
+        for key in RESERVED_CONFIG_KEYS:
+            if key in overlay:
+                raise ConfigError(
+                    "配置 scopes.%s 不得包含键 %s（由脚本注入）：%s" % (name, key, config_path)
+                )
+
+    default_scope = config.get("default_scope")
+    if not isinstance(default_scope, str) or not default_scope.strip():
+        raise ConfigError("配置 default_scope 必须是非空字符串：%s" % config_path)
+    if default_scope not in scopes:
+        raise ConfigError(
+            "配置 default_scope = %s 未在 scopes 中声明\n可用域：%s"
+            % (default_scope, "、".join(sorted(scopes)))
+        )
+
+
+def resolve_scope(root, config, name=None):
+    """选择域并解析出该域的完整配置（含注入的绝对锚点 `base_root`）。
+
+    域是**叠加在基础配置之上的一份覆盖层**，不是第二套配置结构：所有判定逻辑只有一份，
+    唯一的差异是文档根落在哪里。因此这里做的事只有三件——叠加、算锚点、注入。
+
+    参数：
+        root: 项目根
+        config: load_config 返回的合并配置
+        name: 域名；为空时取 default_scope
+
+    返回：
+        该域的配置字典，额外含 `scope`（域名）与 `base_root`（绝对锚点路径）
+
+    异常：
+        ConfigError: 域名未知、引擎根无法定位、docs_root 非法、锚点无法解析
+    """
+    scopes = config.get("scopes") or {}
+    scope_name = (name or "").strip() or config.get("default_scope")
+    if scope_name not in scopes:
+        raise ConfigError(
+            "未知的域：%s\n可用域：%s\n不带 --scope 时取 default_scope = %s"
+            % (repr(scope_name), "、".join(sorted(scopes)), config.get("default_scope"))
+        )
+
+    overlay = scopes[scope_name]
+    if "scopes" in overlay:
+        raise ConfigError("配置 scopes.%s 不得再嵌套 scopes：%s" % (scope_name, ENGINE_CONFIG_PATH))
+
+    # 先摘掉 scopes 再叠加：域覆盖层不该有机会改「有哪些域」，否则一处笔误就能造出
+    # 一个只有自己才看得见的域，而 default_scope 仍指向原域名。
+    base = {key: value for key, value in config.items() if key != "scopes"}
+    merged = _deep_merge(base, overlay)
+
+    base_kind = overlay["base"]
+    if base_kind == "project":
+        base_root = root
+    else:
+        base_root = find_codebuddy_dir(root)
+        if not base_root:
+            raise ConfigError(
+                "域 %s 以引擎根为锚点，但未能定位 .codebuddy 目录：%s" % (scope_name, root)
+            )
+
+    merged["scope"] = scope_name
+    # 回填整份 scopes（含未选中的域）与 default_scope：输出里要报「当前域 + 可用域」，
+    # 误选域时靠这两项一眼看出，否则用户只看到路径不对却不知改哪个参数。
+    merged["scopes"] = config["scopes"]
+    merged["base_root"] = os.path.normpath(base_root)
+    _validate_scope_docs_root(merged, scope_name)
+    return merged
+
+
+def _validate_scope_docs_root(config, scope_name):
+    """校验某域解析后的文档根位于锚点内且不是锚点本身。
+
+    路径穿越会写出项目/引擎之外的文件；而 docs_root = "." 会让文档根等于锚点本身，
+    于是 init 的 README 直接落在项目根或引擎根上，与既有文件冲突且极难恢复。
+
+    参数：
+        config: resolve_scope 返回的配置（含 base_root）
+        scope_name: 域名，用于报错
+
+    异常：
+        ConfigError: docs_root 为空、为绝对路径、含盘符、含上跳段、或解析后等于/跳出锚点
+    """
+    docs_root = config.get("docs_root")
+    if not isinstance(docs_root, str) or not docs_root.strip():
+        raise ConfigError("域 %s 的 docs_root 不能为空" % scope_name)
+    _validate_rel_component("scopes.%s.docs_root" % scope_name, docs_root, "<scope>")
+
+    base_root = os.path.normpath(config["base_root"])
+    resolved = os.path.normpath(os.path.join(base_root, docs_root))
+    if resolved == base_root:
+        raise ConfigError(
+            "域 %s 的 docs_root 解析后等于锚点本身（%s）\n"
+            "文档根必须是锚点下的子目录，否则总览表与说明文件会直接落到项目根或引擎根上。"
+            % (scope_name, resolved)
+        )
+    if not resolved.startswith(base_root + os.sep):
+        raise ConfigError(
+            "域 %s 的 docs_root 解析后跳出锚点：%s（锚点：%s）" % (scope_name, resolved, base_root)
+        )
+
+
+def _validate_common_keys(config, config_path):
+    """校验与「域」无关的共享形状键是否齐全（dirs / capability_files / overview / file_header / 命名模式）。
+
+    这些键两域共用：抽成一份，域覆盖层才能只写自己想改的键，而不是被迫重复整份形状声明。
+
+    参数：
+        config: 合并后的配置字典
+        config_path: 项目侧配置路径，用于错误定位
+
+    异常：
+        ConfigError: 任一键缺失或类型不对
+    """
     dirs = config.get("dirs")
     if not isinstance(dirs, dict):
         raise ConfigError("配置 dirs 必须是对象：%s" % config_path)
@@ -339,8 +593,15 @@ def load_config(root):
     except (re.error, TypeError) as error:
         raise ConfigError("配置 capability_name_pattern 不是合法正则：%s" % error)
 
-    _validate_shapes(config, config_path)
-    return config
+    layout = config.get("layout")
+    if not isinstance(layout, str) or layout not in LAYOUT_MODES:
+        raise ConfigError(
+            "配置 layout 必须是以下取值之一：%s（实际：%s）：%s\n"
+            "本键是必填的：缺键说明这是升级前的旧配置，其 dirs 里仍按阶段分目录"
+            "（design/plans/testing），按新语义解释会静默错解——new 写到新位置、audit 扫不到旧文档。"
+            "请先把布局迁移到「一能力一目录」，再补上 layout 与 capability_files。"
+            % ("、".join(LAYOUT_MODES), repr(layout), config_path)
+        )
 
 
 def _validate_shapes(config, config_path):
@@ -410,7 +671,11 @@ def _validate_shapes(config, config_path):
 
     # 类型必须先校验：_validate_rel_component 用 str() 归一化，会把 123 变成 "123" 放过，
     # 随后 os.path.join(target_root, 123) 抛 TypeError（非退出码 3）。
-    for key, value in (("docs_root", config["docs_root"]), ("overview.file", overview["file"])):
+    # docs_root 不在这里：它按域声明，形状由 _validate_scope_docs_root 在解析该域时校验。
+    for key, value in (
+        ("overview.file", overview["file"]),
+        ("overview.template", overview["template"]),
+    ):
         if not isinstance(value, str):
             raise ConfigError("%s 必须是字符串：%s" % (key, config_path))
     for key in RESERVED_DIR_KEYS:
@@ -422,7 +687,6 @@ def _validate_shapes(config, config_path):
     if not isinstance(config["capability_name_pattern"], str):
         raise ConfigError("capability_name_pattern 必须是字符串：%s" % config_path)
 
-    _validate_rel_component("docs_root", config["docs_root"], config_path)
     seen = set()
     for key in RESERVED_DIR_KEYS:
         name = config["dirs"][key]
@@ -431,6 +695,21 @@ def _validate_shapes(config, config_path):
             raise ConfigError("配置 dirs 中目录名重复：%s：%s" % (name, config_path))
         seen.add(name)
     _validate_rel_component("overview.file", overview["file"], config_path)
+    # 模板名只校验「单段 .md」：它在包内 references/templates/skeletons/ 下，与文档根无关，
+    # 但带路径分隔符会让 --scope 选域后拼出意料之外的模板路径。
+    # 不复用 _validate_filename：后者把 README.md 判为非法（那是能力文档名的保留名），
+    # 而本键的默认值恰恰就叫 README.md。
+    template_name = overview["template"].strip()
+    if (
+        not template_name
+        or os.sep in template_name
+        or "/" in template_name
+        or template_name in (".", "..")
+        or not template_name.endswith(".md")
+    ):
+        raise ConfigError(
+            "overview.template 必须是单段 .md 文件名：%s（%s）" % (template_name, config_path)
+        )
 
     # 能力文档文件名必须落在单个路径段内：布局不变量是「一能力一目录、内部平铺」，
     # 一旦允许 a/b.md，iter_capability_docs 只列一层就会漏检，而配置看起来完全合法。
@@ -515,8 +794,20 @@ def _validate_rel_component(name, value, config_path):
 
 
 def docs_dir(root, config):
-    """返回文档根绝对路径。"""
-    return os.path.normpath(os.path.join(root, config["docs_root"]))
+    """返回文档根绝对路径。
+
+    这是全脚本**唯一的文档根拼装入口**：`new` / `status` / `archive` / `audit` / `explore` /
+    `adr` 的落点全部经这里。域差异也只在这里体现——`base_root` 由 `resolve_scope` 按域的
+    `base` 注入（项目根或引擎根），因而不需要每个模式各写一遍分支。
+
+    参数：
+        root: 项目根（保留入参以维持调用点一致；实际锚点取 config 的 base_root）
+        config: resolve_scope 返回的域配置
+
+    返回：
+        文档根绝对路径
+    """
+    return os.path.normpath(os.path.join(config["base_root"], config["docs_root"]))
 
 
 def capability_rel(config, name, kind, archived=False):
@@ -644,10 +935,11 @@ def run_init(root, config):
     target_root = docs_dir(root, config)
     plan = []
 
-    # 顶层总览 README
+    # 顶层总览 README。模板名按域声明：两域的读者与入库规则不同（项目域随项目入库、
+    # 引擎域随引擎入库），共用一份说明会写成「两边都对、两边都不准」。
     plan.append(
         (
-            os.path.join(TEMPLATES_DIR, SKELETON_DIR, "README.md"),
+            os.path.join(TEMPLATES_DIR, SKELETON_DIR, config["overview"]["template"]),
             os.path.join(target_root, config["overview"]["file"]),
         )
     )
@@ -708,7 +1000,7 @@ def run_init(root, config):
             die("初始化写入失败（%s），已回滚：%s" % (write_error, rel(root, dst)))
         created.append(rel(root, dst))
 
-    print("已初始化文档结构：" + config["docs_root"])
+    print("已初始化文档结构（域 %s）：%s" % (config["scope"], rel(root, target_root)))
     for item in created:
         print("  " + item)
     print("")
@@ -3082,7 +3374,8 @@ def run_audit(root, config):
     target_root = docs_dir(root, config)
     print("开发流程文档体检")
     print("项目根：" + root)
-    print("文档根：" + config["docs_root"])
+    print("域：" + config["scope"] + "（base=" + config["scopes"][config["scope"]]["base"]
+          + "，文档根：" + rel(root, target_root) + "）")
     print()
 
     findings = []
@@ -3138,12 +3431,28 @@ def main(argv=None):
     """
     parser = argparse.ArgumentParser(
         prog="devflow_guard.py",
-        description="开发流程文档骨架生成与契约体检",
+        description="开发流程文档骨架生成与契约体检（支持按域管理多棵文档树）",
     )
     parser.add_argument("--root", default=None, help="项目根目录（默认自动向上查找）")
+    parser.add_argument(
+        "--scope",
+        default=None,
+        help="文档域（如 project / engine；缺省取配置 default_scope）",
+    )
     sub = parser.add_subparsers(dest="mode")
 
-    sub.add_parser("init", help="按项目配置初始化文档目录结构")
+    # --scope 与 --root 在顶层与每个子命令上都要注册：用户写在子命令后面（`audit --scope engine`）
+    # 与写在前面（`--scope engine audit`）语义相同。子命令侧必须用 SUPPRESS 作 default——
+    # 它的默认值若为 None，argparse 会用子命令的 None 覆盖顶层已解析出的值，
+    # 表现是「前置的 --scope 静默不生效」。help 仍要写：用 SUPPRESS 隐藏的是默认值，不是帮助文本。
+    scope_kwargs = {
+        "default": argparse.SUPPRESS,
+        "help": "文档域（取值见配置 scopes，如 project / engine）",
+    }
+
+    sub.add_parser("init", help="按项目配置初始化文档目录结构").add_argument(
+        "--scope", **scope_kwargs
+    )
     new_parser = sub.add_parser("new", help="生成能力文档骨架并登记总览表")
     new_parser.add_argument("name", help="能力名（须匹配配置声明的命名模式）")
     new_parser.add_argument(
@@ -3156,19 +3465,24 @@ def main(argv=None):
         default="",
         help="需求探索记录名（项目启用探索时必填，且该记录须已确认）",
     )
+    new_parser.add_argument("--scope", **scope_kwargs)
     explore_parser = sub.add_parser("explore", help="创建需求探索记录（动手前的需求确认）")
     explore_parser.add_argument("slug", help="主题名（英文 kebab-case，成为文件名）")
     explore_parser.add_argument("--title", default="", help="主题标题（默认取 slug）")
+    explore_parser.add_argument("--scope", **scope_kwargs)
     adr_parser = sub.add_parser("adr", help="创建决策记录（ADR），自动推算编号")
     adr_parser.add_argument("slug", help="决策描述（英文 kebab-case，成为文件名的一部分）")
     adr_parser.add_argument("--title", default="", help="决策标题（默认取 slug）")
     adr_parser.add_argument("--capability", default="", help="关联能力（默认「全局」）")
+    adr_parser.add_argument("--scope", **scope_kwargs)
     archive_parser = sub.add_parser("archive", help="把能力的过程文档整包移入归档目录并回写总览表")
     archive_parser.add_argument("name", help="能力名（须已在总览表登记）")
+    archive_parser.add_argument("--scope", **scope_kwargs)
     status_parser = sub.add_parser("status", help="同步能力状态到总览表与全部文档文件头")
     status_parser.add_argument("name", help="能力名（须已在总览表登记）")
     status_parser.add_argument("value", help="目标状态（须在配置声明的取值集合内）")
-    sub.add_parser("audit", help="体检文档契约")
+    status_parser.add_argument("--scope", **scope_kwargs)
+    sub.add_parser("audit", help="体检文档契约").add_argument("--scope", **scope_kwargs)
 
     args = parser.parse_args(argv)
     if not args.mode:
@@ -3181,7 +3495,8 @@ def main(argv=None):
               "脚本锚点与当前目录向上均未命中，请确认 .codebuddy 引擎完整。", file=sys.stderr)
         return 3
     try:
-        config = load_config(root)
+        base_config = load_config(root)
+        config = resolve_scope(root, base_config, getattr(args, "scope", None))
     except ConfigError as error:
         print("配置不可用：" + str(error), file=sys.stderr)
         return 3

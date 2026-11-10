@@ -1,6 +1,6 @@
 {
   "name": "devflow-guard",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "owner": "ok-script-app-pro 项目",
   "updated_at": "2026-10-28",
   "status": "active",
@@ -22,9 +22,10 @@
     "scripts",
     "reports"
   ],
-  "output_contract": "意图分流（新增/改动/体检/维护结构）→ init/new/audit 等七模式：创建文档结构、生成能力骨架并登记总览表、按三档输出契约缺口",
+  "output_contract": "意图分流 + 域选择（engine / project）→ init/new/audit 等七模式：创建文档结构、生成能力骨架并登记总览表、按三档输出契约缺口",
   "rollback_boundary": "本技能只创建新文件，不覆盖既有内容；回滚即删除由该技能创建的文件与总览表新增行",
   "input_files": [
-    "项目配置（经索引 files.devflow.docs.config 定位）"
+    "引擎侧配置：references/config.engine.json（声明 engine 域）",
+    "项目侧配置（经索引 files.devflow.docs.config 定位，声明 project 域与共享形状）"
   ]
 }
