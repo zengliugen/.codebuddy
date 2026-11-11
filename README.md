@@ -175,14 +175,15 @@ python $DIR --scope engine new <能力名> --from-explore <主题名>
 `@<userId>/` 目录而串号。个人需要固定标识时写入 `.codebuddy/settings.local.json`
 （本机项目级，自动 git 忽略）。
 
-## 新项目接入（三步）
+## 新项目接入（四步）
 
 1. **引入引擎**：把本仓库作为 submodule 检出到项目根下的 `.codebuddy/`：
    ```bash
    git submodule add https://github.com/zengliugen/.codebuddy.git .codebuddy
+   git submodule update --init
    ```
    （或复制本仓库内容到项目根的 `.codebuddy/`。）
-2. **生成项目侧配置并装包**：运行一键配置入口
+2. **生成项目侧配置并装引擎可选包**：运行一键配置入口
    ```bash
    .codebuddy/setup.cmd                                   # Windows（双击亦可）
    ./.codebuddy/setup.sh                                  # macOS / Linux
@@ -199,7 +200,24 @@ python $DIR --scope engine new <能力名> --from-explore <主题名>
    > 不运行则表现为：`settings.json` 链接缺失（CodeBuddy 读不到配置）、可选包技能不加载、
    > 引擎提交时没有一致性校验。改动引擎内容后如怀疑钩子失效，
    > 可执行 `git -C .codebuddy config --get core.hooksPath` 确认（应为 `hooks`）。
-3. **按项目填写**：按各技能 `references/config-guide.md` 填写占位值（`core-init` 会询问是否立即填写）。
+3. **安装项目侧包**（项目自建的 `project-lib/` 内的包）：
+   ```bash
+   python .codebuddy/scripts/pack_install.py --source project list
+   python .codebuddy/scripts/pack_install.py --source project install <包名>...
+   ```
+
+   > **`setup` 不安装项目侧包**：它只调 `pack_install.py verify --repair`（默认 `--source engine`）。
+   > 项目侧包属另一张注册表（`project-lib/packs.json`），须显式执行本步。
+   > 不执行则项目侧技能与规则全部不生效——**不报错，只是加载不到**。
+4. **按项目填写**：按各技能 `references/config-guide.md` 填写占位值（`core-init` 会询问是否立即填写）。
+
+**验证**（三条都应退出码 0，最后新开一次会话使组件被扫描到）：
+
+```bash
+python .codebuddy/scripts/check_manifest.py
+python .codebuddy/scripts/pack_install.py status
+python .codebuddy/scripts/pack_install.py --source project status
+```
 
 > 未填写的配置在首次运行对应技能时会**明确报错**（配置缺失即报错，不静默使用默认值）。
 

@@ -663,6 +663,26 @@ python .codebuddy/scripts/pack_install.py --source project status
 包的 `requires` 可以指向引擎可选包（单向：项目包 → 引擎包），安装项目包时其引擎依赖会被
 一并装上。反向禁止——引擎注册表不得出现项目包名（引擎跨项目共享，见规则 `core-engine`）。
 
+> **`core-init --setup` 不安装项目侧包**：它只调 `pack_install.py verify --repair`（默认
+> `--source engine`）。项目侧包属另一张注册表，`packs.json` 中声明了包之后仍需显式执行
+> 上表的 `install`，否则组件永不加载——**不报错，只是加载不到**。
+
+## 新机器检出后的安装顺序
+
+仓库里不含三类产物：符号链接（Windows 克隆时被落成普通文本文件）、`envs/` 下的工具环境、
+以及 `.git` 里的钩子配置。因此新机器检出后按下列顺序执行一次：
+
+| 步 | 命令 | 作用 | 跳过时的表现 |
+|---|---|---|---|
+| 1 | `git submodule update --init` | 检出引擎子模块 | `.codebuddy/` 为空，后续命令全部失败 |
+| 2 | `.codebuddy/setup.cmd`（macOS/Linux 用 `setup.sh`） | 生成骨架、建引擎可选包链接、配钩子 | `settings.json` 缺失、引擎可选包不加载、提交无校验 |
+| 3 | `python .codebuddy/scripts/pack_install.py --source project install <包名>` | 安装项目侧包 | 项目侧技能与规则全部不生效（无报错） |
+| 4 | 已安装的语言可选包各自的工具环境重建命令（按需） | 重建检查工具环境 | 该类语言的提交前检查报退出码 3 |
+| 5 | `python .codebuddy/scripts/check_manifest.py` 与两条 `pack_install.py status` | 验证 | — |
+
+第 4 步的命令由各语言包的技能文档给出（工具环境在 `envs/<包名>/` 下，不随仓库分发）。
+三条校验命令都应返回退出码 0；最后**新开一次会话**，技能与规则在会话启动时扫描。
+
 ## 维护约定
 
 - `configs/`、`store/`、`docs/` 与 `project-lib/` **入库**（随项目版本控制）；
@@ -1379,7 +1399,10 @@ def main():
 
     print("下一步：按项目实际情况填写上述配置中的 `<...>` 占位值。")
     print("        未填写的配置在首次运行对应技能时会报错（配置缺失即报错）。")
-    print("        项目专有内容放 .codebuddy.project/<类型>/project/ 下（经 .codebuddy/<类型>/project 链接自动加载）。")
+    print("        项目侧包内容放 .codebuddy.project/project-lib/<包名>/{rules,skills,agents}/，")
+    print("        在 project-lib/packs.json 登记后执行：")
+    print("          python .codebuddy/scripts/pack_install.py --source project install <包名>")
+    print("        （本步 setup 不安装项目侧包——它只装引擎可选包，项目侧包需单独安装）")
 
     # --setup 结果摘要
     if setup_report is not None:
