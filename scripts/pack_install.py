@@ -116,7 +116,12 @@ def content_base(paths, location):
 
 
 def load_packs(paths, source):
-    """读取指定来源的包注册表；缺失或损坏即报错，不回退默认值。"""
+    """读取指定来源的包注册表；缺失或损坏即报错，不回退默认值。
+
+    项目侧空表合法：`core-init` 生成的初始骨架就是 `{"packs": {}}`（只建仓库根
+    与注册表，不预建包目录）。引擎侧空表仍视为损坏——引擎包自带默认包，空表说明
+    注册表被写坏。该口径与 `check_manifest.py` 两侧判定一致。
+    """
     path = paths["sources"][source]["packs"]
     if not os.path.isfile(path):
         raise PackError("未找到包注册表：%s" % path)
@@ -126,7 +131,7 @@ def load_packs(paths, source):
     except (OSError, ValueError) as error:
         raise PackError("包注册表读取失败：%s（%s）" % (path, error))
     packs = data.get("packs")
-    if not isinstance(packs, dict) or not packs:
+    if not isinstance(packs, dict) or (source == "engine" and not packs):
         raise PackError("包注册表缺少 packs 对象：%s" % path)
     for name, meta in packs.items():
         if not isinstance(meta, dict):
