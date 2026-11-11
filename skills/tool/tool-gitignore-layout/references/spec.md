@@ -42,7 +42,7 @@
 | 树 | 树根文件 | 覆盖范围 |
 |---|---|---|
 | 引擎侧 | `.codebuddy/.gitignore` | `.codebuddy/` 下全部组件（含 `lib/<包>/skills/<技能>`） |
-| 项目侧 | `.codebuddy.project/.gitignore` | `.codebuddy.project/` 下全部内容（含 `skills/project/<技能>`） |
+| 项目侧 | `.codebuddy.project/.gitignore` | `.codebuddy.project/` 下全部内容（含 `project-lib/<包>/skills/<技能>`） |
 
 **引擎侧有规则不代表项目侧也有。** 实测本项目：父仓链上四级 `.gitignore`
 （仓库根、`Program/`、`Program/Client/`、`.codebuddy.project/`）中，只有最后一级
@@ -102,8 +102,9 @@
   - **引擎树**（扫描根 `.codebuddy/`）：
     - 默认包：`.codebuddy/skills/<包>/<技能>`
     - 可选包：`.codebuddy/skills/<包>/<技能>`（内容在 `lib/<包>/skills/<技能>`，扫描根是链接）
-  - **项目侧树**（扫描根 `.codebuddy.project/`）：组件不经包层桥接，物理相对路径即
-    扫描根视角路径——`.codebuddy.project/envs`、`.codebuddy.project/skills/project/<技能>`。
+  - **项目侧树**（扫描根 `.codebuddy.project/`）：真实内容在 `project-lib/<包>/`，
+    `skills/`、`rules/`、`agents/` 三层只是中转链接——`.codebuddy.project/envs`、
+    `.codebuddy.project/project-lib/<包>/skills/<技能>`。
     **不得**套用引擎树的 `.codebuddy/...` 形式，否则头注释永远对不上。
 - 头注释的作用：组件改名/搬迁时它是**路径引用**，漏改会让后来者按错误路径排查；
   且它是**隐藏文件里的注释**，常规 `grep` 会跳过，须用 `grep --include=".gitignore"` 专项排查。
@@ -182,8 +183,8 @@
 
 ```gitignore
 # ❌ 断言了一个不存在的前提
-#   逐条列举只命中确定的包目录，project/ 根本不在规则里，
-#   其内部的忽略交给各技能根目录自己的 .gitignore 处理（与引擎侧同构）
+#   逐条列举只命中确定的包目录，其余目录不在规则里，
+#   其内部的忽略交给各组件根目录自己的 .gitignore 处理（与引擎侧同构）
 ```
 
 这段话在引擎侧成立（那里真有 `__pycache__/`），抄到项目侧就失真——项目侧当时没有任何通用项。

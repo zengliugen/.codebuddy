@@ -73,18 +73,18 @@
 │   │                           #            tool-cmd-script-writing/ tool-engine-sync/
 │   │                           #            tool-export-zipped-dir/ tool-gitignore-layout/
 │   │                           #            tool-rule-consolidation/ tool-session-lesson-distill/
-│   ├── project ──链接──▶ 项目侧 #   项目专有规则（.codebuddy.project/rules/project/，gitignore）
+│   ├── <包名> ──链接──▶ 项目侧 #   项目侧包（.codebuddy.project/project-lib/<包名>/rules/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
 ├── skills/                     # 技能扫描根：engine 包真实目录 + 其余包链接
 │   ├── core/ core-init/
 │   ├── vcs/                    #   vcs-router/ git-commit/ git-merge/ svn-commit/ svn-merge/
 │   ├── tool/                   #   cmd-script-writing/ engine-sync/ export-zipped-dir/ gitignore-layout/ rule-consolidation/ session-lesson-distill/
-│   ├── project ──链接──▶ 项目侧 #   项目专有技能（.codebuddy.project/skills/project/，gitignore）
+│   ├── <包名> ──链接──▶ 项目侧 #   项目侧包（.codebuddy.project/project-lib/<包名>/skills/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
 ├── agents/                     # 子代理扫描根：本引擎默认无 agent
-│   ├── project ──链接──▶ 项目侧 #   项目专有代理（.codebuddy.project/agents/project/，gitignore）
+│   ├── <包名> ──链接──▶ 项目侧 #   项目侧包（.codebuddy.project/project-lib/<包名>/agents/，gitignore）
 │   └── <pack>                  #   可选包：链接 → 项目侧（gitignore）
 │
 ├── hooks/                      # git 钩子（入库，经 core.hooksPath 生效，setup 自动配置）
@@ -108,8 +108,10 @@
 > 克隆本仓库即有完整基础能力，无需先跑 setup。可选包（`csharp`、`python`、`unity-pipeline`、
 > `grilling`、`yao-meta-skill`、`devflow`、`devflow-strict`）需显式安装。
 >
-> `project` 也标 `default: true`，但它的 `location` 是 `project`（内容在项目侧），扫描根下是**链接**——
-> 「默认包」与「真实目录」不是一回事，判定只看 `location`。
+> **项目侧包**（`location: project-lib`）内容在 `.codebuddy.project/project-lib/<包名>/`，
+> 登记在项目侧 `.codebuddy.project/project-lib/packs.json`，扫描根下是**链接**——
+> 它与引擎可选包同构（`comps` / `requires` / `default` / `installed`），由
+> `pack_install.py --source project` 管理。「默认包」与「真实目录」不是一回事，判定只看 `location`。
 
 > **检出位置约定**：本仓库应检出为消费项目的 **`.codebuddy/`**（如 `Program/Client/.codebuddy/`）。
 > 引擎内所有相对路径推导均以「`.codebuddy` 的父目录 = 项目根」为基准，故检出路径名必须是 `.codebuddy`。
@@ -152,7 +154,7 @@ python $DIR --scope engine new <能力名> --from-explore <主题名>
 | `.codebuddy/dev-docs/` | 引擎 | 引擎包自身的过程文档（能力设计/计划/偏差/测试、探索、决策、归档），随引擎入库 |
 | `.codebuddy.project/` | 项目 | 项目侧内容根：`configs/` 配置、`caches/` 运行时产物（不入库）、`store/` 持久化结果、`docs/` 技能产出的项目文档（如 devflow 能力文档）、`skills/` 项目专有技能（含 `settings.json` 源文件）；随项目独立维护 |
 | `.codebuddy/settings.json` | 项目（链接） | **软链接** → `.codebuddy.project/configs/settings.json`（由项目侧创建，**不入本库**） |
-| `.codebuddy.project/<类型>/project/` | 项目 | **项目专有包**内容（与其他包同构）：`rules/project/`、`skills/project/`、`agents/project/`，经 `.codebuddy/<类型>/project` 链接被加载，**不入本库**。内部允许再按「族」分组，组件可下沉一层（规则加载递归、技能扫描逐层递归、代理扫描递归） |
+| `.codebuddy.project/project-lib/<包名>/` | 项目 | **项目侧包**内容（与引擎可选包完全同构）：`rules/`、`skills/`、`agents/`，经两层链接被加载，**不入本库**。包登记在 `.codebuddy.project/project-lib/packs.json` |
 | `.codebuddy.project/skills/` | 项目 | 可选包在项目侧的组件链接（由 setup 创建） |
 | `.codebuddy/models.json` / `settings.local.json` | 机器 | 机器级/本机级；不入库 |
 
@@ -224,41 +226,41 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 软链接均为**项目侧绑定**，指向消费项目独有的目录：
 
 ```
-<项目根>/.codebuddy/settings.json   ──软链接──▶  ../.codebuddy.project/configs/settings.json
-<项目根>/.codebuddy/<类型>/<pack>   ──软链接──▶  ../../.codebuddy.project/<类型>/<pack>
-<项目根>/.codebuddy.project/<类型>/<pack> ──软链接──▶  ../../../.codebuddy/lib/<pack>/<类型>
-<项目根>/.codebuddy/<类型>/project  ──软链接──▶  ../../.codebuddy.project/project/<类型>
+<项目根>/.codebuddy/settings.json          ──软链接──▶  ../.codebuddy.project/configs/settings.json
+<项目根>/.codebuddy/<类型>/<pack>          ──软链接──▶  ../../.codebuddy.project/<类型>/<pack>
+<项目根>/.codebuddy.project/<类型>/<pack>  ──软链接──▶  <内容根>/<pack>/<类型>
 ```
 
-可选包的链接为**两级**：引擎扫描根 → 项目侧 pack 目录 → `lib/<pack>/`；
-其中**项目侧 pack 目录本身即为链接**（整目录指向 `lib/<pack>/<类型>`），不逐组件建链。
-`lib/packs.json` 的 `location=lib` 项即需建立链接的包清单。
+`lib` 与 `project-lib` 两种来源的链接都是**两级**：引擎扫描根 → 项目侧 pack 目录 →
+内容根；其中**项目侧 pack 目录本身即为链接**（整目录指向 `<内容根>/<pack>/<类型>`），
+不逐组件建链。两种来源的唯一差别是内容根：
 
-**项目专有包**（`project`）只需一层：引擎扫描根 → `.codebuddy.project/<类型>/project`，
-内容直接是项目真实文件，随项目入库。它在 `.codebuddy.project/<类型>/` 下与其他包**同级并列**，
-区别仅在于它是真实目录（其他包是指向 `lib/` 的链接）。
+| location | 内容根 | 包注册表 | 已装清单 |
+|---|---|---|---|
+| `lib` | `.codebuddy/lib/<pack>/` | `.codebuddy/lib/packs.json` | `.codebuddy.project/configs/packs.json` |
+| `project-lib` | `.codebuddy.project/project-lib/<包名>/` | `.codebuddy.project/project-lib/packs.json` | `.codebuddy.project/configs/project-packs.json` |
 
+**依赖单向**：项目包 `requires` 可指向引擎包（装项目包时自动带上其引擎依赖），
+**引擎注册表不得出现项目包名**——引擎跨项目共享，登入具体项目包会让其他项目读到不存在的包。
+包名两表间必须全局唯一。
 
 - **为什么不入本库**：链接目标全在项目侧（`.codebuddy.project/`），是本项目独有的；
   若纳入共享库，其他项目 clone 后链接会**悬空**，并可能与同名路径**冲突污染**。
   故本库 `.gitignore` 对扫描根 `rules/`、`skills/`、`agents/` 采取**目录内全忽略 + 逐包放行**：
-  默认包（`location=engine` 的 `core` / `vcs` / `tool`）显式 `!` 放行，其余同名条目（可选包与 `project` 的桥接链接）
-  一律忽略；`agents/` 无默认包故整目录忽略。`/settings.json` 单独另列。
+  默认包（`location=engine` 的 `core` / `vcs` / `tool`）显式 `!` 放行，其余同名条目
+  （可选包与项目侧包的桥接链接）一律忽略；`agents/` 无默认包故整目录忽略。`/settings.json` 单独另列。
 - **项目侧同样不入库**：`.codebuddy.project/<类型>/<pack>` 这层链接也不入库，由项目侧
-  `.codebuddy.project/.gitignore` **逐条列举**全部可选包的链接路径（如 `skills/csharp`、`rules/unity-pipeline`），
-  而非用 `skills/*` + `!skills/project/` 的通配 + 反选。
-  理由与上面同源——它由 `pack_install.py` 依 `lib/packs.json` 与 `configs/packs.json` 的 `installed`
-  确定性推导创建，入库只会让装/卸包持续产生链接增删的差异噪音；且 Windows 默认
-  `core.symlinks=false` 时克隆出来是普通文本文件（`120000`），PyAppify 复制项目时
-  `entry.file_type()` 不跟随链接，Windows 上以文件方式打开即报 `os error 5`，仍须跑 `core-init` 重建，
-  入库换不来「克隆即可用」。两侧都忽略后，桥接的唯一事实来源就是两份 `packs.json`，不会出现第三处。
-  **为何不用通配 + 反选**：通配会把整个类型目录纳入规则，放行 `project/` 时无论带不带 `**`，
-  都无法让 `project/` 内部的临时产物（`__pycache__/`、`.cache/` 等）继续受根规则约束。逐条列举只命中
-  确定的包目录，`project/` 根本不在规则里；其下组件的**专属**产物（`dist/`、`tools/<二进制>` 等）
-  由该组件根目录的 `.gitignore` 处理，**通用**产物（`__pycache__/`、`*.pyc`、`.DS_Store`）则由
-  `.codebuddy.project/.gitignore` 统一兜底——不要求每个项目专有组件重复声明。
-  清单按**全部可选包**一次列全、与安装状态无关：
-  忽略规则幂等，多列未装的包无副作用，少列已装的包才会让链接在下次 `git add -A` 时悄然入库。
+  `.codebuddy.project/.gitignore` 对三个组件根**整层忽略**（`/rules/*`、`/skills/*`、`/agents/*`）。
+  之所以可以整目录忽略：这两层现在只剩链接、无项目真实内容（真实内容在 `project-lib/<包>/`），
+  通配不会误伤要入库的东西；反过来逐条列举会迫使每新增一个包补三行，漏补一次链接即静默入库。
+  理由与上面同源——链接由 `pack_install.py` 依两份 `packs.json` 的 `installed` 确定性推导创建，
+  入库只会让装/卸包持续产生差异噪音；且 Windows 默认 `core.symlinks=false` 时克隆出来是普通
+  文本文件（`120000`），PyAppify 复制项目时 `entry.file_type()` 不跟随链接，Windows 上以文件
+  方式打开即报 `os error 5`，仍须重建，入库换不来「克隆即可用」。两侧都忽略后，桥接的唯一
+  事实来源就是两份 `packs.json`，不会出现第三处。
+  `project-lib/<包>/` 下组件的**专属**产物（`dist/`、`tools/<二进制>` 等）由该组件根目录的
+  `.gitignore` 处理，**通用**产物（`__pycache__/`、`*.pyc`、`.DS_Store`）则由
+  `.codebuddy.project/.gitignore` 统一兜底——不要求每个项目侧组件重复声明。
 - **如何创建**：消费项目 clone 本引擎后，运行 `core-init` 自动创建（幂等；失败时告警并给出手工 `mklink` 命令）。
 - **机制依据**：实测 CodeBuddy **会解引用符号链接**——技能目录的链接下技能被正常扫描，`settings.json`
   链接的目标改变后回复语言随之变化。
@@ -297,7 +299,6 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 | 包 | 类别 | 默认 | 组件 |
 |---|---|---|---|
 | `core` | 基础 | ✅ | rules: core-language、core-project-guide、core-tooling、core-engine、core-init、core-rule-governance；skills: core-init |
-| `project` | 项目专属 | ✅ | 项目自有的规则/技能/代理，内容在 `.codebuddy.project/project/` |
 | `vcs` | 基础 | ✅ | rules: vcs-router、vcs-engine-commit、vcs-commit、vcs-git-commit、vcs-git-merge、vcs-svn-commit、vcs-svn-merge；skills: vcs-router、vcs-git-commit、vcs-git-merge、vcs-svn-commit、vcs-svn-merge |
 | `tool` | 基础 | ✅ | rules: tool-cmd-script-writing、tool-engine-sync、tool-export-zipped-dir、tool-gitignore-layout、tool-rule-consolidation、tool-session-lesson-distill；skills: 同名 6 个 |
 | `csharp` | C# | ❌ | rules: csharp-code-review、csharp-comment、csharp-lsp、csharp-test、csharp-test-coverage、csharp-format-checker；skills: csharp-code-review、csharp-comment-checker、csharp-comment-generator、csharp-format-checker、csharp-lsp、csharp-test-coverage；agents: 2 个 |
@@ -372,27 +373,30 @@ python .codebuddy/scripts/pack_install.py verify --repair  # 修复漂移
 
 约定：
 
-- **组件路径推导**：`location=engine` → `.codebuddy/<类型>/<pack>/<名>`；`location=lib` → `.codebuddy/lib/<pack>/<类型>/<名>`。
+- **组件路径推导**：`location=engine` → `.codebuddy/<类型>/<pack>/<名>`；
+  `location=lib` → `.codebuddy/lib/<pack>/<类型>/<名>`；
+  `location=project-lib` → `.codebuddy.project/project-lib/<包名>/<类型>/<名>`。
   `packs.json` 的 `comps` 只写组件名，不写路径。
-- **安装状态**：只记可选包，落在项目侧 `.codebuddy.project/configs/packs.json`；默认包不入清单（避免双份事实）。
+- **两套来源**：`--source engine`（默认，引擎可选包）与 `--source project`（项目侧包）。
+  前者状态在 `.codebuddy.project/configs/packs.json`，后者在 `.codebuddy.project/configs/project-packs.json`。
+  两份状态分文件，默认包不入清单（避免双份事实）。
 - **两种依赖**：`requires` 是**硬依赖**（装本包必然装它，卸载时被依赖即拒绝）；`optional_requires` 是
   **可选搭配**（只提示「装本包后可考虑再装它」，不进依赖闭包、不自动安装、卸载不受其约束）。
 - **agents 特殊**：文件级符号链接会被扫描器的路径白名单拒绝，故项目侧用**硬链接**（跨卷降级复制）。
 - **顺序**：先 `install`（物化链接）再启动新会话，否则扫描不到新组件。
-- **项目专有包 `project`**：默认启用、无需安装。内容与其他包**同构**放在
-  `.codebuddy.project/<类型>/project/` 下，经 `.codebuddy/<类型>/project` 一层链接进入扫描根。
-  它不属于引擎 `lib/`，`packs.json` 中 `comps` 为空数组（内容由项目自由增删，不做声明式校验）。
+- **项目侧包**：与引擎可选包**完全同构**，登记在 `.codebuddy.project/project-lib/packs.json`，
+  内容在 `.codebuddy.project/project-lib/<包名>/<类型>/`，经两层链接进入扫描根。
+  管理命令加 `--source project`。`requires` 可指向引擎包（单向），装项目包时自动带上其引擎依赖。
 ```bash
-# 项目专有内容示例（与其他包同级并列）
-.codebuddy.project/rules/project/my-rule/RULE.mdc
-.codebuddy.project/skills/project/my-skill/SKILL.md
-.codebuddy.project/agents/project/my-agent.md
+# 项目侧包示例（与引擎可选包同级并列，路径由 location=project-lib 推导）
+.codebuddy.project/project-lib/packs.json
+.codebuddy.project/project-lib/my-pack/rules/my-rule/RULE.mdc
+.codebuddy.project/project-lib/my-pack/rules/my-guard.entry/my-guard.entry.mdc
+.codebuddy.project/project-lib/my-pack/skills/my-guard/SKILL.md
+.codebuddy.project/project-lib/my-pack/agents/my-helper.md
 
-# 按「族」收纳后的示例：同一族的规范规则、入口规则、技能、代理收进同名族目录
-.codebuddy.project/rules/project/my-family/RULE.mdc
-.codebuddy.project/rules/project/my-family/my-family-guard.entry/my-family-guard.entry.mdc
-.codebuddy.project/skills/project/my-family/my-family-guard/SKILL.md
-.codebuddy.project/agents/project/my-family/my-family-helper.md
+# 安装（自动带上其 requires 中的引擎包）
+python .codebuddy/scripts/pack_install.py --source project install my-pack
 ```
 
 ## 仓库更新（update_repo.py）
@@ -445,7 +449,7 @@ python .codebuddy/scripts/update_repo.py --fetch-only  # 只取不拉，仅报�
 2. **不把项目专有值写入本库**（脚本、配置、索引、示例均不得硬编码）；项目值只出现在消费项目侧。
 3. **技能/规则清单维护**：本 README 的目录结构节即引擎构成清单；新增/删除技能或规则时同步更新本节。
    运行 `python scripts/check_manifest.py` 核对一致性——它会双向核对桥接链接的入库边界
-   （`<pack>` 链接不得入库、`project/` 内容必须入库，见校验项 15）。
+   （`<pack>` 链接不得入库、`project-lib/` 内容必须入库，见校验项 15；项目侧注册表一致性见项 17）。
 4. **迁移机制已废除**：不再使用导出 zip + 补丁分发（旧 `MIGRATION.md` / `INVENTORY.md` /
    `CHANGES.md` / `export_codebuddy.cmd` / `codebuddy-migration-sync` 规则均已删除），改由 git
    （submodule）版本化分发；历史版本查询用 `git log`。

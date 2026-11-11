@@ -39,9 +39,11 @@ provider:
 5. **文档示例不得使用项目专有命名**。示例一律用通用命名或占位符（`<目标目录>`、`ExampleType`）。
 6. **无法外置的项目事实须显式标注**。外置到项目侧 `.codebuddy.project/configs/rules/` 并以规则薄壳引用；
    确需留在引擎侧的，标注「本项目实际值，迁移时按目标项目调整」。
-7. **项目专有包不登记索引**。`.codebuddy.project/{rules,skills,agents}/project/` 下的组件经软链接加载，
-   **一律不写入** `project.index.json`。判据：**读这份配置的代码住在哪个仓库？**
+7. **项目侧包不登记索引**。`.codebuddy.project/project-lib/<包>/{rules,skills,agents}/` 下的组件经
+   中转链接加载，**一律不写入** `project.index.json`。判据：**读这份配置的代码住在哪个仓库？**
    引擎代码读 → 登记索引；项目代码读 → 不登记，脚本按 `Path(__file__)` 相对定位、缺失即报错。
+   项目侧包改由**项目侧注册表**登记：`.codebuddy.project/project-lib/packs.json`，
+   与引擎 `lib/packs.json` 结构同构、包名全局唯一、依赖单向（项目包 → 引擎包）。
 
 ### 二、登记一致性：改完必须同步
 

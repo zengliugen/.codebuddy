@@ -204,7 +204,7 @@
 **入库边界：`project/` 入库，`<pack>/` 链接不入库**。`.codebuddy.project/<类型>/` 下两类内容同级并列，
 但只有真实目录 `project/` 随项目版本控制；`<pack>` 是派生链接（源在引擎 `lib/<pack>/<类型>`），
 由 `.codebuddy.project/.gitignore` **逐条列举**全部可选包的链接路径忽略（如 `skills/<pack>`、
-`rules/<pack>`、`agents/<pack>` 各一行），而非用 `skills/*` + `!skills/project/` 的通配 + 反选。
+`rules/<pack>`、`agents/<pack>` 各一行），而非整目录通配 + 反选。
 
 **为何不用通配 + 反选**：通配会把整个类型目录纳入规则，放行 `project/` 时无论带不带 `**`，
 都无法让 `project/` 内部的临时产物（`__pycache__/`、`.cache/` 等）继续受根规则约束。逐条列举只命中

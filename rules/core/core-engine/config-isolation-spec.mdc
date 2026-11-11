@@ -65,22 +65,26 @@ provider:
 ├── models.json / settings.local.json        # 机器级/本机级（绑定本机，git 忽略，不外置）
 ├── lib/<pack>/                             # 引擎可选组件池（按包分层）
 └── skills/
-    ├── <pack>/                             # location=engine 真实目录 / lib 与 project 为链接
-    └── project -> ../../.codebuddy.project/skills/project  # 项目专有包软链接（不入库，gitignore）
+    ├── <pack>/                             # location=engine 真实目录 / lib 与 project-lib 为链接
+    └── <包名> -> ../../.codebuddy.project/skills/<包名>  # 项目侧包的中转链接（不入库，gitignore）
 <项目根>/.codebuddy.project/                  # 项目侧（具体项目）
 ├── configs/                                  # 配置（入库）
 │   ├── settings.json                         # 项目级设置源文件（被引擎内软链接引用）
+│   ├── packs.json                            # 引擎可选包已装清单（入库）
+│   ├── project-packs.json                    # 项目侧包已装清单（入库）
 │   ├── skills/<技能名>/<配置>.json           # 项目配置（相对路径镜像引擎侧技能目录）
 │   └── rules/<规则名>/<规则>.mdc             # 规则项目事实正文（薄壳引用）
 ├── caches/                                   # 运行时产物根目录（不入库，.gitignore 整体忽略）
 │   ├── skills/<技能名>/check_logs/、.cache/  # 各技能产物（脚本落盘，镜像引擎结构）
 │   └── .vcs-lock/                            # VCS 写操作互斥锁（运行时生成）
 ├── store/                                    # 持久化项目结果（入库）
-├── skills/                                   # 技能目录
-│   ├── <pack>/ -> ../../.codebuddy/lib/<pack>/skills      # 可选包整目录链接（不入库，gitignore）
-│   └── project/                              # 项目专有技能（真实目录，入库）
-│       └── <技能名>/SKILL.md                 # 经 .codebuddy/skills/project 软链接被自动加载
-├── .gitignore                                # 忽略 caches/、各组件目录下的 <pack>/ 桥接链接、系统临时文件
+├── project-lib/                              # ★项目侧包仓库（入库）
+│   ├── packs.json                            # 包注册表（与引擎 lib/packs.json 同构）
+│   └── <包名>/{rules,skills,agents}/         # 包内容（真实目录，随项目入库）
+├── skills/                                   # 中转链接层（整层不入库，gitignore）
+│   ├── <pack>/ -> ../../../.codebuddy/lib/<pack>/skills       # 引擎可选包
+│   └── <包名>/ -> ../../../project-lib/<包名>/skills          # 项目侧包
+├── .gitignore                                # 忽略 caches/、三个组件根整层、系统临时文件
 └── cleanup-caches.cmd                        # 缓存清理入口（薄入口，调用引擎侧工具）
 ```
 
@@ -90,9 +94,10 @@ provider:
 - 项目侧位置由 `.codebuddy/project.index.json` 声明（`files` 配置类、`rule_shells` 规则正文、`artifacts.dirs` 产物目录、`root_symlinks.entries` 根级软链接外置文件）。
 - 项目侧路径与引擎侧**相对路径镜像**（`.codebuddy/skills/X/a.json` → `.codebuddy.project/configs/skills/X/a.json`）。
 - **运行时产物**（`check_logs`/`.cache`/`.vcs-lock`）经索引 `artifacts.dirs` 定位，由项目侧 `.gitignore` 忽略、不入库。
-- **项目专有包**（`project`）的内容放 `.codebuddy.project/<类型>/project/`（与各 pack 同级并列，真实目录、随项目入库），经 `.codebuddy/<类型>/project` **软链接**被 CodeBuddy 扫描加载（实测技能/规则/代理目录均支持符号链接；插件机制不适用）。
-- **引擎可选包**由 `lib/<pack>/` 承接，项目侧 `<类型>/<pack>` 为整目录链接 → `lib/<pack>/<类型>`，由 `scripts/pack_install.py` 维护。
-- **桥接链接两侧都不入库**：`.codebuddy/<类型>/<pack>`（引擎扫描根）与 `.codebuddy.project/<类型>/<pack>`（项目侧落点）都是派生出来的目录链接，两侧 `.gitignore` 各自忽略。判据与 `root_symlinks` 不登记桥接链接同源：链接集合与目标由 `lib/packs.json` 的 `location` 与项目侧 `configs/packs.json` 的 `installed` 共同决定，入库等于把派生结果当第三处事实来源，装/卸包时持续产生差异噪音且与 `packs.json` 脱节无人察觉；跨机器也无效（Windows 默认 `core.symlinks=false`，克隆后是普通文本文件，仍须跑 `core-init` 重建）。**项目侧用逐条列举而非通配 + 反选**：通配会把整个类型目录纳入规则，放行 `project/` 时无法让其中的临时产物（`__pycache__/`、`.cache/`）继续受根规则约束；逐条列举只命中确定的包目录，`project/` 天然在规则外。
+- **项目侧包**（`location: project-lib`）的内容放 `.codebuddy.project/project-lib/<包名>/<类型>/`（真实目录、随项目入库），在项目侧注册表 `.codebuddy.project/project-lib/packs.json` 登记。与引擎可选包**完全同构**：两层链接（扫描根 → `configs/<类型>/<包名>` → 内容根）、声明式 `comps`、`requires`、`default`、`installed` 状态。
+- **引擎可选包**由 `lib/<pack>/` 承接，项目侧内容根是 `.codebuddy/lib/<pack>/<类型>`；项目侧包内容根是 `.codebuddy.project/project-lib/<包名>/<类型>`。两者的链接形态与入库策略一致，差别仅在内容根。
+- **依赖单向**：项目包 `requires` 可指向引擎包（装项目包时自动带上其引擎依赖），**引擎注册表不得出现项目包名**——引擎跨项目共享，登入具体项目包会让其他项目读到不存在的包。包名两表间必须全局唯一。
+- **桥接链接两侧都不入库**：`.codebuddy/<类型>/<包名>`（引擎扫描根）与 `.codebuddy.project/<类型>/<包名>`（项目侧落点）都是派生出来的目录链接，两侧 `.gitignore` 各自忽略。判据与 `root_symlinks` 不登记桥接链接同源：链接集合与目标由两份 `packs.json` 的 `location` 与 `installed` 共同决定，入库等于把派生结果当第三处事实来源，装/卸包时持续产生差异噪音且与 `packs.json` 脱节无人察觉；跨机器也无效（Windows 默认 `core.symlinks=false`，克隆后是普通文本文件，仍须重建）。**项目侧对三个组件根整目录忽略**（`/rules/*`、`/skills/*`、`/agents/*`）：这两层只放链接、无项目真实内容，通配不会误伤要入库的东西，且新增包无需改忽略文件。
 - **根级项目级单文件**（如 `settings.json`）经索引 `root_symlinks.entries` 外置：引擎内留**软链接**、源文件在项目侧，CodeBuddy 本体解引用软链接读取（实测支持），源文件与链接均入库。
 - **机器级文件不外置**：`models.json`（含 API Key）、`settings.local.json`（本机）绑定本机，留在引擎根并 git 忽略——外置会跨机器失效且不宜入库。
 - **禁止**：把项目相关配置放在 `.codebuddy/` 内部（含历史遗留的 `.codebuddy/config/` 与各技能目录）。
@@ -248,12 +253,12 @@ def find_project_root(start):
 
 配套自查：
 
-1. 新增内容落在 `.codebuddy.project/{rules,skills,agents}/project/` → **一律不碰索引**
-   （三条线机制相同：经目录软链接加载，见 §3.7）。
+1. 新增内容落在 `.codebuddy.project/project-lib/<包>/{rules,skills,agents}/` → **一律不碰索引**
+   （经中转链接加载，见 §3.7）；改由 `project-lib/packs.json` 登记包与组件。
 2. 只有**同时改了引擎侧技能**、且该技能需要读项目值 → 才登记 `files`。
 3. 登记后问一句：其他项目跑 `core-init` 会不会生成它们用不上的骨架？会 → 登错了。
 
-`check_manifest.py` 会校验此约束：索引项若指向项目专有包路径，报告不一致。
+`check_manifest.py` 会校验此约束：索引项若指向项目侧包路径，报告不一致（校验项 17）。
 
 注册表 schema 与逻辑名约定详见 `skills/core/core-init/references/index-spec.md`。
 
@@ -280,10 +285,10 @@ def find_project_root(start):
 确实含通用项兜底。**两个仓库各自独立判断**——引擎仓库与项目仓库是两套 `.gitignore`，
 引擎侧有 `__pycache__/` 不代表项目侧也有（实测：本项目父仓链上四级 `.gitignore` 均无该规则）。
 
-**项目侧 `.codebuddy.project/.gitignore` 同规**：它只放 `caches/`、桥接链接与仓库级通用项。
-`project/` 天然在通配规则之外（靠逐条列举实现），其下组件**必须自带** `.gitignore` 处理
-自己的产物，不能指望 `.codebuddy.project/.gitignore` 覆盖——那会对 `project/` 内部
-重新引入通配，与「逐条列举」的设计冲突。
+**项目侧 `.codebuddy.project/.gitignore` 同规**：它只放 `caches/`、三个组件根的中转链接
+与仓库级通用项。三个组件根（`rules/`、`skills/`、`agents/`）现在**整层只剩链接**、无项目
+真实内容，故可整目录忽略（`/rules/*`、`/skills/*`、`/agents/*`），无需任何 `!` 放行；
+`project-lib/<包>/` 下的组件**必须自带** `.gitignore` 处理自己的产物。
 
 **自检**：
 

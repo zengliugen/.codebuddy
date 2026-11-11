@@ -263,41 +263,26 @@ def build_gitignore_content(packs):
       内容一并忽略，故在此显式反选恢复；
     - 忽略 `caches/` 运行时产物根目录（不入库）；
     - **通用忽略项兜底**（`__pycache__/`、`*.pyc`、`.DS_Store` 等）：与具体组件无关，
-      任何组件都可能产出，故由本树根统一兜底，`project/` 下的组件不必重复声明；
-    - **逐条列举桥接链接**（`{skills,rules,agents}/<pack>`）：按引擎声明的全部
-      `location=lib` 包一次性列全，与安装状态无关。
+      任何组件都可能产出，故由本树根统一兜底，`project-lib/` 下的组件不必重复声明；
+    - **整目录忽略三个组件根**（`/rules/*`、`/skills/*`、`/agents/*`）：这三层下只剩
+      `pack_install.py` 派生的中转链接，真实内容全在 `project-lib/<pack>/<类型>/`，
+      因此可以整目录忽略、无需任何 `!` 放行。
 
     参数：
-        packs：`lib/packs.json` 的 packs 字典，用于枚举可选包及其声明的组件类型。
-            为空时仍生成其余部分，只是没有桥接清单。
+        packs：`lib/packs.json` 的 packs 字典。本函数不再据它生成包清单——组件根改为
+            整目录忽略后，新增包无需改本文件；保留参数以兼容既有调用方。
 
-    为何逐条列举而非 `<类型>/*` + `!<类型>/project/` 的通配 + 反选：通配会把整个
-    类型目录纳入规则，放行 project/ 时无论带不带 `**`，都无法让 project/ 内部的
-    临时产物（`__pycache__/`、`.cache/` 等）继续受根规则约束。逐条列举只命中确定
-    的包目录，project/ 根本不在规则里，其内部的忽略交给各技能根目录自己的
-    `.gitignore` 处理（与引擎侧 `lib/<包>/skills/<技能>/.gitignore` 同构）。
+    为何整目录忽略而非逐条列举包路径：项目包退役后 `rules/`、`skills/`、`agents/` 下
+    不再有项目真实内容，通配不会误伤任何要入库的东西；反过来逐条列举会迫使每新增
+    一个项目包补三行，漏补一次链接就静默入库且无人察觉。
     """
-    # 按包名排序，保证同一份 packs.json 每次生成的内容完全一致（否则初始化会
-    # 产生无意义的 diff）。
-    blocks = []
-    for pack in sorted(packs):
-        meta = packs.get(pack) or {}
-        if meta.get("location") != "lib":
-            continue
-        comps = meta.get("comps") or {}
-        entries = ["%s/%s" % (comp_type, pack)
-                   for comp_type in ("rules", "skills", "agents") if comps.get(comp_type)]
-        if entries:
-            blocks.append("# 包：%s\n%s" % (pack, "\n".join(entries)))
-    bridge_list = "\n\n".join(blocks) if blocks else "# （引擎未声明任何可选包）"
-
     return """# ============================================================
 #  项目侧配置目录（.codebuddy.project）忽略规则
 #
 #  caches/ 为运行时产物根目录（不持久化的临时结果：各技能 check_logs、
 #  .cache、.vcs-lock 等），由脚本执行生成，不入库；
 #  产物目录清单见 .codebuddy/project.index.json 的 artifacts.dirs。
-#  configs/、store/、docs/ 为入库内容，不在此忽略。
+#  configs/、store/、docs/、project-lib/ 为入库内容，不在此忽略。
 # ============================================================
 
 # 仓库根 .gitignore 的 configs/ 会匹配本项目侧 configs/ 目录（Python 运行时用户配置），
@@ -339,12 +324,11 @@ envs/*
 !envs/README.md
 
 # --- 通用忽略项兜底 --------------------------------------------------------
-#   project/ 天然在通配规则之外，其下组件**必须自带 .gitignore** 处理自己的专属产物
-#   （dist/、tools/<二进制>、reports/*<专项>.md 等）；本文件不覆盖 project/ 内部，
-#   否则会把整个类型目录重新纳入规则，与下面的逐条列举设计冲突。
+#   project-lib/ 下的组件**必须自带 .gitignore** 处理自己的专属产物
+#   （dist/、tools/<二进制>、reports/*<专项>.md 等）；本文件不覆盖其内部。
 #
 #   但通用产物（Python 字节码、系统临时文件）不该要求每个组件重复声明——它们与
-#   具体组件无关，任何组件都可能产出。故在此兜底，project/ 下的组件不必自带。
+#   具体组件无关，任何组件都可能产出。故在此兜底，project-lib/ 下的组件不必自带。
 #
 #   为何必须写在这里：本目录的 .gitignore 是项目仓库内唯一对 .codebuddy.project/
 #   生效的规则文件。项目根 .gitignore 也有各自的通用项，但那是项目根自己的事
@@ -358,29 +342,31 @@ Thumbs.db
 *.swp
 *~
 
-# 可选包桥接链接（逐条列举全集，不入库）
+# 组件根的中转链接（整目录忽略，不入库）
 #
-# 下列路径都是指向 .codebuddy/lib/<包>/<类型> 的整目录软链接，由 pack_install.py
-# 依引擎 lib/packs.json 与项目侧 configs/packs.json 的 installed 确定性创建与修复，
-# 不是仓库要维护的事实：
-#   1. 入库等于把派生结果当第三处事实来源——装/卸包时链接增删会持续污染 git 差异，
-#      且一旦与 packs.json 脱节无人察觉；
-#   2. 跨机器无效——Windows 默认 core.symlinks=false，克隆后落成内容为路径字符串的
-#      普通文件（git 以 120000 记录），PyAppify 复制项目时 entry.file_type() 不跟随链接，
-#      目录链接既不满足 is_dir() 也读不了内容，Windows 上以文件方式打开即报 os error 5；
-#      仍须跑 core-init 重建。入库换不来「克隆即可用」，只有噪音。
+# rules/、skills/、agents/ 三层现在**只剩链接**：真实内容全在
+# .codebuddy.project/project-lib/<pack>/<类型>/（随项目入库），这三层里每一项都是
+# pack_install.py 依 project-lib/packs.json 与 configs/project-packs.json 的
+# installed 确定性创建的目录链接：
+#   .codebuddy.project/rules/<pack>    → ../../../project-lib/<pack>/rules
+#   .codebuddy.project/skills/<pack>   → ../../../project-lib/<pack>/skills
+#   .codebuddy.project/agents/<pack>   → ../../../project-lib/<pack>/agents
 #
-# 清单按引擎声明的**全部可选包**一次列全，与安装状态无关：忽略规则幂等，多列未装
-# 的包无副作用（目录本不存在），少列已装的包却会让链接在下次 git add -A 时悄然入库。
-# 故装包、卸包都无需改本文件，只有引擎新增可选包时才需重新运行 core-init 补上。
+# 入库等于把派生结果当第三处事实来源（装/卸包持续产生差异噪音，与 packs.json
+# 脱节时无人察觉）；跨机器也无效——Windows 默认 core.symlinks=false，克隆后落成
+# 内容为路径字符串的普通文件，仍须重建。故整目录忽略。
 #
-# 为何逐条列举而非 skills/* + !skills/project/ 这类通配 + 反选：
-#   通配会把整个 <类型>/ 目录纳入规则，放行 project/ 时无论带不带 `**`，都无法让
-#   project/ 内部的临时产物（__pycache__/、.cache/ 等）继续受根规则约束。
-#   逐条列举只命中确定的包目录，project/ 根本不在规则里。
+# 为何可以整目录忽略而不必逐条列举：project 包退役后这三层不再有项目真实内容，
+# 通配不会误伤任何要入库的东西。反过来逐条列举会迫使每新增一个项目包就补三行，
+# 漏补一次链接即静默入库。
+/rules/*
+/skills/*
+/agents/*
 
-{bridge_list}
-""".replace("{bridge_list}", bridge_list)
+# 例外：skills/README.md 是落点与加载机制的说明文档，属入库内容而非派生链接。
+# 它是固定单文件，不随包增减变化，因此补一条例外不会带来逐条列举的维护成本。
+!/skills/README.md
+"""
 
 
 def build_cleanup_cmd_content():
@@ -453,43 +439,43 @@ def build_project_skills_readme_content():
     """生成 `.codebuddy.project/skills/README.md` 内容（组件落点与加载机制说明）。"""
     return """# 项目侧技能目录（.codebuddy.project/skills）
 
-本目录存放**本项目独有的技能**（`project/`，随本仓库版本控制）与**引擎可选包的桥接链接**
-（`<pack>/`，派生结果、**不入库**）；`.codebuddy` 引擎（可 submodule 化、多项目共享）不含本项目内容。
-
-## 两类内容共存
+本目录**只剩中转链接**：每一项都是 `pack_install.py` 依注册表与已装清单确定性创建
+的目录链接，真实技能内容不在这里：
 
 ```
-.codebuddy.project/skills/
-├── <pack>             # 引擎可选包的组件链接（由 pack_install.py 创建，勿手工增删，不入库）
-└── project/           # ★项目专有技能（真实目录，随项目入库）
+.codebuddy.project/skills/<pack>       ──软链接──▶  ../../../project-lib/<pack>/skills   （项目侧包）
+.codebuddy.project/skills/<pack>       ──软链接──▶  ../../../.codebuddy/lib/<pack>/skills （引擎可选包）
 ```
 
-**`project` 与其他包同级并列**，区别在于它是真实目录且**入库**（其他包是指向 `lib/` 的链接且被忽略）。
+真实内容随来源入库：项目包在 `.codebuddy.project/project-lib/<pack>/`，引擎包在
+`.codebuddy/lib/<pack>/`。本层链接**不入库**。
+
 规则与代理目录（`.codebuddy.project/rules/`、`.codebuddy.project/agents/`）结构完全一致。
 
-> **为何 `<pack>/` 链接不入库**：它由 `pack_install.py` 依引擎 `lib/packs.json` 与项目侧
-> `configs/packs.json` 的 `installed` **确定性推导并创建**，不是仓库要维护的事实；入库会让装/卸包
-> 持续产生链接增删的差异噪音，且与 `packs.json` 脱节时无人察觉。跨机器也不靠它——Windows 默认
-> `core.symlinks=false` 时克隆出来是普通文本文件，仍须跑 `core-init` 重建。故本目录 `.gitignore`
-> 忽略 `<pack>/` 并放行 `project/`。
+> **为何整层不入库**：链接是派生结果，不是仓库要维护的事实；入库会让装/卸包持续产生
+> 差异噪音，且与两份 `packs.json` 脱节时无人察觉。跨机器也不靠它——Windows 默认
+> `core.symlinks=false` 时克隆出来是普通文本文件，仍须重建。故 `.gitignore` 对
+> `rules/`、`skills/`、`agents/` 三层整目录忽略。
 
 ## 如何被 CodeBuddy 加载
 
-`.codebuddy/skills/` 是 CodeBuddy 的**内置技能扫描目录**。每个包经一个**目录软链接**挂载到该扫描目录下：
+`.codebuddy/skills/` 是 CodeBuddy 的**内置技能扫描目录**。每个包经**两层链接**挂载：
 
 ```
-.codebuddy/skills/<pack>     ──软链接──▶  ../../.codebuddy.project/skills/<pack>
-.codebuddy/skills/project    ──软链接──▶  ../../.codebuddy.project/skills/project
+.codebuddy/skills/<pack>          ──软链接──▶  ../../.codebuddy.project/skills/<pack>
+.codebuddy.project/skills/<pack>  ──软链接──▶  ../../../project-lib/<pack>/skills
 ```
 
-即本目录下的技能自动出现在 `.codebuddy/skills/<pack>/`，被 CodeBuddy 扫描并加载
+即技能自动出现在 `.codebuddy/skills/<pack>/`，被 CodeBuddy 扫描并加载
 （**实测：技能目录支持符号链接**）。新增/修改技能后新开会话生效。
 
-## 创建项目专有技能
+## 创建项目侧技能
 
-1. 建技能目录：`.codebuddy.project/skills/project/<技能名>/`
-2. 写 `SKILL.md`（frontmatter 含 `name`、`description`）。
-3. **无需其他操作**——`.codebuddy/skills/project` 链接已存在，CodeBuddy 自动扫描；新开会话即可见。
+1. 在 `project-lib/<包>/skills/<技能名>/` 下写 `SKILL.md`（frontmatter 的 `name`
+   必须与目录名一致）与 `manifest.json`。
+2. 在 `project-lib/packs.json` 该包的 `comps.skills` 中登记技能名。
+3. 安装：`python .codebuddy/scripts/pack_install.py --source project install <包名>`。
+4. 新开会话即可见。
 
 ## 跨机器注意事项
 
@@ -499,31 +485,35 @@ def build_project_skills_readme_content():
 - **创建链接的权限**：Windows 需开启"开发者模式"或以管理员身份运行；`mklink /D` 失败时，
   初始化脚本会告警并给出手工命令。
 - **平台**：macOS / Linux 原生支持符号链接，无额外要求。
-- **链接目标用相对路径**（`../../.codebuddy.project/skills/<pack>`），保证跨机器有效。
+- **链接目标用相对路径**，保证跨机器有效。
 
 ## 与引擎的关系
 
-本目录**不进入** `.codebuddy` 引擎库。可选包组件真实内容在引擎 `lib/<pack>/` 下，本目录只存
-**指向它的链接**（不入库）；`project/` 下是项目真实文件（入库），与引擎完全解耦。
+本目录**不进入** `.codebuddy` 引擎库。引擎包内容在 `lib/<pack>/`、项目包内容在
+`.codebuddy.project/project-lib/<pack>/`，本目录只存指向它们的链接（不入库）。
 """
 
+
 def build_project_skills_targets(project_root):
-    """构造项目专有技能目录骨架的待生成文件清单：[(绝对路径, 内容)]。
+    """构造项目侧技能目录骨架的待生成文件清单：[(绝对路径, 内容)]。
 
     - `.codebuddy.project/skills/README.md`：落点与加载机制说明；
     - `.codebuddy.project/skills/.gitkeep`：占位（保证空目录入库）。
+
+    本层不再放项目真实内容——真实技能在 `project-lib/<包>/skills/`，本层只由
+    `pack_install.py` 建立中转链接。故骨架只需说明与占位。
     """
     base = os.path.normpath(os.path.join(project_root, ".codebuddy.project/skills"))
     return [
         (os.path.join(base, "README.md"), build_project_skills_readme_content()),
         (os.path.join(base, ".gitkeep"),
          "# 占位文件：保证空的本目录能入库。\n"
-         "# 本目录下有两类内容：\n"
-         "#   <pack>/     引擎可选包的组件链接（由 pack_install.py 创建，勿手工增删）\n"
-         "#   project/    项目专有技能（真实目录，随项目入库）\n"
-         "# 项目专有技能请放 .codebuddy.project/skills/project/<技能名>/SKILL.md，\n"
-         "# 或按族收纳为 skills/project/<族>/<技能名>/SKILL.md（族名取技能名共同前缀），\n"
-         "# 两种形态都经 .codebuddy/skills/project 链接被加载。\n"),
+         "# 本层每一项都是 pack_install.py 创建的中转链接（不入库），指向：\n"
+         "#   project-lib/<包>/skills           —— 项目侧包\n"
+         "#   ../../.codebuddy/lib/<包>/skills  —— 引擎可选包\n"
+         "# 新增项目技能请放 project-lib/<包>/skills/<技能名>/SKILL.md，\n"
+         "# 在 project-lib/packs.json 登记，再运行\n"
+         "#   python .codebuddy/scripts/pack_install.py --source project install <包名>\n"),
     ]
 
 
@@ -600,19 +590,20 @@ def readme_content(project_config_root):
 
 ```
 {root}/
-├── configs/            # 配置（入库）：settings.json、skills/<技能>/、rules/<规则>/ 等
+├── configs/            # 配置（入库）：settings.json、skills/<包>/、rules/<规则>/ 等
 ├── caches/             # 运行时产物（不入库）：各技能 check_logs/、.cache/、.vcs-lock/ 等
 ├── store/              # 持久化项目结果（入库）：需长期保留的运行结果
 ├── docs/               # 技能产出的项目文档（入库）：<pack>/ 如 devflow 的能力文档
-├── skills/             # 技能目录：<pack>/ 可选包链接（不入库），project/ 项目专有技能（入库）
-├── rules/              # 同上：<pack>/ 链接（不入库），project/ 项目专有规则（入库）
-├── agents/             # 同上：<pack>/ 链接（不入库），project/ 项目专有代理（入库）
+├── project-lib/        # ★项目侧包仓库（入库）：<包>/{{rules,skills,agents}}/ 与 packs.json
+├── skills/             # 中转链接层：<pack>/ 链接（不入库），指向 project-lib 或引擎 lib
+├── rules/              # 同上：<pack>/ 链接（不入库）
+├── agents/             # 同上：<pack>/ 链接（不入库）
 ├── README.md
-├── .gitignore          # 忽略 caches/、各组件目录下的 <pack>/ 链接与系统临时文件
+├── .gitignore          # 忽略 caches/、三个组件根（整层链接）与系统临时文件
 └── cleanup-caches.cmd  # 缓存清理入口（薄入口，调用引擎侧清理工具）
 ```
 
-四类内容的边界约定：
+五类内容的边界约定：
 
 | 子目录 | 语义 | 是否入库 | 可否删除 |
 |--------|------|---------|---------|
@@ -620,8 +611,8 @@ def readme_content(project_config_root):
 | `caches/` | 运行时生成、**不持久化**的临时结果 | 否（整体忽略） | 随时可删，可重新生成 |
 | `store/` | 运行时生成、需**持久化保留**的项目结果 | 是 | 删除即丢失，需谨慎 |
 | `docs/` | 技能产出的**项目文档**（如 devflow 的能力设计/计划/测试文档） | 是 | 删除即丢失；卸载对应包后需手工清理 |
-| `skills/`、`rules/`、`agents/` 下的 `<pack>` | 指向引擎 `lib/<pack>/` 的**桥接链接** | 否（派生结果，忽略） | 随时可删，`pack_install.py` 可重建 |
-| `skills/`、`rules/`、`agents/` 下的 `project` | **项目专有**内容（真实目录） | 是 | 删除即丢失 |
+| `project-lib/` | **项目侧包仓库**：`<包>/{{rules,skills,agents}}/` 与 `packs.json` | 是 | 删除即丢失，包需重新安装 |
+| `skills/`、`rules/`、`agents/` 下的 `<pack>` | 两层的**中转链接**（指向 `project-lib` 或引擎 `lib`） | 否（整层派生，忽略） | 随时可删，`pack_install.py` 可重建 |
 
 **约定**：后续所有运行时生成的、不持久化的临时结果一律放 `caches/`，不得散落到其他目录。
 
@@ -645,19 +636,37 @@ def readme_content(project_config_root):
 `caches/` 下（产物清单见索引 `artifacts.dirs`），由本目录 `.gitignore` 整体忽略、不入库。
 清理用本目录的 `cleanup-caches.cmd`（薄入口，调用引擎侧 `.codebuddy/scripts/cleanup_artifacts.py`）。
 
-## 项目专有技能
+## 项目侧包（project-lib/）
 
-项目专有技能放在本目录的 `skills/project/<技能名>/SKILL.md`（随项目入库），
-经软链接 `.codebuddy/skills/project` 被 CodeBuddy 自动加载（详见 `skills/README.md`）。
+项目自有内容按**包**组织，与引擎可选包完全同构：
 
-技能较多时可按「族」收纳一层：`skills/project/<族>/<技能名>/SKILL.md`，族名取同族技能名的
-共同前缀，与 `rules/project/<族>/` 一一对应。技能扫描逐层递归，两种形态等效，可按需迁移。
-这样与 `.codebuddy` 引擎解耦：引擎可 submodule 化、多项目共享，项目专有内容只随本仓库版本控制、不进入引擎。
+```
+{root}/project-lib/
+├── packs.json                     # 包注册表：包名、requires、default、comps
+└── <包名>/
+    ├── rules/<规则名>/RULE.mdc 或 <规则名>.entry/<规则名>.entry.mdc
+    ├── skills/<技能名>/SKILL.md
+    └── agents/<代理名>.md
+```
+
+`skills/`、`rules/`、`agents/` 三层只是指向 `project-lib/<包>/<类型>` 的**中转链接**，
+由 `pack_install.py --source project` 物化，整层不入库。
+
+安装与查看：
+
+```
+python .codebuddy/scripts/pack_install.py --source project list
+python .codebuddy/scripts/pack_install.py --source project install <包名>
+python .codebuddy/scripts/pack_install.py --source project status
+```
+
+包的 `requires` 可以指向引擎可选包（单向：项目包 → 引擎包），安装项目包时其引擎依赖会被
+一并装上。反向禁止——引擎注册表不得出现项目包名（引擎跨项目共享，见规则 `core-engine`）。
 
 ## 维护约定
 
-- `configs/`、`store/`、`docs/` 与各组件目录下的 `project/` **入库**（随项目版本控制）；
-  `caches/` 与各组件目录下的 `<pack>/` 桥接链接**不入库**；不含敏感信息
+- `configs/`、`store/`、`docs/` 与 `project-lib/` **入库**（随项目版本控制）；
+  `caches/` 与三个组件根下的 `<pack>/` 中转链接**不入库**；不含敏感信息
   （凭据等机器级配置保留在 `.codebuddy` 根的 `models.json` / `settings.local.json`，已被忽略）。
 - 修改引擎侧索引（新增配置项或产物目录）后，可重新运行 `core-init` 补齐缺失内容。
 """.format(root=project_config_root)
@@ -772,9 +781,21 @@ envs/
 def setup_pack_state(project_root, pack_arg, minimal):
     """按 --pack / --minimal 决定可选包安装集合，并写入项目侧 packs.json（仅 --setup）。
 
+    同时保证项目侧包仓库的已装清单存在（空清单即可）——两份状态文件分属两张
+    注册表，缺任一份都会让对应来源的 `pack_install.py status` 报「状态缺失」。
+
     返回 (已装包名列表, 是否新建)。已存在 configs/packs.json 时保持原选择，不覆盖。
     """
-    state_path = os.path.normpath(os.path.join(project_root, ".codebuddy.project", "configs", "packs.json"))
+    config_dir = os.path.normpath(os.path.join(project_root, ".codebuddy.project", "configs"))
+    state_path = os.path.join(config_dir, "packs.json")
+    project_state_path = os.path.join(config_dir, "project-packs.json")
+    # 项目侧包状态：只补空清单，不覆盖已有内容（可能已装过项目包）
+    if not os.path.isfile(project_state_path):
+        os.makedirs(config_dir, exist_ok=True)
+        with open(project_state_path, "w", encoding="utf-8", newline="\n") as handle:
+            json.dump({"version": 1, "installed": []}, handle,
+                      ensure_ascii=False, indent=2)
+            handle.write("\n")
     if os.path.isfile(state_path):
         try:
             with open(state_path, "r", encoding="utf-8") as handle:
@@ -788,7 +809,7 @@ def setup_pack_state(project_root, pack_arg, minimal):
     installed = []
     if pack_arg and not minimal:
         installed = [name.strip() for name in pack_arg.split(",") if name.strip()]
-    os.makedirs(os.path.dirname(state_path), exist_ok=True)
+    os.makedirs(config_dir, exist_ok=True)
     with open(state_path, "w", encoding="utf-8", newline="\n") as handle:
         json.dump({"version": 1, "installed": sorted(set(installed))}, handle,
                   ensure_ascii=False, indent=2)
@@ -797,25 +818,26 @@ def setup_pack_state(project_root, pack_arg, minimal):
 
 
 def build_project_pack_targets(project_root):
-    """构造项目专有包（project）的内容目录骨架：[(绝对路径, 内容)]。
+    """构造项目侧包仓库（project-lib）的骨架：[(绝对路径, 内容)]。
 
-    项目专有包与其他包同构：内容位于 .codebuddy.project/<类型>/project/ 下，
-    由引擎扫描根的 .codebuddy/<类型>/project 链接加载；此处只建空目录与占位文件。
+    项目侧包与引擎可选包同构：内容位于 `.codebuddy.project/project-lib/<pack>/<类型>/`
+    下，由 `pack_install.py --source project` 建立两层链接进入扫描根。此处只建仓库
+    根与注册表，**不预建任何包目录**——包由使用者按需创建并在 `packs.json` 登记，
+    未登记的目录会被 check_manifest 项 17 报为「包目录未登记」。
     """
-    base = os.path.normpath(os.path.join(project_root, ".codebuddy.project"))
-    targets = []
-    labels = {
-        "rules": "规则（<规则名>/RULE.mdc）",
-        "skills": "技能（<技能名>/SKILL.md）",
-        "agents": "代理（<代理名>.md）",
-    }
-    for comp_type, label in labels.items():
-        targets.append((
-            os.path.join(base, comp_type, "project", ".gitkeep"),
-            "# 占位文件：保证空的 %s/project/ 目录能入库。\n"
-            "# 项目专有%s直接放在本目录下，经 .codebuddy/%s/project 链接被加载。\n"
-            % (comp_type, label, comp_type),
-        ))
+    base = os.path.normpath(os.path.join(project_root, ".codebuddy.project", "project-lib"))
+    targets = [
+        (os.path.join(base, ".gitkeep"),
+         "# 占位文件：保证空的 project-lib/ 目录能入库。\n"
+         "# 项目侧包按 .codebuddy.project/project-lib/<包名>/{rules,skills,agents}/ 放置，\n"
+         "# 并在同目录 packs.json 登记；安装/卸载走\n"
+         "#   python .codebuddy/scripts/pack_install.py --source project install <包名>\n"),
+        (os.path.join(base, "packs.json"),
+         '{\n'
+         '  "version": 1,\n'
+         '  "packs": {}\n'
+         '}\n'),
+    ]
     return targets
 
 

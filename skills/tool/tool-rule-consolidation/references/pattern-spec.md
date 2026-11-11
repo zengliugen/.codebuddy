@@ -126,22 +126,21 @@ provider:
 > 「这条规则该不该建、该叫什么名字、该放在哪」，这个判断发生在写入规则文件**之前**，
 > 任何按需触发都赶不上决策点。
 
-### 项目侧规则（`.codebuddy.project/rules/project/`）
+### 项目侧规则（`.codebuddy.project/project-lib/<包名>/rules/`）
 
-项目专有规则与引擎侧**同构**（入口独占目录 + 规范目录），组件名统一加 `project-` 前缀，
-由 `check_manifest.py` 项 10 校验。项目侧允许再按「族」分组：入口目录下沉进以规范名命名的族目录
-（`rules/project/<族>/<入口名>.entry/`），故下表「规则」列是组件名、不带层级，实际路径见
-`classification-spec.mdc` §2.4。清单如下：
+项目侧规则与引擎侧**完全同构**（入口独占目录 + 规范目录 + 包分组），组件名遵循同一条
+`<包名>-` 前缀约定，由 `check_manifest.py` 项 8 与项 9 直接校验。组件落在
+`.codebuddy.project/project-lib/<包名>/rules/` 下，路径形态与 `lib/<pack>/rules/` 一致，
+详见 `classification-spec.mdc` §2.4。下表用通用占位名示意结构差异：
 
 | 规则 | 类型 | 触发方式 | 对应技能 | 子规范 |
 |---|---|---|---|---|
-| `project-extension-capability-guard` | 入口 | `alwaysApply` | 同名技能 | 0 |
-| `project-extension-capability` | 规范 | `alwaysApply: false`（技能加载） | 前缀 `project-extension-capability-guard` | 4 |
-| `project-upstream-compat-guard` | 入口 | `alwaysApply` | 同名技能 | 0 |
-| `project-upstream-compat` | 规范 | `alwaysApply: false`（技能加载） | 前缀 `project-upstream-compat-guard` | 2 |
+| `<包名>-guard` | 入口 | `alwaysApply` | 同名技能 | 0 |
+| `<包名>` | 规范 | `alwaysApply: false`（技能加载） | 前缀 `<包名>-guard` | N |
+| `<包名>-sync` | 入口 | `alwaysApply` | 同名技能 | 0 |
 
-> 合计 4 条：入口 2、规范 2。项目侧内容由项目自行管理，不登记 `lib/packs.json` 的
-> `comps`（`project` 包的 `comps` 保持空），故项 8 与项 9 跳过它，由项 10 单独校验。
+> 项目侧包登记在 `.codebuddy.project/project-lib/packs.json`，与引擎 `lib/packs.json`
+> 结构同构；两表包名全局唯一、依赖单向（项目包 → 引擎包）。项 8、项 9、项 17 覆盖它。
 
 > **注**：`core-tooling` 常驻（`alwaysApply: true`）。它把「命令如何构造」「结果如何判定」「该问用户时怎么问」合到同一条规则下——三者都以单个工具调用为粒度，都必须在每次调用时生效。其中第三部分（第 11—14 条）规定所有面向用户的提问必须经 `AskUserQuestion` 发起，并明确该工具超时属临时失败、不得据此放弃；细则见 `ask-question-spec.mdc`。核心底线压进入口、分级细则与校验命令下沉子规则，是为让纪律在调用时真正生效的必要代价。
 >

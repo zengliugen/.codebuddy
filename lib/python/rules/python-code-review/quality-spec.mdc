@@ -48,7 +48,7 @@ provider:
 
 | 检查项 | 规范 | 依据 |
 |--------|------|------|
-| 代码落位 | 项目自有代码只写在 `extensions/` | 项目侧 `project-upstream-compat` 规则 |
+| 代码落位 | 项目自有代码只写在 `extensions/` | 项目侧规则（包名随项目而异） |
 | 上游文件改动 | 改动上游文件必须在 `divergence.yaml` 登记 | 同上 |
 | 接线点 | `src/config.py` 相对上游只允许一行 import | 同上 |
 | 侵入性改动 | patch 必须断言目标符号存在，缺失立即崩溃并指名 | 同上 |

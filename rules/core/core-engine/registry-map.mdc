@@ -46,7 +46,8 @@ provider:
 | 1 | 在 `lib/<pack>/<类型>/<名>` 建目录（可选包），或 `.codebuddy/<类型>/<pack>/<名>`（默认包） |
 | 2 | 在 `lib/packs.json` 对应 pack 的 `comps.<类型>` **追加组件名** |
 | 3 | 若是规则且带项目事实正文 → 在 `project.index.json` 的 `rule_shells` **加键**（键含 pack 层） |
-| 4 | 若是技能且需项目配置 → 在 `project.index.json` 的 `files` **加条目**（**仅限引擎侧技能**；项目专有包下的规则/技能/智能体一律不登记，见本规则入口第 6 条） |
+| 4 | 若是技能且需项目配置 → 在 `project.index.json` 的 `files` **加条目**（**仅限引擎侧技能**；项目侧包下的规则/技能/智能体一律不登记索引，改在 `project-lib/packs.json` 登记，见本规则入口第 7 条） |
+| 4b | 若是**项目侧包** → 在 `.codebuddy.project/project-lib/packs.json` 的对应包 `comps` 加组件名，再跑 `pack_install.py --source project install <包名>` |
 | 5 | 跑 `pack_install.py install <pack>` 物化链接，再 `status` 确认一致 |
 | 6 | **核对引用边界**：新组件是否引用了 `requires` 闭包外的包组件？若是，改为泛化或条件化（见「第 8 项」） |
 | 7 | **建组件根 `.gitignore`**（若该组件会产出专属文件）：`dist/`、`.yao/`、`tools/<二进制>`、`reports/*<专项>.md` 等写在这里，**不写仓库根**；同时确认仓库根 `.gitignore` 含通用项（任务 9） |
@@ -85,7 +86,7 @@ provider:
 | 2 | 改 `packs.json` 与 `project.index.json` 的路径类键 |
 | 3 | 全库改写组件正文内的路径引用（命令见 `refactor-sync.mdc`） |
 | 4 | 改 `pack_install.py` / `check_manifest.py` 的路径推导函数 |
-| 5 | 改**两侧** `.gitignore`：引擎侧扫描根（`.codebuddy/<类型>/*` 的放行清单）与项目侧 `.codebuddy.project/.gitignore`（**逐条列举**全部可选包的桥接链接路径，如 `skills/<pack>`；`project/` 天然在规则外、无需放行行）。两处缺一，链接就会在某一侧入库。改完 `check_manifest.py` 的校验项 15 会双向核对（链接不得入库、`project/` 内容必须入库） |
+| 5 | 改**两侧** `.gitignore`：引擎侧扫描根（`.codebuddy/<类型>/*` 的放行清单）与项目侧 `.codebuddy.project/.gitignore`（`/rules/*`、`/skills/*`、`/agents/*` 整层忽略）。新增包**无需**改任一侧——引擎侧白名单机制与项目侧通配都自动覆盖新包名。改完 `check_manifest.py` 的校验项 15 会双向核对（链接不得入库、`project-lib/` 内容必须入库） |
 | 6 | 改 README / pattern-spec 的目录树 |
 | 7 | 迁移已有项目的链接（`verify --repair`）并实测加载；已有项目须手工更新其 `.codebuddy.project/.gitignore`（初始化脚本对已存在文件幂等跳过，不会覆盖） |
 
@@ -97,7 +98,7 @@ provider:
 | 2 | `location` 变更意味着物理位置变更 → 按「搬迁」流程走 |
 | 3 | `default` 变更会影响所有项目 → 在 README 包表标注，并在 `refactor-sync.mdc` 记录影响面 |
 | 4 | 检查**引用边界**：新增 `requires` 后，原本「跨包引用违规」的正文是否已合规；删除 `requires` 后，是否有正文变成违规 |
-| 5 | 跑 `check_manifest.py`（按 `location` 校验扫描根形态：`engine` 为真实目录、`lib` 与 `project` 为链接；另查跨包引用边界） |
+| 5 | 跑 `check_manifest.py`（按 `location` 校验扫描根形态：`engine` 为真实目录、`lib` 与 `project-lib` 为链接；另查跨包引用边界与项目侧注册表一致性） |
 
 ## 三、判定「是否漏改」的三条通用方法
 
