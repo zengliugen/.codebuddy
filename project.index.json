@@ -504,6 +504,17 @@
         "## 热更新程序集清单"
       ]
     },
+    "rules/csharp/csharp-code-review/quality-spec.mdc": {
+      "path": ".codebuddy.project/configs/rules/csharp/csharp-code-review/quality-spec.mdc",
+      "format": "markdown",
+      "template_outline": [
+        "# 代码质量与规范审查 —— 项目事实",
+        "## 命名规范",
+        "## 代码风格",
+        "## 可读性与复杂度",
+        "## 审查方法"
+      ]
+    },
     "rules/csharp/csharp-test/naming-layout.mdc": {
       "path": ".codebuddy.project/configs/rules/csharp/csharp-test/naming-layout.mdc",
       "format": "markdown",
