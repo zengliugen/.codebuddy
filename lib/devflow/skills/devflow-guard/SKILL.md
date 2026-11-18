@@ -5,7 +5,7 @@ license: 内部项目使用
 mode: manual
 metadata:
   category: 开发流程
-  version: 2.0.0
+  version: 2.1.0
 ---
 
 # 开发流程守卫
@@ -60,7 +60,7 @@ metadata:
 DIR=.codebuddy/lib/devflow/skills/devflow-guard/scripts/devflow_guard.py
 python $DIR [--scope <域>] init | audit
 python $DIR [--scope <域>] new <能力名> [--from-explore 记录名] [--rework-from 已归档能力名]
-python $DIR [--scope <域>] explore <主题名> | adr <slug> | status <能力名> <状态> | archive <能力名>
+python $DIR [--scope <域>] explore <主题名> | adr <slug> --capability <能力名> | status <能力名> <状态> | archive <能力名>
 ```
 
 | 模式 | 作用 | 保护 |
@@ -68,7 +68,7 @@ python $DIR [--scope <域>] explore <主题名> | adr <slug> | status <能力名
 | `init` | 按配置创建保留目录的说明与总览 README | 只创建不覆盖 |
 | `new <名>` | 生成设计/计划/偏差/测试四份骨架并登记总览表 | 探索记录已确认（`--from-explore` 必填）、目标不存在 |
 | `explore <主题>` | 创建需求探索记录 | 建能力文档前必须先有已确认的探索记录 |
-| `adr <slug>` | 创建决策记录，编号取现有最大值加一 | slug 为 kebab-case、目标不存在 |
+| `adr <slug> --capability <名>` | 在 `decisions/<能力名>/` 下创建决策记录，编号在该能力内取最大值加一 | slug 与能力名为 kebab-case、能力目录自动创建、目标不存在 |
 | `status <名> <状态>` | 状态同步到总览表与四份文档头（共五处） | 状态合法、目标存在 |
 | `archive <名>` | 四类文档移入 `archive/<名>/` 并回写总览表 | 状态须为完成或废弃；失败全部回滚 |
 | `audit` | 只读体检文档契约，按三档输出缺口 | 不修改任何文件 |
@@ -79,7 +79,7 @@ python $DIR [--scope <域>] explore <主题名> | adr <slug> | status <能力名
 
 ### audit 检查什么
 
-十一项机械可判定项与两项不查项的边界，见 [references/guide.md](references/guide.md) 的「audit 的判定细节」。
+十二项机械可判定项与两项不查项的边界，见 [references/guide.md](references/guide.md) 的「audit 的判定细节」。
 
 ### 三档分级与退出码
 

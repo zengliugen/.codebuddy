@@ -7,7 +7,7 @@
   init          按项目配置把文档目录结构、目录说明与文档模板复制到项目侧
   new <能力名>  生成设计、计划、偏差、测试四份骨架并登记能力总览表
   explore <主题> 创建需求探索记录
-  adr <slug>    创建决策记录
+  adr <slug> --capability <能力名>  创建决策记录（落在该能力子目录）
   status / archive / audit  状态同步、归档、只读体检
 
 设计前提（与项目侧的同类工具刻意不同）：
@@ -67,7 +67,7 @@ SKELETON_DIR = "skeletons"
 
 # 保留在文档根的一级目录（键名对应配置 dirs 下的键，缺失即报错）。
 # 这三个目录不属于任何单个能力：探索记录按主题命名、一份可产出多个能力；
-# ADR 编号必须全局连续；归档本身就是能力的容器。
+# ADR 按能力分子目录、编号在能力内连续；归档本身就是能力的容器。
 # explore 是必需键：需求确认是这个流程的一部分，不是可选附加项——
 # 做成可选会产生两种「new 的行为不一样」的项目，而规则文本无法同时说清两者。
 RESERVED_DIR_KEYS = ("explore", "decisions", "archive")
@@ -2146,11 +2146,12 @@ ADR_SLUG_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 def next_adr_number(decisions_dir):
     """推算下一个可用的决策编号。
 
-    audit 要求编号从 0001 起连续、无重复，因此取现有最大编号加一；
-    目录为空时从 1 开始。已归档的 ADR 不会离开本目录，故无需考虑归档。
+    编号作用域是「能力目录」而非整个决策目录：每个能力各自从 0001 起，
+    因此取目标目录现有最大编号加一；目录为空时从 1 开始。
+    ADR 不归档，故无需考虑归档区。
 
     参数：
-        decisions_dir: 决策目录绝对路径
+        decisions_dir: 决策目录（能力子目录）绝对路径
 
     返回：
         下一个编号（整数）；目录不存在时返回 1
@@ -2172,12 +2173,15 @@ def run_adr(root, config, slug, title, capability):
     而 audit 对「生成器」字段是 error 级校验，手工建必须自填合法值，
     否则体检不过。把编号推算与字段填充收进脚本，才不必让人记住这些约定。
 
+    ADR 必须归属能力：落点是 `<决策目录>/<能力名>/NNNN-<slug>.md`，
+    编号在该能力目录内独立递增。没有归属的决策属于体系设计，应写进设计记录或规则文件。
+
     参数：
         root: 项目根
         config: 配置字典
         slug: 决策文件名描述部分（英文 kebab-case）
         title: 决策标题；为空时取 slug
-        capability: 关联能力；为空时写「全局」
+        capability: 关联能力（必填）；同时决定落点目录与编号作用域
 
     返回：
         退出码
@@ -2194,9 +2198,19 @@ def run_adr(root, config, slug, title, capability):
     if any(unicodedata.category(ch) in ("Cc", "Cf", "Zl", "Zp") for ch in heading):
         die("决策标题不得包含控制字符或换行：「" + repr(title) + "」")
 
-    capability_text = (capability or "").strip() or "全局"
-    if any(unicodedata.category(ch) in ("Cc", "Cf", "Zl", "Zp") for ch in capability_text):
-        die("关联能力不得包含控制字符或换行：「" + repr(capability) + "」")
+    capability_text = (capability or "").strip()
+    if not capability_text:
+        die(
+            "必须用 --capability 指定关联能力。\n"
+            "ADR 一律放在 " + config["dirs"]["decisions"] + "/<能力名>/ 下，不再有全局决策记录；"
+            "体系自身的决策请写进设计记录或规则文件。"
+        )
+    if not re.fullmatch(config["capability_name_pattern"], capability_text):
+        die(
+            "关联能力不合法：「" + capability_text + "」\n"
+            "必须匹配配置声明的能力名模式（" + config["capability_name_pattern"] + "），"
+            "因为它会直接成为子目录名与 ADR 编号前缀。"
+        )
 
     target_root = docs_dir(root, config)
     decisions_dir = os.path.join(target_root, config["dirs"]["decisions"])
@@ -2205,8 +2219,15 @@ def run_adr(root, config, slug, title, capability):
             "决策目录不存在：" + rel(root, decisions_dir) + "\n请先执行 init 初始化文档结构。"
         )
 
-    number = next_adr_number(decisions_dir)
-    target = os.path.join(decisions_dir, "%04d-%s.md" % (number, slug))
+    capability_dir = os.path.join(decisions_dir, capability_text)
+    if not os.path.isdir(capability_dir):
+        try:
+            os.makedirs(capability_dir)
+        except OSError as mkdir_error:
+            die("创建能力决策目录失败（%s）：%s" % (mkdir_error, rel(root, capability_dir)))
+
+    number = next_adr_number(capability_dir)
+    target = os.path.join(capability_dir, "%04d-%s.md" % (number, slug))
     if os.path.exists(target):
         die("目标文件已存在，已中止（不覆盖）：" + rel(root, target))
 
@@ -2222,16 +2243,19 @@ def run_adr(root, config, slug, title, capability):
     # 只替换一级标题里的编号：「取代」小节的 ADR-NNNN 是待人工填写的占位符，
     # 若一并替换，新文档会写成「本决策取代 ADR-00NN」——指向自己。
     heading_token = "ADR-NNNN"
+    heading_prefix = "ADR-%s-%04d" % (capability_text, number)
     if text.startswith("# "):
         first_newline = text.find("\n")
         head_line = text if first_newline < 0 else text[:first_newline]
         rest = "" if first_newline < 0 else text[first_newline:]
-        text = head_line.replace(heading_token, "ADR-%04d" % number) + rest
+        text = head_line.replace(heading_token, heading_prefix) + rest
     else:
-        text = text.replace(heading_token, "ADR-%04d" % number, 1)
+        text = text.replace(heading_token, heading_prefix, 1)
     text = text.replace("<决策标题>", heading)
-    # 关联能力单元格在模板里写的是两种可选值，需整格替换，否则会残留「或」
+    # 「关联能力」单元格与「取代」小节里的能力名占位符都替换为实际能力；
+    # 前一行的旧模板写法一并兼容，避免包内模板未同步时残留「或」。
     text = text.replace("全局 或 <能力名>", capability_text)
+    text = text.replace("<能力名>", capability_text)
     text = text.replace("YYYY-MM-DD", date.today().isoformat())
 
     leftover = [token for token in ("<决策标题>", "<能力名>", "{{generator}}") if token in text]
@@ -2250,6 +2274,7 @@ def run_adr(root, config, slug, title, capability):
     print("已生成：")
     print("  " + rel(root, target))
     print("")
+    print("编号作用域：" + capability_text + "（该能力目录内独立编号）")
     print("下一步：补齐背景、考虑过的方案与后果；定稿后状态改为已定，之后不再改写。")
     return 0
 
@@ -2463,14 +2488,22 @@ def iter_capability_docs(target_root, config):
                 path = os.path.join(sub, name)
                 if name.endswith(".md") and name != "README.md" and os.path.isfile(path):
                     docs.append(path)
+    # 决策记录按能力分子目录存放，需下钻一层收集；否则子目录里的 ADR 会因
+    # 「不在遍历范围」而整体免检，文件头与生成器校验形同虚设。
     decisions = os.path.join(target_root, dirs["decisions"])
     if os.path.isdir(decisions):
         for name in sorted(os.listdir(decisions)):
             path = os.path.join(decisions, name)
-            if name == "README.md" or not name.endswith(".md"):
-                continue
             if os.path.isfile(path):
-                docs.append(path)
+                if name != "README.md" and name.endswith(".md"):
+                    docs.append(path)
+                continue
+            if not os.path.isdir(path):
+                continue
+            for child in sorted(os.listdir(path)):
+                child_path = os.path.join(path, child)
+                if child.endswith(".md") and child != "README.md" and os.path.isfile(child_path):
+                    docs.append(child_path)
     return docs
 
 
@@ -2768,8 +2801,10 @@ def check_table_vs_disk(root, target_root, config, rows):
     # 只报一条，而不是四份文档各报一条。
     reported = set()
     for path in iter_capability_docs(target_root, config):
-        # 决策记录不按能力命名，也不要求逐条登记到总览表，跳过
-        if os.path.normpath(os.path.dirname(path)) == decisions_dir:
+        # 决策记录不按能力命名，也不要求逐条登记到总览表；按能力分的子目录
+        # 同样不能当成「未登记的能力目录」。用路径前缀判断而非父目录相等，
+        # 否则 decisions/<能力>/ 会被误判成能力目录并报「未登记」。
+        if os.path.normpath(path).startswith(decisions_dir + os.sep):
             continue
         # 归档文档放在 archive/<能力名>/ 下，其能力由总览表该行的路径列体现
         parent = os.path.normpath(os.path.dirname(path))
@@ -2859,7 +2894,11 @@ def check_registered_dirs(root, target_root, config, rows):
 
 
 def check_adr_numbering(root, target_root, config):
-    """检查 6：决策记录编号连续、无重复、文件名合规。
+    """检查 6：决策记录按能力独立编号、文件名合规、目录名合法。
+
+    编号作用域是「能力目录」而不是整个决策目录：每个能力从 0001 起独立编号，
+    同一编号会在不同能力下重复出现，因此引用时必须带能力名。
+    决策目录根下不再允许 ADR——没有归属能力的决策属于体系设计，应写进设计记录或规则文件。
 
     参数：
         root: 项目根
@@ -2873,56 +2912,143 @@ def check_adr_numbering(root, target_root, config):
     folder = os.path.join(target_root, config["dirs"]["decisions"])
     if not os.path.isdir(folder):
         return findings
-    pattern = re.compile(r"^(\d{4})-[a-z0-9]+(-[a-z0-9]+)*\.md$")
-    numbers = []
-    for name in sorted(os.listdir(folder)):
-        if name == "README.md" or not name.endswith(".md"):
-            continue
-        match = pattern.match(name)
-        if not match:
-            findings.append(
-                Finding(
-                    LEVEL_ERROR,
-                    "决策编号",
-                    config["dirs"]["decisions"] + "/" + name
-                    + " 文件名不合规（应为 NNNN-<英文-kebab-case>.md）",
-                )
-            )
-            continue
-        numbers.append(int(match.group(1)))
 
-    duplicates = sorted({n for n in numbers if numbers.count(n) > 1})
-    if duplicates:
+    decisions_rel = config["dirs"]["decisions"]
+    file_pattern = re.compile(r"^(\d{4})-[a-z0-9]+(-[a-z0-9]+)*\.md$")
+    capability_pattern = re.compile(config["capability_name_pattern"])
+
+    # 根下的扁平 ADR：取消全局 ADR 后不再合法。
+    for name in sorted(os.listdir(folder)):
+        path = os.path.join(folder, name)
+        if not os.path.isfile(path) or name == "README.md" or not name.endswith(".md"):
+            continue
         findings.append(
             Finding(
                 LEVEL_ERROR,
                 "决策编号",
-                "编号重复：" + "、".join("%04d" % n for n in duplicates),
+                rel(root, path) + " 位于决策目录根下。ADR 必须归属能力，应放在 "
+                + decisions_rel + "/<能力名>/ 下。",
             )
         )
-    if 0 in numbers:
-        findings.append(
-            Finding(LEVEL_ERROR, "决策编号", "存在 0000 编号，决策编号必须从 0001 起")
-        )
-    if numbers:
-        expected = set(range(1, max(numbers) + 1))
-        gaps = sorted(expected - set(numbers))
-        if gaps:
+
+    for dir_name in sorted(os.listdir(folder)):
+        capability_dir = os.path.join(folder, dir_name)
+        if not os.path.isdir(capability_dir):
+            continue
+        if not capability_pattern.fullmatch(dir_name):
             findings.append(
                 Finding(
                     LEVEL_ERROR,
                     "决策编号",
-                    "编号不连续，缺少：" + "、".join("%04d" % n for n in gaps),
+                    rel(root, capability_dir) + " 目录名不是合法的能力名（应匹配 "
+                    + config["capability_name_pattern"] + "）",
                 )
             )
+            continue
+
+        numbers = []
+        for name in sorted(os.listdir(capability_dir)):
+            if name == "README.md" or not name.endswith(".md"):
+                continue
+            path = os.path.join(capability_dir, name)
+            if not os.path.isfile(path):
+                continue
+            match = file_pattern.match(name)
+            if not match:
+                findings.append(
+                    Finding(
+                        LEVEL_ERROR,
+                        "决策编号",
+                        rel(root, path)
+                        + " 文件名不合规（应为 NNNN-<英文-kebab-case>.md）",
+                    )
+                )
+                continue
+            numbers.append(int(match.group(1)))
+
+        duplicates = sorted({n for n in numbers if numbers.count(n) > 1})
+        if duplicates:
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "决策编号",
+                    "能力「" + dir_name + "」编号重复："
+                    + "、".join("%04d" % n for n in duplicates),
+                )
+            )
+        if 0 in numbers:
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "决策编号",
+                    "能力「" + dir_name + "」存在 0000 编号，决策编号必须从 0001 起",
+                )
+            )
+        if numbers:
+            expected = set(range(1, max(numbers) + 1))
+            gaps = sorted(expected - set(numbers))
+            if gaps:
+                findings.append(
+                    Finding(
+                        LEVEL_ERROR,
+                        "决策编号",
+                        "能力「" + dir_name + "」编号不连续，缺少："
+                        + "、".join("%04d" % n for n in gaps),
+                    )
+                )
     return findings
+
+
+def collect_adr_records(folder):
+    """收集决策目录下的全部 ADR。
+
+    返回 (记录列表, 已存在编号集合)：
+      - 记录列表元素为 (文件绝对路径, 所属能力名)；根下 ADR 的能力名为 None
+      - 编号集合按「(能力名, 编号)」组织，根下项为 (None, 编号)
+
+    抽成函数是因为编号检查与「取代」检查要按同一口径取文件；
+    两处各遍历一次迟早会出现「一处认根下、另一处不认」的分叉。
+
+    参数：
+        folder: 决策目录绝对路径
+
+    返回：
+        (records, existing)
+    """
+    records = []
+    existing = set()
+    if not os.path.isdir(folder):
+        return records, existing
+
+    for name in sorted(os.listdir(folder)):
+        path = os.path.join(folder, name)
+        if os.path.isfile(path):
+            if name == "README.md" or not name.endswith(".md"):
+                continue
+            match = re.match(r"^(\d{4})-", name)
+            if match:
+                existing.add((None, int(match.group(1))))
+                records.append((path, None))
+            continue
+        if not os.path.isdir(path):
+            continue
+        for child in sorted(os.listdir(path)):
+            child_path = os.path.join(path, child)
+            if not child.endswith(".md") or child == "README.md" or not os.path.isfile(child_path):
+                continue
+            match = re.match(r"^(\d{4})-", child)
+            if match:
+                existing.add((name, int(match.group(1))))
+                records.append((child_path, name))
+    return records, existing
 
 
 def check_adr_supersede(root, target_root, config):
     """检查 9：ADR「取代」字段指向的编号必须存在。
 
-    决策链的价值在于「顺着编号能查到被取代者」。若指向一个不存在的编号，
-    表面上有一条链，实际上断在中间，而读者无从判断是笔误还是链本身缺失。
+    引用格式为 ADR-<能力名>-NNNN：编号只在能力内唯一，不带能力名的引用无法定位。
+    跨能力取代允许，因此目标在全部能力目录中查找，而不是只看当前目录。
+    决策链的价值在于「顺着编号能查到被取代者」；断在中间时读者无从判断是笔误还是链本身缺失。
 
     参数：
         root: 项目根
@@ -2934,38 +3060,88 @@ def check_adr_supersede(root, target_root, config):
     """
     findings = []
     folder = os.path.join(target_root, config["dirs"]["decisions"])
-    if not os.path.isdir(folder):
+    records, existing = collect_adr_records(folder)
+    if not records:
         return findings
 
-    existing = set()
-    for name in os.listdir(folder):
-        match = re.match(r"^(\d{4})-", name)
-        if match and name.endswith(".md"):
-            existing.add(int(match.group(1)))
+    ref_pattern = re.compile(r"ADR-([a-z0-9]+(?:-[a-z0-9]+)*)-(\d{4})")
+    legacy_pattern = re.compile(r"ADR-(\d{4})(?![0-9-])")
 
-    pattern = re.compile(r"ADR-(\d{4})")
-    for name in sorted(os.listdir(folder)):
-        if name == "README.md" or not name.endswith(".md"):
-            continue
-        path = os.path.join(folder, name)
-        if not os.path.isfile(path):
-            continue
+    for path, _capability in records:
         text, _ = read_text(path)
         if text is None:
             continue
         section = _supersede_section(text)
         if not section:
             continue
-        for number in pattern.findall(section):
-            target = int(number)
-            if target == 0 or target not in existing:
+
+        # 先摘掉合法的新格式引用，剩下的 ADR-NNNN 才是缺少能力名的旧写法。
+        remainder = ref_pattern.sub("", section)
+        for number in legacy_pattern.findall(remainder):
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "决策取代",
+                    rel(root, path) + " 的「取代」引用 ADR-" + number
+                    + " 缺少能力名；编号只在能力内唯一，请改写为 ADR-<能力名>-" + number,
+                )
+            )
+
+        for capability_name, number in ref_pattern.findall(section):
+            if (capability_name, int(number)) not in existing:
                 findings.append(
                     Finding(
                         LEVEL_ERROR,
                         "决策取代",
-                        rel(root, path) + " 的「取代」指向 ADR-" + number + "，但该编号的决策记录不存在",
+                        rel(root, path) + " 的「取代」指向 ADR-"
+                        + capability_name + "-" + number + "，但该决策记录不存在",
                     )
                 )
+    return findings
+
+
+def check_adr_capability_field(root, target_root, config):
+    """检查 10：ADR 文件头的「关联能力」必须与所在目录名一致。
+
+    目录名与字段值表达同一件事：这条决策属于哪个能力。两处分叉时，
+    按目录查与按字段查会得到不同答案，而读者无从判断哪个作数。
+
+    字段名固定为模板里的「关联能力」；配置未声明该字段时跳过，
+    避免把「项目改了文件头字段」误报成「所有 ADR 都缺值」。
+
+    参数：
+        root: 项目根
+        target_root: 文档根
+        config: 配置字典
+
+    返回：
+        缺口列表
+    """
+    findings = []
+    field = "关联能力"
+    if field not in config["file_header"]["fields"]:
+        return findings
+
+    folder = os.path.join(target_root, config["dirs"]["decisions"])
+    records, _existing = collect_adr_records(folder)
+    for path, capability in records:
+        # 根下 ADR 已由编号检查报错，这里不重复按归属报。
+        if capability is None:
+            continue
+        text, _ = read_text(path)
+        if text is None:
+            continue
+        values = parse_header_fields(extract_header_table(text))
+        actual = values.get(field, "").strip()
+        if actual != capability:
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "决策归属",
+                    rel(root, path) + " 的「" + field + "」为「" + (actual or "空")
+                    + "」，与所在目录「" + capability + "」不一致",
+                )
+            )
     return findings
 
 
@@ -3390,6 +3566,7 @@ def run_audit(root, config):
         findings.extend(check_archive_consistency(root, target_root, config, rows))
     findings.extend(check_adr_numbering(root, target_root, config))
     findings.extend(check_adr_supersede(root, target_root, config))
+    findings.extend(check_adr_capability_field(root, target_root, config))
     findings.extend(check_explore_records(root, target_root, config))
 
     errors = [item for item in findings if item.level == LEVEL_ERROR]
@@ -3473,7 +3650,11 @@ def main(argv=None):
     adr_parser = sub.add_parser("adr", help="创建决策记录（ADR），自动推算编号")
     adr_parser.add_argument("slug", help="决策描述（英文 kebab-case，成为文件名的一部分）")
     adr_parser.add_argument("--title", default="", help="决策标题（默认取 slug）")
-    adr_parser.add_argument("--capability", default="", help="关联能力（默认「全局」）")
+    adr_parser.add_argument(
+        "--capability",
+        default="",
+        help="关联能力（必填）；决定落点 decisions/<能力名>/ 与编号作用域",
+    )
     adr_parser.add_argument("--scope", **scope_kwargs)
     archive_parser = sub.add_parser("archive", help="把能力的过程文档整包移入归档目录并回写总览表")
     archive_parser.add_argument("name", help="能力名（须已在总览表登记）")
