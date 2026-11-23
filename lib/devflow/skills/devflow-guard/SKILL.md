@@ -5,7 +5,7 @@ license: 内部项目使用
 mode: manual
 metadata:
   category: 开发流程
-  version: 2.1.0
+  version: 2.1.1
 ---
 
 # 开发流程守卫
