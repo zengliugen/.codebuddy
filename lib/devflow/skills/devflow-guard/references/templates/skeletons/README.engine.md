@@ -22,8 +22,8 @@
 
 ## 能力名必须带包前缀
 
-本目录横跨全部引擎包，条目前缀就是归属信息：`<包名>-<能力>`，例如 `devflow-scope-support`、
-`core-init-orphan-detect`。
+本目录横跨全部引擎包，条目前缀就是归属信息：`<包名>-<能力>`，例如 `devflow-cache-policy`、
+`core-orphan-detect`。
 
 | 为什么 | 说明 |
 |---|---|

@@ -1597,8 +1597,11 @@ def run_explore(root, config, slug, title):
     print("已创建需求探索记录：")
     print("  " + rel(root, target))
     print("")
-    print("下一步：填写「要解决的问题」「未定项」与「结论」，确认后把状态改为已确认，")
-    print("       再用 new <能力名> --from-explore " + slug + " 建立能力文档。")
+    print("下一步：")
+    print("  1) 先查既有方案（联网检索 / 上游与框架文档 / 本地依赖），填「## 既有方案调研」；")
+    print("     确实没有匹配方案时写一行「未找到匹配方案」并列出检索范围。")
+    print("  2) 再填「要解决的问题」「未定项」「已确认的决定」与「结论」，确认后把状态改为已确认。")
+    print("  3) 用 new <能力名> --from-explore " + slug + " 建立能力文档。")
     return 0
 
 
@@ -1661,7 +1664,20 @@ def check_explore_confirmed(root, config, slug):
         hint = ("、".join(v for v in config["overview"]["status_values"] if v != initial))
         die(
             "需求探索尚未确认：" + folder + "/" + slug + ".md 状态为「" + (status or "空") + "」" + "\n" +
-            "请先补齐「结论」一节，并把状态改为 " + hint + " 中的任一档，再建立能力文档。"
+            "请先补齐「既有方案调研」与「结论」两节，并把状态改为 " + hint + " 中的任一档，再建立能力文档。"
+        )
+
+    # 「既有方案调研」必须先有记录：不查外部方案就自研，两种代价都不报错——
+    # 重复实现已有的东西，或错过框架已经提供的通道。这里只要求「有记录」，
+    # 不判断检索是否充分（那属评审）。确实没有匹配方案时写一行
+    # 「未找到匹配方案」并列出检索范围即可，不允许留空。
+    research = extract_section(text, "既有方案调研")
+    if not has_table_rows(research):
+        die(
+            "需求探索记录缺少既有方案调研：" + folder + "/" + slug + ".md" + chr(10) +
+            "「## 既有方案调研」一节须至少写一行（候选 / 来源 / 匹配点 / 结论）。" + chr(10) +
+            "先检索公开资料、上游或框架文档与本地依赖；确实没有匹配方案时，" + chr(10) +
+            "写一行「未找到匹配方案」并列出检索范围与关键词。"
         )
 
     # 「已确认的决定」必须至少有一条实质内容：结论只说明最终做什么，
@@ -1731,7 +1747,7 @@ def has_table_rows(section_text):
         # 表头与对齐行
         if all(set(cell) <= set("-: ") for cell in cells):
             continue
-        if cells[0] in ("决定", "未定项", "方向", "约束"):
+        if cells[0] in ("决定", "未定项", "方向", "约束", "候选", "方案"):
             continue
         if any(cells):
             return True
@@ -1958,7 +1974,8 @@ def run_new(root, config, name, rework_from='', from_explore=''):
         die(
             "建立能力文档前必须先确认需求。\n"
             "1) 创建探索记录：python devflow_guard.py explore <主题名>\n"
-            "2) 填写「要解决的问题」「未定项」「结论」，状态推进一档\n"
+            "2) 先查既有方案填「## 既有方案调研」，再填「要解决的问题」「未定项」"
+            "「已确认的决定」「结论」，状态推进一档\n"
             "3) 再建立能力文档：python devflow_guard.py new " + name + " --from-explore <主题名>"
         )
     explore_slug = (from_explore or '').strip()

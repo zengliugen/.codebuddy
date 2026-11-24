@@ -315,7 +315,8 @@ python $DIR/scripts/devflow_guard.py new cache-policy-ttl --rework-from cache-po
 
 ```bash
 python $DIR/scripts/devflow_guard.py explore cache-ttl --title "缓存 TTL"
-# 填写「要解决的问题」「已知约束」「未定项」「已排除」「结论」，状态推进一档
+# ① 先查既有方案（联网检索 / 上游与框架文档 / 本地依赖），填「## 既有方案调研」
+# ② 再填「要解决的问题」「未定项」「已排除」「结论」「已确认的决定」，状态推进一档
 python $DIR/scripts/devflow_guard.py new cache-ttl --from-explore cache-ttl
 ```
 
@@ -323,12 +324,14 @@ python $DIR/scripts/devflow_guard.py new cache-ttl --from-explore cache-ttl
 做成可选会产生两种「new 行为不一样」的项目，而规则文本无法同时说清两者；
 若某项目确实不需要，它就不该装这个包。
 
-三道门槛，缺一不可：
+五道门槛，缺一不可：
 
 | 门槛 | 判据 | 为什么 |
 |---|---|---|
 | 记录存在 | `<explore>/<slug>.md` 存在 | 防止引用一个没写过的记录 |
 | 状态已推进 | 状态不是初始档 | 初始档表示还在讨论 |
+| 调研有记录 | 「## 既有方案调研」表格至少一行 | 不查就自研，重复实现与错过现成通道都不报错；确实没有匹配方案时写一行「未找到匹配方案」并列出检索范围 |
+| 决定非空 | 「## 已确认的决定」表格至少一行 | 只有结论没有判据，等于把同一个问题原样推给后来者 |
 | 结论非空 | 「## 结论」里有非提示、非空标签的实质内容 | 结论为空意味着还没确认任何东西 |
 
 **为什么探索记录允许反复改写、而能力文档不行**：需求在确认之前本来就该变；能力文档一旦建立就是
