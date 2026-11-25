@@ -20,6 +20,7 @@ compatibility:
       - keyword: "代码风格"
       - keyword: "重命名|批量重命名"
       - keyword: "命名.*规范|IDE1006"
+      - keyword: "检查报告|规范报告|代码规范"
   execution:
     context: "inline"
     shell: "powershell"
@@ -30,6 +31,7 @@ compatibility:
       - "SKILL.md"
       - "scripts/dotnet_format.py"
       - "scripts/rename_symbol.py"
+      - "scripts/format_report.py"
       - "agents/interface.yaml"
   trust:
     source_tier: "local"

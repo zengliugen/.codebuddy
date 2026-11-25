@@ -96,7 +96,7 @@ namespace RenameSymbolTool
             }
 
             NamingRuleSet ruleSet = NamingRuleSet.Load(editorConfigPath);
-            Console.WriteLine($"[配置] {editorConfigPath}（命名规则 {ruleSet.RuleCount} 条）");
+            Console.WriteLine($"[配置] {editorConfigPath}（命名规则 {ruleSet.RuleCount} 条，生效 {ruleSet.EnforcedCount} 条）");
             if (ruleSet.RuleCount == 0)
             {
                 Console.Error.WriteLine("[错误] .editorconfig 中未找到 dotnet_naming_rule 命名规则");

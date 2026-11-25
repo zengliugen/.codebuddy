@@ -28,10 +28,11 @@ namespace RenameSymbolTool
     }
 
     /// <summary>
-    /// 命名规则：对应 .editorconfig 的 dotnet_naming_rule.*（符号集合 + 样式 + 声明顺序）
+    /// 命名规则：对应 .editorconfig 的 dotnet_naming_rule.*（符号集合 + 样式 + 触发级别 + 声明顺序）
     /// </summary>
     internal sealed class NamingRule
     {
+        public string Severity;
         public NamingSymbols Symbols;
         public NamingStyle Style;
         public int Order;
@@ -50,6 +51,12 @@ namespace RenameSymbolTool
         public int RuleCount
         {
             get { return m_rules.Count; }
+        }
+
+        // 实际参与改名的规则数（severity 为 warning/error 的规则）
+        public int EnforcedCount
+        {
+            get { return m_rules.Count(rule => IsEnforced(rule.Severity)); }
         }
 
         /// <summary>
@@ -135,6 +142,7 @@ namespace RenameSymbolTool
 
                 ruleSet.m_rules.Add(new NamingRule
                 {
+                    Severity = GetValue(ruleProperties, "severity", "warning"),
                     Symbols = symbols,
                     Style = style,
                     Order = index,
@@ -162,7 +170,7 @@ namespace RenameSymbolTool
         {
             newName = null;
             NamingRule matched = m_rules
-                .Where(rule => Matches(rule.Symbols, symbol))
+                .Where(rule => IsEnforced(rule.Severity) && Matches(rule.Symbols, symbol))
                 .OrderByDescending(rule => rule.Symbols.RequiredModifiers.Count)
                 .ThenByDescending(rule => rule.Symbols.RequiredModifiers.Contains("const") ? 1 : 0)
                 .ThenByDescending(rule => rule.Symbols.Accessibilities.Contains("*") ? 0 : 1)
@@ -236,6 +244,15 @@ namespace RenameSymbolTool
 
             newName = style.Prefix + name;
             return true;
+        }
+
+        /// <summary>
+        /// 是否参与改名：只有 warning / error 级别的规则生效；none 与 silent 不驱动改名
+        /// </summary>
+        private static bool IsEnforced(string severity)
+        {
+            return string.Equals(severity, "warning", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(severity, "error", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool Matches(NamingSymbols symbols, ISymbol symbol)

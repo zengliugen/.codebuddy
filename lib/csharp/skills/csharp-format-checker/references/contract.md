@@ -16,6 +16,8 @@ input_contract:
     - config: 配置文件路径（默认经索引 format_checker.config 定位到项目侧）
     - rename_projects: 重命名目标 csproj 路径（一个或多个，必填）
     - rename_mode: 重命名模式（--dry-run 默认只出清单 / --apply 落盘）
+    - report_logs: 报告生成用的 dotnet format 日志路径（--log，可多次指定）
+    - report_out: 报告输出目录（--out）
   fallback:
     - project_root: 脚本从当前目录向上查找含 .editorconfig 的目录作为项目根
     - config_file: 读取项目侧配置（索引 format_checker.config 定位），缺失时报错退出（不生成模板）
@@ -29,6 +31,7 @@ output_contract:
     - report_file: check_logs/ 下 .md 摘要报告（工作区/检查范围/分组/退出码/诊断统计）
     - json_file: check_logs/ 下 .json 结构化报告（含 scope_key 与 scope 范围信息，供 --reuse-report 严格匹配复用）
     - rename_list: 重命名的待改名/已改名符号清单（符号全名 → 新名 + 文件行号）
+    - report_dir: 报告目录（00-总览.md / 01-模块结论/*.md / 02-按问题类型汇总/*.md）
   optional:
     - formatted_count: 需格式化（check）或已格式化（fix）的统计信息
   evidence:
@@ -58,6 +61,7 @@ references:
   - config-guide: references/config-guide.md
   - h1-integration: references/h1-integration.md（提交门禁 H1 集成说明）
   - rename-symbol: references/rename-symbol.md（命名规范化重命名说明）
+  - report-guide: references/report-guide.md（检查报告生成说明）
   - output-risk: reports/output-risk-profile.md
 evaluation:
   trigger_evals: evals/trigger/
