@@ -30,7 +30,7 @@
 | **聚合合理** | 4/5 | 按语义主题聚合（Methods/Fields/Construction/Operators/Coverage），避免每成员一文件；但 `Coverage` 兜底桶语义偏弱 |
 | **编译通过** | 5/5 | 实测 `failed=false`、`errors=[]` |
 | **不猜断言** | 5/5 | 仅生成 `Assert.Inconclusive` + TODO 注释，不臆造期望值 |
-| **注释合规** | 5/5 | 文件头 `/// <file>`（不嵌 remarks）、类/方法 `///`、TODO 用行内注释 |
+| **注释合规** | 5/5 | 文件头 `// <file>` 行注释（不能用 `///`，否则 CS1587）、类/方法 `///`、TODO 用行内注释 |
 | **防误提交** | 5/5 | 文件头、方法 remarks、控制台三处标注「骨架不可当已补测试提交」 |
 
 ### 实测样例
@@ -38,12 +38,12 @@
 生成 2 个文件 / 16 个用例，编译通过。片段：
 
 ```csharp
-/// <file>
-/// AssetCheckInfo 的 NUnit 测试集合（覆盖率检查生成的骨架）。
-/// 对应运行时文件：Packages/com.littlebaby.framework.core/Editor/Core/AssetChecker/AssetCheckInfo.cs。
-/// 本文件为骨架，所有用例均以 Assert.Inconclusive 占位，尚未补完断言，
-/// 补断言前不可视为有效测试。
-/// </file>
+// <file>
+// AssetCheckInfo 的 NUnit 测试集合（覆盖率检查生成的骨架）。
+// 对应运行时文件：Packages/com.littlebaby.framework.core/Editor/Core/AssetChecker/AssetCheckInfo.cs。
+// 本文件为骨架，所有用例均以 Assert.Inconclusive 占位，尚未补完断言，
+// 补断言前不可视为有效测试。
+// </file>
 
 namespace LittleBaby.Framework.Core.Tests.Editor.Core.AssetChecker
 {

@@ -273,7 +273,7 @@ internal static class DocCommentCheckers
                 CodeSnippet = "文件开头",
                 Member = "",
                 MemberType = "",
-                Message = "缺少文件头注释（/// <file> 或 // ====== 格式）。"
+                Message = "缺少文件头注释（// <file> 或 // ====== 格式）。"
             });
         }
     }

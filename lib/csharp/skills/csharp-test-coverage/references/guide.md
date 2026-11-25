@@ -95,7 +95,7 @@ unity command "script eval" --code "return UnityEngine.TestTools.Coverage.enable
    - **不存在** → 新建 `Tests/{Editor|Runtime}/<镜像路径>/<主干名>Tests.cs`，命名空间镜像目录层级。
 2. **`partial` 成员查重**：写前扫描已有分部，骨架不得引入会重名的 `private const` / 字段。
 3. **内容**：仅骨架 + `Assert.Inconclusive("骨架用例：断言待补完。")` + `TODO(待补完)` 注释，**不猜断言**。
-4. **注释合规**：文件头 `/// <file>`、类/方法 `///`、测试字面量行内注释（否则会引入 `inline_magic_number` 问题）。
+4. **注释合规**：文件头 `// <file>` 行注释（不能用 `///`，否则 CS1587）、类/方法 `///`、测试字面量行内注释（否则会引入 `inline_magic_number` 问题）。
 5. **报告标注**：骨架一律标「未完成」，并在报告中声明「生成物不可当作已补测试提交」。
 
 ## 真实采集要点

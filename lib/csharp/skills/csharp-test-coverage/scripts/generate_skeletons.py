@@ -230,11 +230,11 @@ def build_partial_skeleton(records, test_class, namespace, config):
             topic = stem.split(".", 1)[1]
 
     lines = []
-    lines.append("/// <file>")
-    lines.append("/// %s 的 %s 专项测试骨架（partial 分部）。" % (type_name, topic or "Coverage"))
-    lines.append("/// 本文件为覆盖率检查生成的骨架，所有用例均以 Assert.Inconclusive 占位，尚未补完断言；")
-    lines.append("/// 覆盖未覆盖成员 %d 个，补断言前不可视为有效测试。" % len(records))
-    lines.append("/// </file>")
+    lines.append("// <file>")
+    lines.append("// %s 的 %s 专项测试骨架（partial 分部）。" % (type_name, topic or "Coverage"))
+    lines.append("// 本文件为覆盖率检查生成的骨架，所有用例均以 Assert.Inconclusive 占位，尚未补完断言；")
+    lines.append("// 覆盖未覆盖成员 %d 个，补断言前不可视为有效测试。" % len(records))
+    lines.append("// </file>")
     lines.append("")
     lines.append("namespace %s" % namespace)
     lines.append("{")
@@ -280,12 +280,12 @@ def build_new_file_skeleton(records, test_file_relative, test_class, namespace, 
     runtime_file = records[0].get("RelativeFile", "") if records else ""
 
     lines = []
-    lines.append("/// <file>")
-    lines.append("/// %s 的 NUnit 测试集合（覆盖率检查生成的骨架）。" % type_name)
-    lines.append("/// 对应运行时文件：%s。" % runtime_file)
-    lines.append("/// 本文件为骨架，所有用例均以 Assert.Inconclusive 占位，尚未补完断言，")
-    lines.append("/// 补断言前不可视为有效测试。")
-    lines.append("/// </file>")
+    lines.append("// <file>")
+    lines.append("// %s 的 NUnit 测试集合（覆盖率检查生成的骨架）。" % type_name)
+    lines.append("// 对应运行时文件：%s。" % runtime_file)
+    lines.append("// 本文件为骨架，所有用例均以 Assert.Inconclusive 占位，尚未补完断言，")
+    lines.append("// 补断言前不可视为有效测试。")
+    lines.append("// </file>")
     lines.append("")
     lines.append("namespace %s" % namespace)
     lines.append("{")
