@@ -119,7 +119,15 @@ namespace RenameSymbolTool
                 try
                 {
                     Console.WriteLine($"[加载] {path}");
-                    await workspace.OpenProjectAsync(path);
+                    if (path.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)
+                        || path.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await workspace.OpenSolutionAsync(path);
+                    }
+                    else
+                    {
+                        await workspace.OpenProjectAsync(path);
+                    }
                 }
                 catch (ArgumentException ex)
                 {
@@ -438,6 +446,10 @@ namespace RenameSymbolTool
                         {
                             symbol = model.GetDeclaredSymbol(node);
                         }
+                        else if (node is ParameterSyntax || node is EnumDeclarationSyntax)
+                        {
+                            symbol = model.GetDeclaredSymbol(node);
+                        }
                         else
                         {
                             continue;
@@ -448,7 +460,10 @@ namespace RenameSymbolTool
                             continue;
                         }
 
-                        string key = symbol.ToDisplayString();
+                        // 去重键必须带声明位置：不同方法中同名同类型的参数显示名相同，只按显示名会漏处理
+                        FileLinePositionSpan span = node.GetLocation().GetLineSpan();
+                        string location = $"{Path.GetFileName(document.FilePath)}:{span.StartLinePosition.Line + 1}";
+                        string key = $"{symbol.ToDisplayString()}@{document.FilePath}:{span.StartLinePosition.Line}:{span.StartLinePosition.Character}";
                         if (s_handled.Contains(key))
                         {
                             continue;
@@ -462,7 +477,7 @@ namespace RenameSymbolTool
                         }
 
                         // 抑制器豁免：被 #pragma / SuppressMessage 抑制的符号视为有意保留，不改名
-                        int declarationLine = node.GetLocation().GetLineSpan().StartLinePosition.Line;
+                        int declarationLine = span.StartLinePosition.Line;
                         if (IsLineSuppressed(pragmaRanges, declarationLine)
                             || HasSuppressMessageAttribute(symbol)
                             || (compilation != null && IsAssemblySuppressed(symbol, compilation)))
@@ -471,8 +486,6 @@ namespace RenameSymbolTool
                             continue;
                         }
 
-                        FileLinePositionSpan span = node.GetLocation().GetLineSpan();
-                        string location = $"{Path.GetFileName(document.FilePath)}:{span.StartLinePosition.Line + 1}";
                         s_handled.Add(key);
                         return (symbol, location, newName);
                     }
@@ -485,7 +498,13 @@ namespace RenameSymbolTool
         // 计算新名称；不合规、无法推导或存在重名冲突时返回 null
         private static string TryGetNewName(ISymbol symbol, NamingRuleSet ruleSet)
         {
-            if (symbol.IsImplicitlyDeclared || symbol.Name.Length <= 1)
+            if (symbol.IsImplicitlyDeclared || symbol.Name.Length == 0)
+            {
+                return null;
+            }
+
+            // 字段的占位名（_ / s 等单字符）无法推导，跳过；参数与局部变量单字符可正常转小写
+            if (symbol is IFieldSymbol && symbol.Name.Length <= 1)
             {
                 return null;
             }
@@ -500,16 +519,69 @@ namespace RenameSymbolTool
                 return null;
             }
 
-            INamedTypeSymbol containingType = symbol.ContainingType;
-            if (containingType != null && containingType.GetMembers(newName).Length > 0)
+            // 重名预检：参数查所属方法（含方法体局部变量），类型查所属命名空间，其余查所属类型
+            if (symbol is IParameterSymbol parameter)
             {
-                return null;
+                if (parameter.ContainingSymbol is IMethodSymbol method)
+                {
+                    if (method.Parameters.Any(item => item.Name == newName
+                        && !SymbolEqualityComparer.Default.Equals(item, parameter)))
+                    {
+                        return null;
+                    }
+
+                    // 方法体内的局部变量/局部函数同名会被遮蔽，导致引用错位
+                    if (HasLocalNameConflict(method, newName))
+                    {
+                        return null;
+                    }
+                }
+            }
+            else if (symbol is INamedTypeSymbol namedType)
+            {
+                if (namedType.ContainingNamespace != null
+                    && namedType.ContainingNamespace.GetMembers(newName).Any())
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                INamedTypeSymbol containingType = symbol.ContainingType;
+                if (containingType != null && containingType.GetMembers(newName).Length > 0)
+                {
+                    return null;
+                }
             }
 
             return newName;
         }
 
-        // 只处理可安全改名的成员：字段、属性、普通方法与事件；override 与显式接口实现跳过
+        /// <summary>
+        /// 判断方法体内是否已有同名局部变量或局部函数（参数改名会与其冲突）
+        /// </summary>
+        private static bool HasLocalNameConflict(IMethodSymbol method, string name)
+        {
+            foreach (SyntaxReference reference in method.DeclaringSyntaxReferences)
+            {
+                foreach (SyntaxNode node in reference.GetSyntax().DescendantNodes())
+                {
+                    if (node is VariableDeclaratorSyntax variable && variable.Identifier.ValueText == name)
+                    {
+                        return true;
+                    }
+
+                    if (node is LocalFunctionStatementSyntax localFunction && localFunction.Identifier.ValueText == name)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // 只处理可安全改名的符号：字段、属性、普通方法、事件、参数与枚举类型；override 与显式接口实现跳过
         private static bool IsSupported(ISymbol symbol)
         {
             switch (symbol)
@@ -524,6 +596,12 @@ namespace RenameSymbolTool
                     return method.MethodKind == MethodKind.Ordinary
                         && !method.IsOverride
                         && method.ExplicitInterfaceImplementations.Length == 0;
+                case IParameterSymbol:
+                    // 参数改名只影响方法体与 XML 注释，不影响调用方
+                    return true;
+                case INamedTypeSymbol type:
+                    // 类型只处理枚举（当前 .editorconfig 仅对 enum 有前缀约束）
+                    return type.TypeKind == TypeKind.Enum && !type.IsImplicitlyDeclared;
                 default:
                     return false;
             }

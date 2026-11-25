@@ -452,6 +452,12 @@ namespace RenameSymbolTool
                 case "first_word_upper":
                     return char.ToUpperInvariant(name[0]) + name.Substring(1);
                 case "camel_case":
+                    // 全大写名（KEY / ID / TYPE 等）整体转小写，而不是只改首字母
+                    if (IsAllUpper(name))
+                    {
+                        return name.ToLowerInvariant();
+                    }
+
                     return char.ToLowerInvariant(name[0]) + name.Substring(1);
                 case "all_upper":
                     return name.ToUpperInvariant();
@@ -460,6 +466,29 @@ namespace RenameSymbolTool
                 default:
                     return name;
             }
+        }
+
+        /// <summary>
+        /// 判断名称是否全部由大写字母组成（忽略数字与下划线）
+        /// </summary>
+        private static bool IsAllUpper(string name)
+        {
+            bool hasLetter = false;
+            foreach (char character in name)
+            {
+                if (!char.IsLetter(character))
+                {
+                    continue;
+                }
+
+                hasLetter = true;
+                if (!char.IsUpper(character))
+                {
+                    return false;
+                }
+            }
+
+            return hasLetter;
         }
 
         private static bool IsLegacyPrefixed(string name, string prefix)
