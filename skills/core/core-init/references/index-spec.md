@@ -25,7 +25,10 @@
   "_comment": "…",
   "project_config_root": ".codebuddy.project",
   "artifacts": {
-    "dirs": { "<逻辑名>": ".codebuddy.project/caches/skills/<pack>/<技能>/check_logs" }
+    "dirs": {
+      "caches.root": ".codebuddy.project/caches",
+      "<逻辑名>": ".codebuddy.project/caches/skills/<pack>/<技能>/check_logs"
+    }
   },
   "root_symlinks": {
     "entries": {
@@ -67,7 +70,7 @@
 | `files.<逻辑名>.template` | json 必填 | JSON 骨架（占位值） |
 | `files.<逻辑名>.template_outline` | markdown 必填 | Markdown 章节大纲 |
 | `rule_shells` | 否 | 规则薄壳的项目事实正文：键为薄壳相对 `.codebuddy` 的路径 |
-| `artifacts.dirs` | 否 | 运行时产物目录：逻辑名 → 项目侧镜像路径；供脚本落盘与清理工具枚举，不入库 |
+| `artifacts.dirs` | 否 | 运行时产物目录：逻辑名 → 项目侧镜像路径；供脚本落盘与清理工具枚举，不入库。**若某条目是其他条目的上级目录（如 `caches.root`），清理时整目录清空**（含未登记残留），详见 §3.6 |
 | `root_symlinks.entries` | 否 | 引擎根下需软链接外置的单个文件：`link`（引擎内链接路径）+ `path`（项目侧源文件路径）+ `format` + `template` |
 | `rule_shells.<键>.path` | 是 | 项目事实正文路径（相对项目根） |
 | `rule_shells.<键>.format` / `template_outline` | 是 | 同 `files` |
@@ -145,6 +148,11 @@
 - **路径含包层**：`caches/skills/<pack>/<技能>/`。`core-init` 只创建**已装包**的产物目录；
   未安装包的缓存目录不会出现。
 - `core-init` 依据本节点创建产物空目录；项目侧 `.gitignore` 统一忽略、不入库。
+- **上级目录条目按整目录清空**：`caches.root` 是其余缓存条目的上级，`cleanup_artifacts.py`
+  对其实施「整目录清空 + 重建」，其下**未登记**的残留（旧版本技能目录、手工留存的临时文件）
+  一并清除。这样新增缓存目录无需逐条登记也不会被漏清；登记表仍用于落盘、初始化与存在性校验。
+  安全护栏：产物根必须严格位于项目根内，且不得包含 `files` / `rule_shells` / `root_symlinks`
+  登记的任何入库路径，否则清理工具报错退出。
 - **入库边界由 `.codebuddy.project/.gitignore` 精确划定**：忽略 `caches/`、各组件目录下的 `<pack>` 桥接链接
   与通用临时产物，
   并显式反选 `configs/`（`!configs/` + `!configs/**`）与 `docs/`（`!docs/` + `!docs/**`）。
@@ -153,7 +161,9 @@
     会连带忽略项目侧的入库内容，故必须反选恢复，否则配置与文档**静默不入库**。
   - **主动忽略**：`<pack>` 是派生出来的目录链接（源在 `lib/<pack>/<类型>`），本就不该入库。
     详见 §3.7。
-- 清理：引擎侧 `scripts/cleanup_artifacts.py` 遍历本节点枚举目录，删除文件并重建空目录。
+- 清理：引擎侧 `scripts/cleanup_artifacts.py` 遍历本节点枚举目录——被其他条目包含的上级目录
+  （如 `caches.root`）**整目录清空后重建**，其余目录删除内容并重建空目录。整目录清空会带走
+  未登记的残留，故新增缓存目录不需补登记；但产物根不得包含任何入库路径（见上条护栏）。
 
 ### 3.6.1 卸载包后的残留（孤儿）处理
 

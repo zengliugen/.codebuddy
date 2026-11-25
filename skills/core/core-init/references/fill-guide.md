@@ -35,9 +35,9 @@
 
 ## 运行时产物目录（无需填写）
 
-索引 `artifacts.dirs` 声明的产物目录（各技能 `check_logs/`、`.cache/`、根 `.vcs-lock/`）由 `core-init`
+索引 `artifacts.dirs` 声明的产物目录（`caches.root`、各技能 `check_logs/`、`.cache/`、根 `.vcs-lock/`）由 `core-init`
 创建为空目录，**无需填写任何值**；它们由项目侧 `.gitignore` 忽略、不入库。清理用项目侧
-`cleanup-caches.cmd`。本项不属"填写"范畴，仅作说明。
+`cleanup-caches.cmd`（`caches.root` 按整目录清空）。本项不属"填写"范畴，仅作说明。
 
 ## 根级软链接外置文件（root_symlinks.entries）
 

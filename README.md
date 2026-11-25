@@ -292,7 +292,9 @@ schema 与逻辑名约定详见 `skills/core-init/references/index-spec.md`。
 
 - 产物目录清单由索引 `artifacts.dirs` 声明；各脚本经**逻辑名**解析（不硬编码到技能目录）。
 - 清理：项目侧 `cleanup-caches.cmd`（薄入口）调用引擎侧通用工具
-  `.codebuddy/scripts/cleanup_artifacts.py`（清单由索引驱动，删除文件并重建空目录）。
+  `.codebuddy/scripts/cleanup_artifacts.py`。索引中的上级目录条目（`caches.root` →
+  `.codebuddy.project/caches`）按**整目录清空**处理，其下未登记的残留（旧技能目录、手工临时文件）
+  一并清除；其余条目删除内容并重建空目录。
 
 ## 分层配置（通用留引擎、项目值外置）
 

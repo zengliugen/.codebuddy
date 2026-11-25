@@ -3,8 +3,9 @@
   "_comment": "本项目在 .codebuddy 引擎与项目侧配置之间的唯一注册表，随引擎入库共享。路径基准为项目根（.codebuddy 的父目录）；全部为相对路径与占位值，对所有消费项目一致。files 的 template / rule_shells 的 template_outline 供 core-init 技能生成初始占位骨架。缺失、JSON 损坏或缺少必需键时，读取方必须报错退出（退出码 3），不回退内置默认值。迁移到新项目时，由 core-init 技能据此生成 .codebuddy.project/ 下的初始配置。【什么不登记在这里】可选包与项目专有包的桥接链接不进入本索引：其完整信息由 lib/packs.json（包的 location 与 comps）与 .codebuddy.project/configs/packs.json（installed 已装清单）两处共同确定，链接路径由 scripts/pack_install.py 确定性推导（两层：.codebuddy.project/<类型>/<包> → lib/<包>/<类型>，以及 .codebuddy/<类型>/<包> → .codebuddy.project/<类型>/<包>），创建与漂移检测均走该脚本，core-init --status 与 verify --repair 已覆盖。此处重复登记会形成第三个事实来源，installed 变更时易与索引脱节；且桥接是目录而源在引擎 lib 下，误登进 root_symlinks 会让 core-init 把引擎目录当源文件写入骨架，破坏引擎内容。",
   "project_config_root": ".codebuddy.project",
   "artifacts": {
-    "_comment": "运行时产物目录（脚本执行过程中生成，不入库、不随引擎共享）。路径基准为项目根，由 core-init 在项目侧创建空目录；读取方经逻辑名定位（禁止绝对路径）。各产物目录由 .codebuddy.project/.gitignore 统一忽略。",
+    "_comment": "运行时产物目录（脚本执行过程中生成，不入库、不随引擎共享）。路径基准为项目根，由 core-init 在项目侧创建空目录；读取方经逻辑名定位（禁止绝对路径）。各产物目录由 .codebuddy.project/.gitignore 统一忽略。若某条目是其他条目的上级目录（如 caches.root），cleanup_artifacts.py 会整目录清空后重建，其下未登记的残留一并清除；因此新增缓存目录无需逐条登记也不会被漏清（登记表仍用于落盘、初始化与存在性校验）。",
     "dirs": {
+      "caches.root": ".codebuddy.project/caches",
       "code_review.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-code-review/check_logs",
       "comment_checker.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-comment-checker/check_logs",
       "format_checker.check_logs": ".codebuddy.project/caches/skills/csharp/csharp-format-checker/check_logs",
