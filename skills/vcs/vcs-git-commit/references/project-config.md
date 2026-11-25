@@ -70,9 +70,10 @@ type 枚举与含义由 `commit_subject.types` 声明。Git 与 SVN 的格式**�
 
 ## 2. 提交前审查门禁
 
-本节的**机制**与项目侧配置的**参数**（`enabled`/`include_patterns`/`exclude_patterns`/`review_skill`/
+本节的**机制**与项目侧配置的**参数**（`include_patterns`/`exclude_patterns`/`review_skill`/
 `rules_dir`/`report_dir`/`collect_cmd`/`blocking_level`，以及条件参数 `file_extensions`）共同定义提交前审查门禁。
-该门禁作为 §3 H1 的**首个步骤**执行（位置：阶段五，阶段六安全检查之前、阶段七获取 VCS 锁之前）。
+该门禁作为 §3 H1 的**首个步骤**执行（位置：阶段五，阶段六安全检查之前、阶段七获取 VCS 锁之前）；
+**是否执行只由该 H1 步骤行的 `enabled` 控制**，参数块不设独立开关。
 
 ### 2.1 参数来源
 
@@ -83,7 +84,7 @@ type 枚举与含义由 `commit_subject.types` 声明。Git 与 SVN 的格式**�
 
 - **每次提交前自动触发**，在提交计划生成之后、用户授权确认提交之前执行，审查结果影响是否允许执行提交。
 - 非提交场景（仅查看 diff、仅暂存等）不触发。
-- `enabled=false` 时直接跳过本步骤。
+- H1 步骤表中对应行的 `enabled=false` 时直接跳过本步骤（参数块不设独立开关，避免两处开关漂移）。
 
 ### 2.3 审查对象
 
@@ -135,7 +136,7 @@ git ls-files --others --exclude-standard                           # 未跟踪�
 - 审查报告写入项目侧配置的 `report_dir`（**必填**，报告输出目录）。
 
 > 上述三项均由项目侧配置给出，引擎不提供默认值——本技能不感知审查的是哪种语言、
-> 用哪个技能实现。项目未安装对应组件时应在配置中把 `enabled` 置为 `false`。
+> 用哪个技能实现。项目未安装对应组件时应在 H1 步骤表中把对应行的 `enabled` 置为 `false`。
 
 #### 门禁派发提示词模板（要素）
 
