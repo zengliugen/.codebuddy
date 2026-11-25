@@ -174,17 +174,22 @@ def module_of(relative):
 
 
 def common_package_prefix(names):
-    """求所有包名的公共点分段前缀（用于展示与文件短名），至少保留一段。"""
-    segments = [name.split(".") for name in names]
-    if len(segments) < 2:
+    """求包名的公共点分段前缀（用于展示与文件短名）。
+
+    多包时取公共段；单包时去掉最后一段（否则短名会等于整包名，无法缩短）。
+    """
+    names = sorted(set(names))
+    if not names:
         return ""
+    segments = [name.split(".") for name in names]
     prefix = []
     for column in zip(*segments):
         if len(set(column)) == 1:
             prefix.append(column[0])
         else:
             break
-    if len(prefix) >= len(segments[0]):
+    # 公共段等于某个包的全部段（单包或包含关系）时，再少取一段
+    if len(prefix) == len(segments[0]):
         prefix = prefix[:-1]
     return ".".join(prefix) + "." if prefix else ""
 
@@ -737,9 +742,14 @@ def main():
     if not all_rows:
         raise ReportError("日志中未解析到任何诊断")
 
-    # 先按空前缀构建以取得包名，再求公共前缀生成短名
+    # 先按空前缀构建以取得包名（含忽略目录的父包），再求公共前缀生成短名
     preliminary = build_modules(all_rows, "")
-    package_names = [info["name"] for info in preliminary.values() if info["kind"] == "package"]
+    package_names = []
+    for info in preliminary.values():
+        if info["kind"] == "package":
+            package_names.append(info["name"])
+        elif info["kind"] == "ignored-dir":
+            package_names.append(info["name"].split("/", 1)[0])
     modules = build_modules(all_rows, common_package_prefix(package_names))
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
