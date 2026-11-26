@@ -294,6 +294,10 @@ internal static class DocCommentCheckers
     {
         if (string.IsNullOrWhiteSpace(docComment)) return;
 
+        // 单行 <summary> 检查独立成方法，便于只做「缺注释 + 块格式」检查的成员类型复用；
+        // 不参与 <inheritdoc/> 豁免——是否继承注释与摘要写法无关
+        CheckSummarySingleLine(node, docComment, results, filePath, memberName, memberType, ruleName, rules);
+
         var line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
         // 检查 <summary>
@@ -447,6 +451,55 @@ internal static class DocCommentCheckers
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// 检查 &lt;summary&gt; 是否使用单行写法。规范要求起止标签各占一行、内容独占一行。
+    ///
+    /// 独立于 <see cref="CheckDocCommentTags"/> 调用：类、字段、属性等成员类型目前只做
+    /// 「缺注释 + 块注释格式」检查，不进入完整标签检查，但仍需拦截单行写法。
+    /// </summary>
+    /// <param name="node">语法节点。</param>
+    /// <param name="docComment">文档注释文本。</param>
+    /// <param name="results">Issue 结果列表。</param>
+    /// <param name="filePath">文件路径。</param>
+    /// <param name="memberName">成员名称。</param>
+    /// <param name="memberType">成员类型。</param>
+    /// <param name="ruleName">规则名称。</param>
+    /// <param name="rules">规则配置。</param>
+    public static void CheckSummarySingleLine(SyntaxNode node, string? docComment, List<CommentIssue> results, string filePath, string memberName, string memberType, string ruleName, CommentRules rules)
+    {
+        if (string.IsNullOrWhiteSpace(docComment)) return;
+
+        if (!rules.IsIssueEnabled(ruleName, IssueCategories.SummarySingleLine)) return;
+
+        // /** */ 块注释的格式问题由 doc_block_comment_format 单独报告，此处不重复判定其内部排版
+        if (docComment.TrimStart().StartsWith("/*", StringComparison.Ordinal)) return;
+
+        // 只判定「第一个 <summary> 起始标签所在行」是否同时含结束标签。
+        // 不逐行扫描全文：正文（如 <remarks> 里的示例）出现 <summary>...</summary> 字样时不应误判。
+        var summaryIndex = docComment.IndexOf("<summary", StringComparison.Ordinal);
+        if (summaryIndex < 0) return;
+
+        var lineEnd = docComment.IndexOf('\n', summaryIndex);
+        var summaryLine = lineEnd < 0
+            ? docComment.Substring(summaryIndex)
+            : docComment.Substring(summaryIndex, lineEnd - summaryIndex);
+        if (!summaryLine.Contains("</summary>")) return;
+
+        var line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+        results.Add(new CommentIssue
+        {
+            File = filePath,
+            Line = line,
+            Severity = rules.GetIssueSeverity(ruleName, IssueCategories.SummarySingleLine),
+            Category = IssueCategories.SummarySingleLine,
+            RuleName = ruleName,
+            CodeSnippet = SnippetHelpers.GetDeclarationSnippet(node),
+            Member = memberName,
+            MemberType = memberType,
+            Message = "<summary> 使用单行写法，起止标签须各占一行且内容独占一行。"
+        });
     }
 
     /// <summary>

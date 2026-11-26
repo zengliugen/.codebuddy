@@ -100,6 +100,15 @@ public ExampleStateMachine()
 
 ### 3.2 `<summary>` 标签规范
 
+- **禁止单行写法**。`<summary>` 起止标签必须各占一行，摘要内容独占一行：
+  ```csharp
+  /// <summary>游戏状态机。</summary>       // ❌ 禁止
+  ```
+  ```csharp
+  /// <summary>
+  /// 游戏状态机。
+  /// </summary>
+  ```
 - 必须以句号 `。` 结尾。
 - 简明扼要，建议不超过两行。
 - 描述"是什么"和"做什么"，而非"怎么做"。
@@ -117,6 +126,12 @@ public class ExampleStateMachine : StateMachine<AExampleState> { }
 /// <summary>
 /// 状态机
 /// </summary>
+public class ExampleStateMachine : StateMachine<AExampleState> { }
+```
+
+❌ 错误（单行写法）：
+```csharp
+/// <summary>游戏状态机，管理游戏状态的切换与生命周期。</summary>
 public class ExampleStateMachine : StateMachine<AExampleState> { }
 ```
 

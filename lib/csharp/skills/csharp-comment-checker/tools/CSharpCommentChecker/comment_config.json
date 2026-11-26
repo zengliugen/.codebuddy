@@ -12,6 +12,11 @@
           "enabled": true,
           "severity": "error",
           "description": "类缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },
@@ -23,6 +28,11 @@
           "enabled": true,
           "severity": "error",
           "description": "接口缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },
@@ -34,6 +44,11 @@
           "enabled": true,
           "severity": "error",
           "description": "结构体缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },
@@ -45,6 +60,11 @@
           "enabled": true,
           "severity": "error",
           "description": "枚举类型缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         },
         "missing_summary": {
           "enabled": true,
@@ -81,6 +101,11 @@
           "enabled": true,
           "severity": "error",
           "description": "枚举值缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },
@@ -92,6 +117,11 @@
           "enabled": true,
           "severity": "error",
           "description": "委托缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },
@@ -103,6 +133,11 @@
           "enabled": true,
           "severity": "error",
           "description": "事件缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },
@@ -114,6 +149,11 @@
           "enabled": true,
           "severity": "error",
           "description": "方法缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         },
         "missing_summary": {
           "enabled": true,
@@ -170,6 +210,11 @@
           "enabled": true,
           "severity": "error",
           "description": "属性缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },
@@ -181,6 +226,11 @@
           "enabled": true,
           "severity": "error",
           "description": "字段缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },
@@ -192,6 +242,11 @@
           "enabled": true,
           "severity": "error",
           "description": "构造函数缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         },
         "missing_summary": {
           "enabled": true,
@@ -228,6 +283,11 @@
           "enabled": true,
           "severity": "error",
           "description": "运算符重载缺少 XML 文档注释"
+        },
+        "summary_single_line": {
+          "enabled": true,
+          "severity": "warning",
+          "description": "<summary> 使用单行写法（起止标签与内容在同一行）"
         }
       }
     },

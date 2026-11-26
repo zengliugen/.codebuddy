@@ -145,6 +145,10 @@ public static class IssueCategories
     /// </summary>
     public const string SummaryNoPeriod = "summary_no_period";
     /// <summary>
+    /// &lt;summary&gt; 使用单行写法（起止标签与内容在同一行）类别的名称。
+    /// </summary>
+    public const string SummarySingleLine = "summary_single_line";
+    /// <summary>
     /// 方法参数缺少 &lt;param&gt; 标签类别的名称。
     /// </summary>
     public const string MissingParam = "missing_param";

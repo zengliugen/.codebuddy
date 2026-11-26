@@ -21,9 +21,13 @@ public class ConditionSelfEvident
     }
 }
 
-/// <summary>状态枚举。</summary>
+/// <summary>
+/// 状态枚举。
+/// </summary>
 public enum EState
 {
-    /// <summary>就绪状态。</summary>
+    /// <summary>
+    /// 就绪状态。
+    /// </summary>
     Ready = 0,
 }

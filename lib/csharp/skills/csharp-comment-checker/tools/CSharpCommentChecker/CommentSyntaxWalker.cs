@@ -96,6 +96,13 @@ internal class CommentSyntaxWalker : CSharpSyntaxWalker
                 Message = "枚举值缺少 XML 文档注释。"
             });
         }
+        else
+        {
+            // 枚举值不进入完整标签检查，但单行 summary 属禁止写法，须单独拦截
+            DocCommentCheckers.CheckSummarySingleLine(
+                member, DocCommentCheckers.GetDocCommentText(member), _results, _filePath,
+                $"{enumName}.{member.Identifier.Text}", MemberTypes.EnumValue, ruleName, _rules);
+        }
     }
 
     /// <inheritdoc/>
@@ -208,6 +215,11 @@ internal class CommentSyntaxWalker : CSharpSyntaxWalker
         }
 
         CheckBlockCommentFormat(node, name, memberType);
+
+        // 这些成员类型不进入完整标签检查（缺 summary、句号、语言等），但单行 summary 属禁止写法，须单独拦截
+        var ruleName = CommentChecker.GetDocMissingRuleName(memberType);
+        DocCommentCheckers.CheckSummarySingleLine(
+            node, DocCommentCheckers.GetDocCommentText(node), _results, _filePath, name, memberType, ruleName, _rules);
     }
 
     /// <summary>
