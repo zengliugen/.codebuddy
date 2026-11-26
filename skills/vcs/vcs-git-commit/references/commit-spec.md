@@ -117,10 +117,16 @@ PowerShell 的 here-string `@'...'@` 时，`@` 会被当作**字面量**传入�
 
 注意事项：
 
-- 临时文件放在**系统临时目录**，**不要写入 `.git/` 内部目录**；提交完成后删除。
-- **临时文件路径须用显式绝对路径**：Windows + Git Bash 下，同一路径字面量 `/tmp` 被不同工具解析为
-  **不同目录**——Bash 解析为 `C:/Users/<用户>/AppData/Local/Temp`，Python 解析为当前盘符根下的
-  `\tmp`。跨工具传递时会出现「写完却找不到文件」。
+- **临时文件一律经 `project_tmp.py` 生成**，不要手写 `/tmp/...` 之类的路径，也不要在系统临时目录里
+  用固定文件名：`python .codebuddy/scripts/project_tmp.py new --prefix commit-msg --suffix .txt`
+  会输出一行**正斜杠绝对路径**，直接交给 `git commit -F`。脚本在项目侧缓存根（索引 `artifacts.dirs`
+  的 `caches.root`）下的 `tmp/` 目录创建唯一命名文件；`--system` 可显式改用系统临时目录
+  （仅限临时文件不得位于工作副本内的场景）。
+  **不要写入 `.git/` 内部目录**；提交完成后删除（`rm -f "$MSGFILE"`）。
+- **为什么不能手写 `/tmp`**：Windows + Git Bash 下，同一路径字面量 `/tmp` 被不同工具解析为**不同目录**
+  ——Git Bash 与 `git` 解析为 `C:/Users/<用户>/AppData/Local/Temp`，Python 内联代码解析为当前盘符根下的
+  `G:\tmp`。二者又被同机**所有项目共用**，固定文件名会被并发会话覆盖（实测：提交消息被另一项目的内容
+  替换）。脚本输出的绝对路径没有解析分歧，项目内目录也不跨项目共享。
 - 提交前用摘要格式校验脚本确认消息合规（见 `SKILL.md` 阶段四），提交后再用
   `git log -1 --format="%s%n%b"` 复核实际落盘的消息，避免静默污染。
 

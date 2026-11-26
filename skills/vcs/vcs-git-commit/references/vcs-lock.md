@@ -99,15 +99,19 @@ release（无论成功/失败/中止都必须释放）
 `git diff --cached --name-only` 在子目录中执行时输出带当前目录前缀（本仓库为 `<仓库前缀>/`，按 `git rev-parse --show-prefix` 实测值替换）。
 直接把输出喂给脚本会**误报「多出（暂存区有、计划没有）」并逐条列出全部文件**（实为同一批文件）。
 
-生成计划清单前先归一化：
+生成计划清单前先归一化。清单文件同样经 `project_tmp.py` 生成（唯一命名的绝对路径，
+**不要用固定文件名或手写 `/tmp`**，成因见 `commit-spec.md`）：
 
 ```bash
+PLANFILE=$(python .codebuddy/scripts/project_tmp.py new --prefix staged-plan --suffix .txt)
+
 # 先确认当前目录相对仓库根的前缀（本仓库为 <仓库前缀>/，按实测值替换）
 git rev-parse --show-prefix
 
 # 生成计划清单时去掉该前缀
-git diff --cached --name-only | sed 's|^<仓库前缀>/||' > <本笔计划清单.txt>
-python .codebuddy/skills/vcs/vcs-git-commit/scripts/verify_staged.py --expect-file <本笔计划清单.txt>
+git diff --cached --name-only | sed 's|^<仓库前缀>/||' > "$PLANFILE"
+python .codebuddy/skills/vcs/vcs-git-commit/scripts/verify_staged.py --expect-file "$PLANFILE"
+rm -f "$PLANFILE"
 ```
 
 ### 对话层文本比对不可靠（传输层伪影）
