@@ -1,8 +1,8 @@
 {
   "name": "devflow-guard",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "owner": "ok-script-app-pro 项目",
-  "updated_at": "2026-11-24",
+  "updated_at": "2026-11-27",
   "status": "active",
   "maturity_tier": "production",
   "lifecycle_stage": "production",

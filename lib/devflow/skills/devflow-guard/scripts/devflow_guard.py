@@ -6,7 +6,7 @@
 
   init          按项目配置把文档目录结构、目录说明与文档模板复制到项目侧
   new <能力名>  生成设计、计划、偏差、测试四份骨架并登记能力总览表
-  explore <主题> 创建需求探索记录
+  explore <主题> 创建需求探索记录（落点为 <探索目录>/<主题>/，含 assets 资源目录）
   adr <slug> --capability <能力名>  创建决策记录（落在该能力子目录）
   status / archive / audit  状态同步、归档、只读体检
 
@@ -76,6 +76,10 @@ RESERVED_DIR_KEYS = ("explore", "decisions", "archive")
 # 由配置 capability_files 声明——布局是「一能力一目录、内部平铺」。
 DOC_KINDS = ("design", "plan", "deviation", "testing")
 
+# 探索目录内部的布局：每个主题一个目录，目录内放探索记录与资源目录。
+# 两者都由配置 explore 节声明，脚本不内置默认值（缺失即退出码 3）。
+REQUIRED_EXPLORE_KEYS = ("record", "assets")
+
 # 支持的布局模式。单值也是显式声明：取值不在集合内即配置错误，
 # 不做「不认识的布局按默认处理」这类回退。
 LAYOUT_MODES = ("by-capability",)
@@ -95,6 +99,7 @@ REQUIRED_CONFIG_KEYS = (
     "layout",
     "dirs",
     "capability_files",
+    "explore",
     "overview",
     "file_header",
     "capability_name_pattern",
@@ -570,6 +575,20 @@ def _validate_common_keys(config, config_path):
             % ("、".join(missing_files), config_path)
         )
 
+    explore_cfg = config.get("explore")
+    if not isinstance(explore_cfg, dict):
+        raise ConfigError("配置 explore 必须是对象：%s" % config_path)
+    missing_explore = [
+        key for key in REQUIRED_EXPLORE_KEYS if not str(explore_cfg.get(key) or "").strip()
+    ]
+    if missing_explore:
+        raise ConfigError(
+            "配置 explore 缺少键：%s\n"
+            "explore 声明探索目录内部的布局：record 是主题目录内的记录文件名，"
+            "assets 是配套资源目录名（%s）。"
+            % ("、".join(missing_explore), config_path)
+        )
+
     overview = config.get("overview")
     if not isinstance(overview, dict):
         raise ConfigError("配置 overview 必须是对象：%s" % config_path)
@@ -681,6 +700,9 @@ def _validate_shapes(config, config_path):
     for key in RESERVED_DIR_KEYS:
         if not isinstance(config["dirs"][key], str):
             raise ConfigError("dirs.%s 必须是字符串：%s" % (key, config_path))
+    for key in REQUIRED_EXPLORE_KEYS:
+        if not isinstance(config["explore"][key], str):
+            raise ConfigError("explore.%s 必须是字符串：%s" % (key, config_path))
     for kind in DOC_KINDS:
         if not isinstance(config["capability_files"][kind], str):
             raise ConfigError("capability_files.%s 必须是字符串：%s" % (kind, config_path))
@@ -722,6 +744,29 @@ def _validate_shapes(config, config_path):
                 "配置 capability_files 中文件名重复：%s：%s" % (file_name, config_path)
             )
         seen_files.add(file_name)
+
+    # 探索目录内部的布局：record 是主题目录内的记录文件名（复用单段 .md 校验），
+    # assets 是同一目录下的资源目录名。两者必须能共存于同一目录，因此不得同名。
+    explore_cfg = config["explore"]
+    _validate_filename("explore.record", explore_cfg["record"], overview["file"], config_path)
+    assets_name = str(explore_cfg["assets"]).strip()
+    if (
+        not assets_name
+        or os.sep in assets_name
+        or (os.altsep and os.altsep in assets_name)
+        or "/" in assets_name
+        or assets_name in (".", "..")
+        or assets_name.startswith("..")
+    ):
+        raise ConfigError(
+            "explore.assets 必须是单段目录名（不得含路径分隔符或上跳路径）：%s（%s）"
+            % (assets_name, config_path)
+        )
+    if assets_name == str(explore_cfg["record"]).strip():
+        raise ConfigError(
+            "explore.assets 不能与 explore.record 同名：%s（%s）"
+            % (assets_name, config_path)
+        )
 
 
 def _validate_filename(name, value, overview_file, config_path):
@@ -892,6 +937,10 @@ def fill_placeholders(text, config, keep_generator=False):
         mapping["{{cap_" + kind + "}}"] = "<能力名>/" + config["capability_files"][kind]
 
     mapping["<决策目录>"] = config["dirs"]["decisions"]
+    # 探索目录内部布局：模板用占位符引用记录名与资源目录名，
+    # 避免目录说明写死具体名字后与配置分叉。
+    mapping["{{explore_record}}"] = config["explore"]["record"]
+    mapping["{{explore_assets}}"] = config["explore"]["assets"]
     # 总览表头由配置决定，模板里不该出现具体列名——否则改配置后 init 产出的表头
     # 与配置不符，new 会因 find_table 匹配不上而直接失败。
     overview_header = config["overview"]["header"]
@@ -1515,42 +1564,48 @@ def inject_rework_note(text, archive_rel):
 
 
 def run_explore(root, config, slug, title):
-    """创建一份需求探索记录。
+    """创建一份需求探索记录及其配套资源目录。
 
     探索阶段与能力文档阶段的区别在于**允许反复改写**：需求在确认之前本就该变，
     而能力文档一旦建立就是承诺。把两者分开，才能让「还没想清楚」不至于污染
     「已经决定要做」的记录。
 
+    落点为 `<探索目录>/<主题>/<记录名>`，同一目录下另建资源目录（配置 explore.assets），
+    参考图、参考文档等配套资源集中放在其中——记录与它的证据同处一个主题目录，
+    迁移或删除主题时不会散落。
+
     参数：
         root: 项目根
         config: 配置字典
-        slug: 探索记录名（英文 kebab-case）
-        title: 主题；为空时取 slug
+        slug: 探索主题名（英文 kebab-case），同时是主题目录名
+        title: 主题标题；为空时取 slug
 
     返回：
         退出码
     """
     if not ADR_SLUG_PATTERN.fullmatch(slug or ""):
         die(
-            "探索记录名不合法：" + repr(slug) + chr(10) +
-            "必须是英文 kebab-case（如 cache-policy），因为它会直接成为文件名。"
+            "探索主题名不合法：" + repr(slug) + chr(10) +
+            "必须是英文 kebab-case（如 cache-policy），因为它会直接成为主题目录名。"
         )
     folder = explore_dir(config)
+    record_name = config["explore"]["record"]
+    assets_name = config["explore"]["assets"]
 
     target_root = docs_dir(root, config)
-    target_dir = os.path.join(target_root, folder)
-    if not os.path.isdir(target_dir):
+    explore_root = os.path.join(target_root, folder)
+    if not os.path.isdir(explore_root):
         # 已初始化的项目无法靠 init 补目录：init 在任一目标已存在时整体中止。
         # 而「给老项目后加探索」是常见诉求，因此这里自行补齐目录与说明文件。
         # 只创建缺的，不碰任何已有文件。
         readme_src = os.path.join(TEMPLATES_DIR, "explore", "README.md")
         try:
-            os.makedirs(target_dir, exist_ok=True)
+            os.makedirs(explore_root, exist_ok=True)
             if os.path.isfile(readme_src):
                 raw_readme, read_error = read_text(readme_src)
                 if raw_readme is not None:
                     with open(
-                        os.path.join(target_dir, "README.md"), "w", encoding="utf-8"
+                        os.path.join(explore_root, "README.md"), "w", encoding="utf-8"
                     ) as handle:
                         handle.write(fill_placeholders(raw_readme, config))
                 else:
@@ -1558,19 +1613,28 @@ def run_explore(root, config, slug, title):
             else:
                 print("提示：包内缺少 explore 目录说明模板，已跳过写入 README。")
         except OSError as make_error:
-            die("无法创建需求探索目录（%s）：%s" % (make_error, rel(root, target_dir)))
+            die("无法创建需求探索目录（%s）：%s" % (make_error, rel(root, explore_root)))
 
-    target = os.path.join(target_dir, slug + ".md")
-    if os.path.exists(target):
-        die("目标文件已存在，已中止（不覆盖）：" + rel(root, target))
+    target_dir = os.path.join(explore_root, slug)
+    if os.path.exists(target_dir):
+        die("目标主题目录已存在，已中止（不覆盖）：" + rel(root, target_dir))
 
     template = os.path.join(TEMPLATES_DIR, SKELETON_DIR, "explore.md")
     if not os.path.isfile(template):
         die("包内模板缺失：" + template + chr(10) + "该包可能未完整安装。")
 
+    assets_template = os.path.join(TEMPLATES_DIR, "explore", "assets-README.md")
+    if not os.path.isfile(assets_template):
+        die("包内资源目录说明模板缺失：" + assets_template + chr(10)
+            + "该包可能未完整安装。")
+
     raw, error = read_text(template)
     if raw is None:
         die("包内模板读取失败：%s（%s）" % (rel(root, template), error))
+
+    assets_raw, assets_error = read_text(assets_template)
+    if assets_raw is None:
+        die("包内资源目录说明读取失败：%s（%s）" % (rel(root, assets_template), assets_error))
 
     text = fill_placeholders(raw, config)
     text = text.replace("<主题>", (title or "").strip() or slug)
@@ -1580,7 +1644,9 @@ def run_explore(root, config, slug, title):
     text = text.replace("{{initial_status}}", config["overview"]["status_values"][0])
 
     leftover = [
-        token for token in ("<主题>", "{{generator}}", "{{initial_status}}") if token in text
+        token
+        for token in ("<主题>", "{{generator}}", "{{initial_status}}")
+        if token in text
     ]
     if leftover:
         die(
@@ -1588,19 +1654,52 @@ def run_explore(root, config, slug, title):
             "说明包内模板与本命令的替换规则不一致，已中止（不写文件）。"
         )
 
+    assets_text = fill_placeholders(assets_raw, config)
+    assets_leftover = re.search(r"\{\{[A-Za-z0-9_]+\}\}", assets_text)
+    if assets_leftover:
+        die(
+            "资源目录说明模板中仍有未替换的占位符：" + assets_leftover.group(0) + chr(10) +
+            "说明包内模板与本命令的替换规则不一致，已中止（不写文件）。"
+        )
+
+    record_path = os.path.join(target_dir, record_name)
+    assets_dir = os.path.join(target_dir, assets_name)
+    assets_readme_path = os.path.join(assets_dir, "README.md")
+    created = []
+
+    def _cleanup_partial():
+        for item in reversed(created):
+            try:
+                os.remove(item)
+            except OSError:
+                pass
+        for item in (assets_dir, target_dir):
+            try:
+                os.rmdir(item)
+            except OSError:
+                pass
+
     try:
-        with open(target, "w", encoding="utf-8") as handle:
+        os.makedirs(assets_dir)
+        with open(assets_readme_path, "w", encoding="utf-8") as handle:
+            handle.write(assets_text)
+        created.append(assets_readme_path)
+        with open(record_path, "w", encoding="utf-8") as handle:
             handle.write(text)
+        created.append(record_path)
     except OSError as write_error:
-        die("写入失败（%s）：%s" % (write_error, rel(root, target)))
+        _cleanup_partial()
+        die("写入失败（%s），已回滚：%s" % (write_error, rel(root, target_dir)))
 
     print("已创建需求探索记录：")
-    print("  " + rel(root, target))
+    print("  " + rel(root, record_path))
+    print("  " + rel(root, assets_readme_path) + "（配套资源目录）")
     print("")
     print("下一步：")
     print("  1) 先查既有方案（联网检索 / 上游与框架文档 / 本地依赖），填「## 既有方案调研」；")
     print("     确实没有匹配方案时写一行「未找到匹配方案」并列出检索范围。")
     print("  2) 再填「要解决的问题」「未定项」「已确认的决定」与「结论」，确认后把状态改为已确认。")
+    print("     参考图、参考文档等配套资源放入 " + rel(root, assets_dir) + "/。")
     print("  3) 用 new <能力名> --from-explore " + slug + " 建立能力文档。")
     return 0
 
@@ -1615,6 +1714,36 @@ def explore_dir(config):
         目录名；配置缺失时由 load_config 提前以退出码 3 拦下，此处不再兜底
     """
     return str(config["dirs"]["explore"]).strip()
+
+
+def explore_record_rel(config, slug):
+    """返回某主题的探索记录相对文档根的 POSIX 路径。
+
+    参数：
+        config: 配置字典
+        slug: 探索主题名
+
+    返回：
+        <探索目录>/<主题>/<记录名>
+    """
+    return (
+        explore_dir(config) + "/" + slug + "/" + str(config["explore"]["record"]).strip()
+    )
+
+
+def explore_assets_rel(config, slug):
+    """返回某主题的配套资源目录相对文档根的 POSIX 路径。
+
+    参数：
+        config: 配置字典
+        slug: 探索主题名
+
+    返回：
+        <探索目录>/<主题>/<资源目录名>
+    """
+    return (
+        explore_dir(config) + "/" + slug + "/" + str(config["explore"]["assets"]).strip()
+    )
 
 
 def check_explore_confirmed(root, config, slug):
@@ -1642,10 +1771,19 @@ def check_explore_confirmed(root, config, slug):
             "启用方式：在配置 dirs 中加 explore 键并指向 explore 目录，再重新执行 init。"
         )
     target_root = docs_dir(root, config)
-    path = os.path.join(target_root, folder, slug + ".md")
+    rel_record = explore_record_rel(config, slug)
+    path = os.path.join(target_root, folder, slug, str(config["explore"]["record"]).strip())
     if not os.path.isfile(path):
+        legacy = os.path.join(target_root, folder, slug + ".md")
+        if os.path.isfile(legacy):
+            die(
+                "需求探索记录仍是旧布局：" + folder + "/" + slug + ".md\n"
+                "当前布局要求 " + rel_record + "。\n"
+                "请把记录移入主题目录（并把它引用的资源一并移入 "
+                + explore_assets_rel(config, slug) + "），再重试。"
+            )
         die(
-            "找不到需求探索记录：" + folder + "/" + slug + ".md\n"
+            "找不到需求探索记录：" + rel_record + "\n"
             "先用 explore 子命令创建并完成它，再建立能力文档。"
         )
     text, error = read_text(path)
@@ -1674,7 +1812,7 @@ def check_explore_confirmed(root, config, slug):
     research = extract_section(text, "既有方案调研")
     if not has_table_rows(research):
         die(
-            "需求探索记录缺少既有方案调研：" + folder + "/" + slug + ".md" + chr(10) +
+            "需求探索记录缺少既有方案调研：" + rel_record + chr(10) +
             "「## 既有方案调研」一节须至少写一行（候选 / 来源 / 匹配点 / 结论）。" + chr(10) +
             "先检索公开资料、上游或框架文档与本地依赖；确实没有匹配方案时，" + chr(10) +
             "写一行「未找到匹配方案」并列出检索范围与关键词。"
@@ -1686,7 +1824,7 @@ def check_explore_confirmed(root, config, slug):
     decisions = extract_section(text, "已确认的决定")
     if not has_table_rows(decisions):
         die(
-            "需求探索记录缺少已确认的决定：" + folder + "/" + slug + ".md" + chr(10) +
+            "需求探索记录缺少已确认的决定：" + rel_record + chr(10) +
             "「## 已确认的决定」一节须至少写一条（决定 / 为什么这么定 / 成立前提）。" + chr(10) +
             "这一节应由逐轮向用户提问得出，不能自问自答地填。"
         )
@@ -1694,10 +1832,10 @@ def check_explore_confirmed(root, config, slug):
     conclusion = extract_section(text, "结论")
     if not has_conclusion(conclusion):
         die(
-            "需求探索记录缺少结论：" + folder + "/" + slug + ".md\n"
+            "需求探索记录缺少结论：" + rel_record + "\n"
             "「## 结论」一节必须写明做什么、不做什么；仅保留填写提示视为未确认。"
         )
-    return folder + "/" + slug + ".md"
+    return rel_record
 
 
 def extract_section(text, title):
@@ -3190,14 +3328,18 @@ def _supersede_section(text):
 
 
 def check_explore_records(root, target_root, config):
-    """检查 10：需求探索记录的状态与结论完整性。
+    """检查 10：需求探索目录布局、记录状态与配套资源目录。
 
-    只查两件机械可判定的事：
-    1. 状态不得为空，且必须是「初始值」或任一能力状态取值（即已推进）；
-    2. 已有能力文档引用它时（设计文档背景写了它的路径），结论不得为空。
+    探索目录按主题分目录：每个主题一个子目录，目录内放探索记录与资源目录。
+    机械可判定的项：
 
-    不查「结论写得好不好」——那属评审。这里只保证「确认过」这件事有据可查，
-    否则探索记录会退化成一张空表，而它恰恰是用来防止空文档的。
+    1. 探索目录根下不得再有平铺的 `.md`（README 除外）——旧布局残留；
+    2. 主题目录名必须是合法 kebab-case；
+    3. 主题目录内必须有配置声明的探索记录；
+    4. 记录状态不得为空，且必须是初始值或任一能力状态取值；
+    5. 缺少资源配置目录时给警告——可能尚未放资源，但结构不完整。
+
+    「结论写得好不好」「资源内容是否相关」属评审，这里不判。
 
     参数：
         root: 项目根
@@ -3215,23 +3357,66 @@ def check_explore_records(root, target_root, config):
     if not os.path.isdir(path_root):
         return findings
 
+    record_name = str(config["explore"]["record"]).strip()
+    assets_name = str(config["explore"]["assets"]).strip()
     status_field = config["file_header"]["status_field"]
     initial = config["overview"]["status_values"][0]
     known = set(config["overview"]["status_values"])
 
     for name in sorted(os.listdir(path_root)):
-        if name == "README.md" or not name.endswith(".md"):
-            continue
         path = os.path.join(path_root, name)
-        if not os.path.isfile(path):
+        if name == "README.md":
             continue
-        text, _ = read_text(path)
+        if os.path.isfile(path):
+            if name.endswith(".md"):
+                findings.append(
+                    Finding(
+                        LEVEL_ERROR,
+                        "需求探索",
+                        rel(root, path) + " 是旧布局的平铺探索记录；"
+                        "新布局要求 " + folder + "/<主题>/" + record_name + "，"
+                        "资源放同目录 " + assets_name + "/ 下。请移入主题目录后重跑。",
+                    )
+                )
+            continue
+        if not os.path.isdir(path):
+            continue
+        if not ADR_SLUG_PATTERN.fullmatch(name):
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "需求探索",
+                    folder + "/" + name + " 不是合法的主题目录名（须为英文 kebab-case）",
+                )
+            )
+            continue
+        record_path = os.path.join(path, record_name)
+        if not os.path.isfile(record_path):
+            findings.append(
+                Finding(
+                    LEVEL_ERROR,
+                    "需求探索",
+                    folder + "/" + name + " 缺少探索记录 " + record_name,
+                )
+            )
+            continue
+        if not os.path.isdir(os.path.join(path, assets_name)):
+            findings.append(
+                Finding(
+                    LEVEL_WARN,
+                    "需求探索",
+                    folder + "/" + name + " 缺少资源目录 " + assets_name + "/"
+                    "（记录引用的参考图、参考文档等无处存放）",
+                )
+            )
+
+        text, _ = read_text(record_path)
         if text is None:
             continue
         header = extract_header_table(text)
         if not header:
             findings.append(
-                Finding(LEVEL_ERROR, "需求探索", rel(root, path) + " 缺少文件头字段表")
+                Finding(LEVEL_ERROR, "需求探索", rel(root, record_path) + " 缺少文件头字段表")
             )
             continue
         values = parse_header_fields(header)
@@ -3241,7 +3426,7 @@ def check_explore_records(root, target_root, config):
                 Finding(
                     LEVEL_ERROR,
                     "需求探索",
-                    rel(root, path) + " 的「" + status_field + "」为空",
+                    rel(root, record_path) + " 的「" + status_field + "」为空",
                 )
             )
         elif status not in known:
@@ -3249,7 +3434,7 @@ def check_explore_records(root, target_root, config):
                 Finding(
                     LEVEL_ERROR,
                     "需求探索",
-                    rel(root, path) + " 的状态「" + status + "」不在允许集合内："
+                    rel(root, record_path) + " 的状态「" + status + "」不在允许集合内："
                     + "、".join(config["overview"]["status_values"]),
                 )
             )
@@ -3281,19 +3466,23 @@ def check_explore_adoption(root, target_root, config, path_root):
         缺口列表
     """
     findings = []
+    settings = config["explore"]
+    record_name = str(settings["record"]).strip()
     folder = explore_dir(config)
     adoptions = {}
 
+    # 只遍历主题子目录下的记录；assets 里的资源不参与采纳检查。
     for name in sorted(os.listdir(path_root)):
-        if name == "README.md" or not name.endswith(".md"):
-            continue
         path = os.path.join(path_root, name)
-        if not os.path.isfile(path):
+        if not os.path.isdir(path):
             continue
-        text, _ = read_text(path)
+        record_path = os.path.join(path, record_name)
+        if not os.path.isfile(record_path):
+            continue
+        text, _ = read_text(record_path)
         if text is None:
             continue
-        rel_record = folder + "/" + name
+        rel_record = folder + "/" + name + "/" + record_name
         targets = parse_adoption_targets(explore_adoption_section(text))
         adoptions[rel_record] = set(targets)
         for target in targets:
